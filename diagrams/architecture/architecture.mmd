@@ -1,60 +1,49 @@
+%%{init: {'flowchart': {'nodeSpacing': 90, 'rankSpacing': 140}}}%%
 flowchart LR
-  %% Clients
-  subgraph WEB["Web (React)"]
-    U["Utilisateur"]
-    ADM["Admin Web"]
+  subgraph C[Clients]
+    U["Web Utilisateur (React)"]
+    A["Web Admin (React)"]
+    J["Admin Desktop (JavaFX)"]
   end
 
-  subgraph DESK["Client lourd (Admin)"]
-    J["JavaFX (offline-first)"]
-    L[(SQLite/H2 locale)]
-    O["Outbox (actions offline)"]
+  subgraph B[Backend]
+    API["API Node.js / Express<br/>(modules REST + WebSocket + Sync + RGPD + Jison + Swagger)"]
   end
 
-  %% Auth
-  subgraph AUTH["SSO + MFA"]
-    KC["Keycloak (OIDC + MFA)"]
+  subgraph L["Stockage local (offline)"]
+    DB[(SQLite/H2)]
+    OUT["Outbox (actions offline)"]
   end
 
-  %% Backend
-  subgraph BACK["Backend (Node.js + Express)"]
-    API["API REST (modules)"]
-    RT["Temps réel (Socket.IO)"]
-    SY["Sync API (push/pull JavaFX)"]
-    UP["Fichiers: presigned URLs"]
+  subgraph S[SSO + MFA]
+    KC["Keycloak (OIDC + TOTP)"]
   end
 
-  %% Data
-  subgraph DATA["Données"]
+  subgraph D[Données]
     M[(MongoDB)]
     N[(Neo4j)]
-    S3["MinIO (S3) - Médias & PDF"]
+    O["MinIO (S3)<br/>Fichiers: médias + PDF"]
   end
 
-  %% Web flows
-  U -->|HTTPS| API
-  ADM -->|HTTPS| API
-  U <-->|WebSocket| RT
-  ADM <-->|WebSocket| RT
+  U -->|HTTPS REST| API
+  A -->|HTTPS REST| API
 
-  %% Auth flows
-  U -->|Login| KC
-  ADM -->|Login| KC
-  J -->|Login| KC
-  API -->|Vérifie token| KC
+  U <-->|WebSocket| API
+  A <-->|WebSocket| API
 
-  %% Data flows
-  API --> M
-  API --> N
+  U -->|Login SSO+MFA| KC
+  A -->|Login SSO+MFA| KC
+  J -->|Login SSO+MFA| KC
+  API -->|Vérifie token OIDC| KC
 
-  %% MinIO flows (upload/download direct)
-  API --> UP
-  UP -->|Génère liens temporaires| S3
-  U -.->|Upload/Download direct| S3
-  ADM -.->|Upload/Download direct| S3
+  API -->|Read/Write| M
+  API -->|Reco / graph queries| N
 
-  %% Java offline + sync
-  J --> L
-  J --> O
-  J -->|push/pull| SY
-  SY --> M
+  API -->|Presigned URLs| O
+  U -.->|Upload/Download direct| O
+  A -.->|Upload/Download direct| O
+
+  J -->|Read/Write offline| DB
+  J -->|Ajoute actions offline| OUT
+  OUT -.->|Ops à pousser| API
+  J <-->|Sync push/pull| API
