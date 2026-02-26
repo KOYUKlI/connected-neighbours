@@ -1,0 +1,60 @@
+flowchart LR
+  %% Clients
+  subgraph WEB["Web (React)"]
+    U["Utilisateur"]
+    ADM["Admin Web"]
+  end
+
+  subgraph DESK["Client lourd (Admin)"]
+    J["JavaFX (offline-first)"]
+    L[(SQLite/H2 locale)]
+    O["Outbox (actions offline)"]
+  end
+
+  %% Auth
+  subgraph AUTH["SSO + MFA"]
+    KC["Keycloak (OIDC + MFA)"]
+  end
+
+  %% Backend
+  subgraph BACK["Backend (Node.js + Express)"]
+    API["API REST (modules)"]
+    RT["Temps réel (Socket.IO)"]
+    SY["Sync API (push/pull JavaFX)"]
+    UP["Fichiers: presigned URLs"]
+  end
+
+  %% Data
+  subgraph DATA["Données"]
+    M[(MongoDB)]
+    N[(Neo4j)]
+    S3["MinIO (S3) - Médias & PDF"]
+  end
+
+  %% Web flows
+  U -->|HTTPS| API
+  ADM -->|HTTPS| API
+  U <-->|WebSocket| RT
+  ADM <-->|WebSocket| RT
+
+  %% Auth flows
+  U -->|Login| KC
+  ADM -->|Login| KC
+  J -->|Login| KC
+  API -->|Vérifie token| KC
+
+  %% Data flows
+  API --> M
+  API --> N
+
+  %% MinIO flows (upload/download direct)
+  API --> UP
+  UP -->|Génère liens temporaires| S3
+  U -.->|Upload/Download direct| S3
+  ADM -.->|Upload/Download direct| S3
+
+  %% Java offline + sync
+  J --> L
+  J --> O
+  J -->|push/pull| SY
+  SY --> M
