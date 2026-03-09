@@ -1,20 +1,21 @@
 {
   "name": "@connected/api",
+  "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "",
-  "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc -p .",
-    "test": "echo \"(tests à venir)\"",
-    "lint": "echo \"(lint à venir)\""
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "echo \"tests: TODO\"",
+    "lint": "echo \"lint: TODO\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.30.0",
   "dependencies": {
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mongodb": "^7.1.0",
     "neo4j-driver": "^6.0.1"
@@ -23,7 +24,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.3",
     "eslint": "^10.0.2",
-    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
