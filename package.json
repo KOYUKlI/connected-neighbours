@@ -1,15 +1,10 @@
 {
   "name": "connected-neighbours",
-  "private": true,
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm -r dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
-    "up": "docker compose up -d",
-    "down": "docker compose down -v"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
