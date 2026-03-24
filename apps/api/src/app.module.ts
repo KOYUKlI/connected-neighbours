@@ -5,6 +5,7 @@ import * as Joi from 'joi';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
@@ -51,6 +52,8 @@ import { AppService } from './app.service';
         uri: process.env.MONGODB_URI,
       }),
     }),
+
+    ServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
