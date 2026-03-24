@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
+import type { ChangeEvent, SubmitEvent  } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { createService, getServices } from './services/api';
@@ -45,7 +45,7 @@ export default function App() {
   ) {
     const target = event.target;
     const { name, value } = target;
-  
+
     if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       setForm((current) => ({
         ...current,
@@ -53,7 +53,7 @@ export default function App() {
       }));
       return;
     }
-  
+
     if (name === 'pricePoints') {
       setForm((current) => ({
         ...current,
@@ -61,14 +61,14 @@ export default function App() {
       }));
       return;
     }
-  
+
     setForm((current) => ({
       ...current,
       [name]: value,
     }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     createMutation.mutate({
