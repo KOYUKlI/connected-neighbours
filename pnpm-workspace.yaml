@@ -1,9 +1,6 @@
 packages:
-  - apps/*
-  - packages/*
-
-ignoredBuiltDependencies:
-  - '@scarf/scarf'
-
-onlyBuiltDependencies:
-  - esbuild
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  '@nestjs/core': true
+  '@scarf/scarf': true

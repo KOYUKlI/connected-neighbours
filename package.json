@@ -1,30 +1,20 @@
 {
   "name": "connected-neighbours",
+  "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "pnpm -r --parallel --stream --if-present dev",
-    "dev:api": "pnpm --filter ./apps/api dev",
-    "dev:web": "pnpm --filter ./apps/web dev",
-    "dev:admin": "pnpm --filter ./apps/admin-web dev",
-    "build": "pnpm -r --if-present build",
-    "lint": "pnpm -r --if-present lint",
-    "test": "pnpm -r --if-present test",
-    "typecheck": "pnpm -r --if-present typecheck"
+  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be",
+  "engines": {
+    "node": ">=24 <25"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.30.0",
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "eslint": "^9.39.4",
-    "globals": "^17.4.0",
-    "prettier": "^3.8.1",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.57.0"
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream --if-present run dev",
+    "dev:api": "pnpm --filter \"./apps/api\" run start:dev",
+    "dev:web": "pnpm --filter \"./apps/web\" run dev",
+    "dev:admin": "pnpm --filter \"./apps/admin-web\" run dev",
+    "build": "pnpm -r --if-present run build",
+    "lint": "pnpm -r --if-present run lint",
+    "test": "pnpm -r --if-present run test",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "format": "pnpm -r --if-present run format"
   }
 }
