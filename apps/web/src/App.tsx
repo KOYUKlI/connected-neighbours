@@ -43,16 +43,17 @@ export default function App() {
   function handleChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) {
-    const { name, value, type } = event.target;
-
-    if (type === 'checkbox' && event.target instanceof HTMLInputElement) {
+    const target = event.target;
+    const { name, value } = target;
+  
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       setForm((current) => ({
         ...current,
-        [name]: event.target.checked,
+        [name]: target.checked,
       }));
       return;
     }
-
+  
     if (name === 'pricePoints') {
       setForm((current) => ({
         ...current,
@@ -60,7 +61,7 @@ export default function App() {
       }));
       return;
     }
-
+  
     setForm((current) => ({
       ...current,
       [name]: value,

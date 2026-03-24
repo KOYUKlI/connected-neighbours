@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { NotFoundException } from '@nestjs/common';
 
+import { CreateServiceDto } from './dto/create-service.dto';
+import { ServiceType } from './schemas/service.schema';
+
 import { ServicesService } from './services.service';
 import { Service } from './schemas/service.schema';
 
@@ -33,10 +36,10 @@ describe('ServicesService', () => {
   });
 
   it('should create a service and default status to published', async () => {
-    const dto = {
+    const dto: CreateServiceDto = {
       title: 'Babysitting samedi soir',
       description: 'Je propose 3 heures de babysitting.',
-      type: 'offer',
+      type: ServiceType.OFFER,
       category: 'Entraide',
       availability: 'Samedi 19h-22h',
       neighborhoodId: 'quartier-centre',
