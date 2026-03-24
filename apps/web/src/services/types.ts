@@ -30,7 +30,6 @@ export interface CreateServiceInput {
   category: string;
   availability: string;
   neighborhoodId: string;
-  ownerId: string;
   isPaid: boolean;
   pricePoints?: number;
 }
