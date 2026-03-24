@@ -6,6 +6,7 @@ import * as Joi from 'joi';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ServicesModule } from './services/services.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -40,6 +41,10 @@ import { ServicesModule } from './services/services.module';
         KEYCLOAK_REALM: Joi.string().required(),
         KEYCLOAK_CLIENT_ID: Joi.string().required(),
         KEYCLOAK_CLIENT_SECRET: Joi.string().required(),
+
+        JWT_SECRET: Joi.string().min(16).required(),
+        JWT_EXPIRES_IN: Joi.string().default('1d'),
+        DEV_AUTH_SEED: Joi.boolean().default(true),
       }),
       validationOptions: {
         allowUnknown: true,
@@ -54,6 +59,7 @@ import { ServicesModule } from './services/services.module';
     }),
 
     ServicesModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,9 +13,10 @@ export class ServicesService {
     private readonly serviceModel: Model<ServiceDocument>,
   ) {}
 
-  async create(createServiceDto: CreateServiceDto) {
+  async create(createServiceDto: CreateServiceDto, ownerId: string) {
     return this.serviceModel.create({
       ...createServiceDto,
+      ownerId,
       status: createServiceDto.status ?? 'published',
       pricePoints: createServiceDto.isPaid
         ? (createServiceDto.pricePoints ?? 0)

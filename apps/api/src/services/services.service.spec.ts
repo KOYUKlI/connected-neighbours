@@ -52,7 +52,7 @@ describe('ServicesService', () => {
 
     serviceModelMock.create.mockResolvedValue(createdDoc);
 
-    const result = await service.create(dto);
+    const result = await service.create(dto, 'user_123');
 
     expect(serviceModelMock.create).toHaveBeenCalledWith({
       ...dto,

@@ -6,22 +6,34 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesService } from './services.service';
 
 @ApiTags('services')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Créer une annonce de service' })
-  create(@Body() createServiceDto: CreateServiceDto) {
-    return this.servicesService.create(createServiceDto);
+  create(
+    @Body() createServiceDto: CreateServiceDto,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.servicesService.create(createServiceDto, user.sub);
   }
 
   @Get()
