@@ -14,15 +14,13 @@ export class ServicesService {
   ) {}
 
   async create(createServiceDto: CreateServiceDto) {
-    const created = new this.serviceModel({
+    return this.serviceModel.create({
       ...createServiceDto,
       status: createServiceDto.status ?? 'published',
       pricePoints: createServiceDto.isPaid
         ? (createServiceDto.pricePoints ?? 0)
         : null,
     });
-
-    return created.save();
   }
 
   async findAll() {
