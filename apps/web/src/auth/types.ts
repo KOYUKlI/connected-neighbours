@@ -7,6 +7,8 @@ export interface AuthUser {
   role: Role;
   neighborhoodId: string;
   isActive: boolean;
+  pointsBalance: number;
+  reservedPoints: number;
 }
 
 export interface LoginInput {

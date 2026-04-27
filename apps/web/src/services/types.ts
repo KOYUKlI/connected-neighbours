@@ -33,3 +33,39 @@ export interface CreateServiceInput {
   isPaid: boolean;
   pricePoints?: number;
 }
+
+export type ContractStatus = 'sent' | 'active' | 'completed' | 'cancelled';
+
+export interface ContractItem {
+  _id: string;
+  serviceId: string;
+  requesterId: string;
+  providerId: string;
+  payerId: string;
+  receiverId: string;
+  pricePoints: number;
+  status: ContractStatus;
+  signedByIds: string[];
+  signedAt: string | null;
+  completedAt: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AcceptServiceResult {
+  service: ServiceItem;
+  contract: ContractItem | null;
+}
+
+export type PointTransactionType = 'reservation' | 'release' | 'transfer';
+
+export interface PointTransactionItem {
+  _id: string;
+  type: PointTransactionType;
+  amount: number;
+  serviceId: string;
+  contractId: string;
+  fromUserId: string;
+  toUserId: string | null;
+  createdAt?: string;
+}
