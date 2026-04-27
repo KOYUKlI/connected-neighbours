@@ -1,5 +1,5 @@
-import { useAuth } from './auth/AuthProvider';
 import { LoginForm } from './auth/LoginForm';
+import { useAuth } from './auth/useAuth';
 import { ServicesScreen } from './services/ServicesScreen';
 
 export default function App() {

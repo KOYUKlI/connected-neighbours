@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -9,18 +7,10 @@ import {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { AuthContext, type AuthContextValue } from './AuthContext';
 import { getMe, login as loginRequest } from './api';
 import { authStorage } from './storage';
 import type { AuthUser, LoginInput } from './types';
-
-type AuthContextValue = {
-  user: AuthUser | null;
-  isReady: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -73,14 +63,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const value = useContext(AuthContext);
-
-  if (!value) {
-    throw new Error('useAuth must be used inside AuthProvider');
-  }
-
-  return value;
 }

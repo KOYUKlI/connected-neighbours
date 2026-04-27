@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from './useAuth';
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -55,6 +55,8 @@ export function LoginForm() {
       <div style={{ marginTop: '1rem', fontSize: '0.95rem' }}>
         <p><strong>Comptes de démonstration :</strong></p>
         <p>resident@connected.local / resident123</p>
+        <p>alice@connected.local / alice123</p>
+        <p>bob@connected.local / bob123</p>
         <p>moderator@connected.local / moderator123</p>
         <p>admin@connected.local / admin123</p>
       </div>
