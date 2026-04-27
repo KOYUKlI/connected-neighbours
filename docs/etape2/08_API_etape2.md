@@ -53,6 +53,8 @@
 | Rôle | Email | Mot de passe |
 | --- | --- | --- |
 | Habitant | `resident@connected.local` | `resident123` |
+| Habitant | `alice@connected.local` | `alice123` |
+| Habitant | `bob@connected.local` | `bob123` |
 | Modérateur | `moderator@connected.local` | `moderator123` |
 | Admin | `admin@connected.local` | `admin123` |
 
