@@ -5,10 +5,16 @@ import * as Joi from 'joi';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ServicesModule } from './services/services.module';
 import { AuthModule } from './auth/auth.module';
-import { PointsModule } from './points/points.module';
 import { ContractsModule } from './contracts/contracts.module';
+import { DocumentsModule } from './documents/documents.module';
+import { EventsModule } from './events/events.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
+import { PointsModule } from './points/points.module';
+import { RgpdModule } from './rgpd/rgpd.module';
+import { ServicesModule } from './services/services.module';
+import { VotesModule } from './votes/votes.module';
 
 @Module({
   imports: [
@@ -64,6 +70,12 @@ import { ContractsModule } from './contracts/contracts.module';
     AuthModule,
     PointsModule,
     ContractsModule,
+    NeighborhoodsModule,
+    EventsModule,
+    VotesModule,
+    DocumentsModule,
+    MessagingModule,
+    RgpdModule,
   ],
   controllers: [AppController],
   providers: [AppService],
