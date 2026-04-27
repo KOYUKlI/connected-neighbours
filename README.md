@@ -12,7 +12,7 @@ Une application **JavaFX** (client lourd) est dédiée à l’administration : i
 
 ## Tech stack
 - Front : React
-- Back : Node.js + Express
+- Back : Node.js + NestJS/Fastify
 - Bases : MongoDB (données) + Neo4j (recommandations)
 - Client admin : Java + JavaFX (SQLite/H2 + sync)
 - Realtime : WebSocket / Socket.IO
@@ -21,7 +21,7 @@ Une application **JavaFX** (client lourd) est dédiée à l’administration : i
 
 ## Structure du repository
 - `frontend/` : application React (utilisateur + admin)
-- `backend/` : API Node/Express
+- `apps/api/` : API Node.js NestJS/Fastify
 - `javafx/` : application desktop JavaFX (admin)
 - `docs/` : livrables MyGES, spécifications, décisions (ADR)
 - `diagrams/` : schémas d’architecture

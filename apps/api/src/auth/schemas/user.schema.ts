@@ -15,7 +15,7 @@ export class User {
   @Prop({ required: true, trim: true })
   displayName: string;
 
-  @Prop({ required: true, enum: Role, default: Role.RESIDENT })
+  @Prop({ required: true, type: String, enum: Role, default: Role.RESIDENT })
   role: Role;
 
   @Prop({ required: true, trim: true })
@@ -26,6 +26,12 @@ export class User {
 
   @Prop({ required: true, default: true })
   isActive: boolean;
+
+  @Prop({ required: true, default: 100, min: 0 })
+  pointsBalance: number;
+
+  @Prop({ required: true, default: 0, min: 0 })
+  reservedPoints: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

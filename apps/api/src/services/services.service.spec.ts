@@ -43,12 +43,16 @@ describe('ServicesService', () => {
       category: 'Entraide',
       availability: 'Samedi 19h-22h',
       neighborhoodId: 'quartier-centre',
-      ownerId: 'user_123',
       isPaid: true,
       pricePoints: 50,
     };
 
-    const createdDoc = { _id: 'abc123', ...dto, status: 'published' };
+    const createdDoc = {
+      _id: 'abc123',
+      ...dto,
+      ownerId: 'user_123',
+      status: 'published',
+    };
 
     serviceModelMock.create.mockResolvedValue(createdDoc);
 
@@ -56,6 +60,7 @@ describe('ServicesService', () => {
 
     expect(serviceModelMock.create).toHaveBeenCalledWith({
       ...dto,
+      ownerId: 'user_123',
       status: 'published',
       pricePoints: 50,
     });
@@ -97,7 +102,9 @@ describe('ServicesService', () => {
 
     serviceModelMock.findById.mockReturnValue({ exec });
 
-    await expect(service.findOne('missing-id')).rejects.toThrow(NotFoundException);
+    await expect(service.findOne('missing-id')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should nullify pricePoints when isPaid becomes false', async () => {

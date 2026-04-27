@@ -52,7 +52,9 @@ export class UpdateServiceDto {
   isPaid?: boolean;
 
   @ApiPropertyOptional({ nullable: true })
-  @ValidateIf((o) => o.isPaid === true || o.pricePoints !== undefined)
+  @ValidateIf(
+    (o: UpdateServiceDto) => o.isPaid === true || o.pricePoints !== undefined,
+  )
   @IsOptional()
   @IsInt()
   @Min(0)

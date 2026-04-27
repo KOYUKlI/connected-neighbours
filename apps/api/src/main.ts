@@ -1,6 +1,9 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
 import fastifyCookie from '@fastify/cookie';
@@ -12,8 +15,8 @@ async function bootstrap() {
   const host = process.env.HOST ?? '0.0.0.0';
   const cookieSecret = process.env.COOKIE_SECRET ?? 'change-me-in-env';
 
-  const rawCorsOrigins = process.env.CORS_ORIGIN
-    ?? 'http://localhost:5173,http://localhost:5174';
+  const rawCorsOrigins =
+    process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://localhost:5174';
 
   const corsOrigins = rawCorsOrigins
     .split(',')
@@ -59,7 +62,8 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, documentFactory);
 
   await app.listen(port, host);

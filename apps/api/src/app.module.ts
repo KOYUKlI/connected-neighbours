@@ -7,6 +7,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ServicesModule } from './services/services.module';
 import { AuthModule } from './auth/auth.module';
+import { PointsModule } from './points/points.module';
+import { ContractsModule } from './contracts/contracts.module';
 
 @Module({
   imports: [
@@ -60,6 +62,8 @@ import { AuthModule } from './auth/auth.module';
 
     ServicesModule,
     AuthModule,
+    PointsModule,
+    ContractsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

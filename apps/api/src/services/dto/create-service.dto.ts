@@ -17,7 +17,9 @@ export class CreateServiceDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: 'Je propose 3 heures de babysitting samedi de 19h à 22h.' })
+  @ApiProperty({
+    example: 'Je propose 3 heures de babysitting samedi de 19h à 22h.',
+  })
   @IsString()
   @IsNotEmpty()
   description: string;
@@ -41,25 +43,20 @@ export class CreateServiceDto {
   @IsNotEmpty()
   neighborhoodId: string;
 
-  @ApiProperty({
-    example: 'user_123',
-    description: 'Temporaire pour la V1 tant que l’authentification n’est pas branchée',
-  })
-  @IsString()
-  @IsNotEmpty()
-  ownerId: string;
-
   @ApiProperty({ example: false })
   @IsBoolean()
   isPaid: boolean;
 
   @ApiPropertyOptional({ example: 50, nullable: true })
-  @ValidateIf((o) => o.isPaid === true)
+  @ValidateIf((o: CreateServiceDto) => o.isPaid === true)
   @IsInt()
   @Min(0)
   pricePoints?: number;
 
-  @ApiPropertyOptional({ enum: ServiceStatus, example: ServiceStatus.PUBLISHED })
+  @ApiPropertyOptional({
+    enum: ServiceStatus,
+    example: ServiceStatus.PUBLISHED,
+  })
   @IsOptional()
   @IsEnum(ServiceStatus)
   status?: ServiceStatus;

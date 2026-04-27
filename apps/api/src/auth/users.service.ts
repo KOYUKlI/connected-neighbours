@@ -51,9 +51,26 @@ export class UsersService implements OnModuleInit {
     neighborhoodId: string;
     password: string;
   }) {
-    const existing = await this.userModel.findOne({ email: input.email }).exec();
+    const existing = await this.userModel
+      .findOne({ email: input.email })
+      .exec();
 
     if (existing) {
+      const patch: Partial<Pick<User, 'pointsBalance' | 'reservedPoints'>> = {};
+
+      if (existing.pointsBalance === undefined) {
+        patch.pointsBalance = 100;
+      }
+
+      if (existing.reservedPoints === undefined) {
+        patch.reservedPoints = 0;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        Object.assign(existing, patch);
+        await existing.save();
+      }
+
       return existing;
     }
 
@@ -66,6 +83,8 @@ export class UsersService implements OnModuleInit {
       neighborhoodId: input.neighborhoodId,
       passwordHash,
       isActive: true,
+      pointsBalance: 100,
+      reservedPoints: 0,
     });
   }
 
@@ -85,6 +104,8 @@ export class UsersService implements OnModuleInit {
       role: user.role,
       neighborhoodId: user.neighborhoodId,
       isActive: user.isActive,
+      pointsBalance: user.pointsBalance,
+      reservedPoints: user.reservedPoints,
     };
   }
 }

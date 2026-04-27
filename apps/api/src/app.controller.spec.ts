@@ -15,8 +15,22 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should expose API metadata', () => {
+      expect(appController.getRoot()).toEqual({
+        message: 'Connected Neighbours API',
+        docs: '/docs',
+        api: '/api',
+        health: '/api/health',
+      });
+    });
+  });
+
+  describe('health', () => {
+    it('should expose a health check payload', () => {
+      expect(appController.getHealth()).toEqual({
+        status: 'ok',
+        service: 'connected-neighbours-api',
+      });
     });
   });
 });

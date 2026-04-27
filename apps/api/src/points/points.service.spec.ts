@@ -1,0 +1,144 @@
+import { BadRequestException } from '@nestjs/common';
+
+import { PointsService } from './points.service';
+import { PointTransactionType } from './schemas/point-transaction.schema';
+
+describe('PointsService', () => {
+  let service: PointsService;
+
+  const userModelMock = {
+    findOneAndUpdate: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+  };
+
+  const transactionModelMock = {
+    create: jest.fn(),
+    find: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    service = new PointsService(
+      userModelMock as never,
+      transactionModelMock as never,
+    );
+  });
+
+  it('should reserve points from the payer balance', async () => {
+    const payer = {
+      id: 'user_1',
+      pointsBalance: 70,
+      reservedPoints: 30,
+    };
+
+    userModelMock.findOneAndUpdate.mockReturnValue(execResult(payer));
+
+    const result = await service.reserve({
+      payerId: 'user_1',
+      serviceId: 'svc_1',
+      contractId: 'contract_1',
+      amount: 30,
+    });
+
+    expect(userModelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      {
+        _id: 'user_1',
+        pointsBalance: { $gte: 30 },
+      },
+      {
+        $inc: {
+          pointsBalance: -30,
+          reservedPoints: 30,
+        },
+      },
+      { new: true },
+    );
+    expect(transactionModelMock.create).toHaveBeenCalledWith({
+      type: PointTransactionType.RESERVATION,
+      amount: 30,
+      serviceId: 'svc_1',
+      contractId: 'contract_1',
+      fromUserId: 'user_1',
+      toUserId: null,
+    });
+    expect(result).toEqual(payer);
+  });
+
+  it('should reject reservation when balance is insufficient', async () => {
+    userModelMock.findOneAndUpdate.mockReturnValue(execResult(null));
+
+    await expect(
+      service.reserve({
+        payerId: 'user_1',
+        serviceId: 'svc_1',
+        contractId: 'contract_1',
+        amount: 30,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should transfer reserved points to the receiver', async () => {
+    const payer = {
+      id: 'payer_1',
+      pointsBalance: 70,
+      reservedPoints: 0,
+    };
+    const receiver = {
+      id: 'receiver_1',
+      pointsBalance: 130,
+      reservedPoints: 0,
+    };
+
+    userModelMock.findOneAndUpdate.mockReturnValue(execResult(payer));
+    userModelMock.findByIdAndUpdate.mockReturnValue(execResult(receiver));
+
+    const result = await service.transferReserved({
+      payerId: 'payer_1',
+      receiverId: 'receiver_1',
+      serviceId: 'svc_1',
+      contractId: 'contract_1',
+      amount: 30,
+    });
+
+    expect(userModelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      {
+        _id: 'payer_1',
+        reservedPoints: { $gte: 30 },
+      },
+      {
+        $inc: {
+          reservedPoints: -30,
+        },
+      },
+      { new: true },
+    );
+    expect(userModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+      'receiver_1',
+      {
+        $inc: {
+          pointsBalance: 30,
+        },
+      },
+      { new: true },
+    );
+    expect(transactionModelMock.create).toHaveBeenCalledWith({
+      type: PointTransactionType.TRANSFER,
+      amount: 30,
+      serviceId: 'svc_1',
+      contractId: 'contract_1',
+      fromUserId: 'payer_1',
+      toUserId: 'receiver_1',
+    });
+    expect(result).toEqual({
+      payer,
+      receiver,
+    });
+  });
+});
+
+function execResult<T>(value: T) {
+  return {
+    exec: jest.fn().mockResolvedValue(value),
+  };
+}

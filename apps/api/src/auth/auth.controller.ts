@@ -6,11 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
@@ -44,7 +40,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Endpoint de démonstration réservé aux administrateurs' })
+  @ApiOperation({
+    summary: 'Endpoint de démonstration réservé aux administrateurs',
+  })
   adminOnly(@CurrentUser() user: { email: string; role: string }) {
     return {
       message: 'Accès administrateur autorisé',

@@ -1,0 +1,54 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
+
+export type ContractDocument = HydratedDocument<Contract>;
+
+export enum ContractStatus {
+  SENT = 'sent',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
+@Schema({
+  timestamps: true,
+  versionKey: false,
+})
+export class Contract {
+  @Prop({ required: true, trim: true })
+  serviceId: string;
+
+  @Prop({ required: true, trim: true })
+  requesterId: string;
+
+  @Prop({ required: true, trim: true })
+  providerId: string;
+
+  @Prop({ required: true, trim: true })
+  payerId: string;
+
+  @Prop({ required: true, trim: true })
+  receiverId: string;
+
+  @Prop({ required: true, min: 1 })
+  pricePoints: number;
+
+  @Prop({
+    required: true,
+    type: String,
+    enum: ContractStatus,
+    default: ContractStatus.SENT,
+  })
+  status: ContractStatus;
+
+  @Prop({ type: [String], default: [] })
+  signedByIds: string[];
+
+  @Prop({ type: Date, default: null })
+  signedAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  completedAt: Date | null;
+}
+
+export const ContractSchema = SchemaFactory.createForClass(Contract);

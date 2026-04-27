@@ -20,7 +20,10 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    const passwordOk = await this.passwordService.verify(dto.password, user.passwordHash);
+    const passwordOk = await this.passwordService.verify(
+      dto.password,
+      user.passwordHash,
+    );
 
     if (!passwordOk) {
       throw new UnauthorizedException('Identifiants invalides');
