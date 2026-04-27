@@ -28,6 +28,22 @@ export class UsersService implements OnModuleInit {
     });
 
     await this.ensureDevUser({
+      email: 'alice@connected.local',
+      displayName: 'Alice Martin',
+      role: Role.RESIDENT,
+      neighborhoodId: 'quartier-centre',
+      password: 'alice123',
+    });
+
+    await this.ensureDevUser({
+      email: 'bob@connected.local',
+      displayName: 'Bob Dupont',
+      role: Role.RESIDENT,
+      neighborhoodId: 'quartier-centre',
+      password: 'bob123',
+    });
+
+    await this.ensureDevUser({
       email: 'moderator@connected.local',
       displayName: 'Moderator Demo',
       role: Role.MODERATOR,
