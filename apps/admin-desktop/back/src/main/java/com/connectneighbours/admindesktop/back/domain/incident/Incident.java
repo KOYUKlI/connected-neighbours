@@ -45,6 +45,15 @@ public class Incident {
     public Incident() {
     }
 
+    public Incident(String title, String description, IncidentType type) {
+        this.incidentId = UUID.randomUUID();
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.status = IncidentStatus.CREATED;
+
+    }
+
     public UUID getIncidentId() {
         return incidentId;
     }
@@ -75,6 +84,18 @@ public class Incident {
 
     public LocalDateTime getResolvedAt() {
         return resolvedAt;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setType(IncidentType type) {
+        this.type = type;
     }
 
     public void resolve() {

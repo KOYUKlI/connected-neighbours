@@ -4,6 +4,8 @@ import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,5 +52,10 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     @Override
     public void delete(Incident incident) {
         incidentDAO.delete(incident);
+    }
+
+    @Override
+    public Page<Incident> findAll(Pageable pageable) {
+        return incidentDAO.findAll(pageable);
     }
 }

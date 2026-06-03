@@ -1,0 +1,55 @@
+package com.connectneighbours.admindesktop.back.application.incident;
+
+import com.connectneighbours.admindesktop.back.domain.alert.Alert;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
+import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+
+import java.util.*;
+
+public class AlertRepositoryInMemory implements AlertRepository {
+    private final Map<UUID, Alert> data = new HashMap<>();
+
+    @Override
+    public Alert save(Alert alert) {
+        data.put(alert.getAlertId(), alert);
+        return alert;
+    }
+
+    @Override
+    public Optional<Alert> findById(UUID id) {
+        return Optional.ofNullable(data.get(id));
+    }
+
+    @Override
+    public List<Alert> findAll() {
+        return new ArrayList<>(data.values());
+    }
+
+    @Override
+    public List<Alert> findByIncident(Incident incident) {
+        return data.values().stream()
+                .filter(a -> a.getIncident().equals(incident))
+                .toList();
+    }
+
+    @Override
+    public List<Alert> findBySeverity(Severity severity) {
+        return data.values().stream()
+                .filter(a -> a.getSeverity() == severity)
+                .toList();
+    }
+
+    @Override
+    public List<Alert> findByStatus(AlertStatus status) {
+        return data.values().stream()
+                .filter(a -> a.getStatus() == status)
+                .toList();
+    }
+
+    @Override
+    public void delete(Alert alert) {
+        data.remove(alert.getAlertId());
+    }
+}

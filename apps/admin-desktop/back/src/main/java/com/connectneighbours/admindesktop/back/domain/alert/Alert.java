@@ -41,6 +41,15 @@ public class Alert {
 
     public Alert() {}
 
+    public Alert(Incident incident, String message, Severity severity) {
+        this.alertId = UUID.randomUUID();
+        this.incident = incident;
+        this.message = message;
+        this.severity = severity;
+        this.status = AlertStatus.CREATED;
+
+    }
+
     public UUID getAlertId() {
         return alertId;
     }
@@ -69,6 +78,14 @@ public class Alert {
         return resolvedAt;
     }
 
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public void setSeverity(Severity severity) {
+        this.severity = severity;
+    }
+
     public void resolve() {
         this.status = AlertStatus.RESOLVED;
     }
@@ -88,6 +105,7 @@ public class Alert {
     public boolean isOpen() {
         return status.equals(AlertStatus.OPEN);
     }
+
 
 }
 

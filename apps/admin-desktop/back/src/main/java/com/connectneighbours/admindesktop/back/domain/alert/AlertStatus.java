@@ -4,5 +4,5 @@ public enum AlertStatus {
     RESOLVED,
     IN_PROGRESS,
     CLOSED,
-    OPEN
+    CREATED, OPEN
 }
