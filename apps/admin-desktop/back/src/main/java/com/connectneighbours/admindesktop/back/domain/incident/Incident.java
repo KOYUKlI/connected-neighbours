@@ -107,6 +107,11 @@ public class Incident {
         this.status = IncidentStatus.OPEN;
     }
 
+    public void close(){
+        this.status = IncidentStatus.CLOSED;
+        this.resolvedAt = LocalDateTime.now();
+    }
+
     public void inProgress(){
         this.status = IncidentStatus.IN_PROGRESS;
     }

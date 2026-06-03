@@ -1,6 +1,7 @@
 package com.connectneighbours.admindesktop.back.exposition;
 
 import com.connectneighbours.admindesktop.back.domain.exception.IncidentConflictException;
+import com.connectneighbours.admindesktop.back.domain.exception.IncidentDeletionNotAllowedException;
 import com.connectneighbours.admindesktop.back.domain.exception.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.exception.InvalidIncidentException;
 import jakarta.validation.ConstraintViolationException;
@@ -37,5 +38,12 @@ public class ApiExceptionHandler {
     public Map<String, String> handleIncidentConflict(IncidentConflictException ex) {
         return Map.of("error", ex.getMessage());
     }
+
+    @ExceptionHandler(IncidentDeletionNotAllowedException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleDeletionNotAllowed(IncidentDeletionNotAllowedException ex) {
+        return Map.of("error", ex.getMessage());
+    }
+
 
 }

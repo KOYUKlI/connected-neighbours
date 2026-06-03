@@ -89,10 +89,10 @@ public class IncidentController {
         return AlertMapper.toResponseDTO(updated);
     }
 
-    @DeleteMapping("/incidents/{id}")
-    public void delete(@PathVariable UUID id) {
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteIncident(@PathVariable UUID id) {
         incidentManagement.deleteIncident(id);
     }
-
 }
 

@@ -9,6 +9,7 @@ import com.connectneighbours.admindesktop.back.application.incident.service.aler
 import com.connectneighbours.admindesktop.back.application.incident.service.alert.UpdateAlertDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.exception.IncidentDeletionNotAllowedException;
 import com.connectneighbours.admindesktop.back.domain.exception.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
@@ -28,6 +29,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -241,6 +243,27 @@ class IncidentControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isConflict());
     }
+
+    @Test
+    void deleteIncident_shouldReturn204_whenDeletionAllowed() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/incidents/" + id))
+                .andExpect(status().isNoContent());
+    }
+
+
+    @Test
+    void deleteIncident_shouldReturn409_whenIncidentNotResolvedOrClosed() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        doThrow(new IncidentDeletionNotAllowedException("Incident must be resolved or closed before deletion"))
+                .when(management).deleteIncident(id);
+
+        mockMvc.perform(delete("/incidents/" + id))
+                .andExpect(status().isConflict());
+    }
+
 
 }
 

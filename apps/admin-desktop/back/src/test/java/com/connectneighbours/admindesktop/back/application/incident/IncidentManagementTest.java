@@ -9,13 +9,13 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentService;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.exception.IncidentDeletionNotAllowedException;
+import com.connectneighbours.admindesktop.back.domain.incident.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class IncidentManagementTest {
@@ -157,4 +157,41 @@ class IncidentManagementTest {
         assertEquals("Fire", result.title());
         assertEquals("Kitchen", result.description());
     }
+
+    @Test
+    void deleteIncident_shouldDelete_whenStatusIsResolved() {
+
+        var incident = new Incident("t", "d", IncidentType.MAINTENANCE);
+        incident.resolve();
+        incidentRepo.save(incident);
+
+
+        management.deleteIncident(incident.getIncidentId());
+
+
+        assertThat(incidentRepo.findById(incident.getIncidentId())).isEmpty();
+    }
+
+    @Test
+    void deleteIncident_shouldDelete_whenStatusIsClosed() {
+        var incident = new Incident("t", "d", IncidentType.MAINTENANCE);
+        incident.close();
+        incidentRepo.save(incident);
+
+        management.deleteIncident(incident.getIncidentId());
+
+        assertThat(incidentRepo.findById(incident.getIncidentId())).isEmpty();
+    }
+
+    @Test
+    void deleteIncident_shouldThrow_whenStatusIsOpen() {
+        var incident = new Incident("t", "d", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
+
+        assertThatThrownBy(() -> management.deleteIncident(incident.getIncidentId()))
+                .isInstanceOf(IncidentDeletionNotAllowedException.class)
+                .hasMessageContaining("must be resolved or closed");
+    }
+
+
 }

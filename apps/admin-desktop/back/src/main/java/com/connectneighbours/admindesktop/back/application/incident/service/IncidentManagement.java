@@ -135,6 +135,11 @@ public class IncidentManagement {
     }
 
     public void deleteIncident(UUID id) {
+        Incident incident = loadIncident(id);
 
+        incidentService.ensureCanBeDeleted(incident);
+
+        incidentRepository.delete(incident);
     }
+
 }

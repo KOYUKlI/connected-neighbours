@@ -45,4 +45,14 @@ public class IncidentService {
 
         return !incident.hasCriticalOpenAlerts();
     }
+
+    public void ensureCanBeDeleted(Incident incident) {
+        if (!(incident.getStatus() == IncidentStatus.RESOLVED ||
+                incident.getStatus() == IncidentStatus.CLOSED)) {
+            throw new IncidentDeletionNotAllowedException(
+                    "Incident must be resolved or closed before deletion"
+            );
+        }
+    }
+
 }
