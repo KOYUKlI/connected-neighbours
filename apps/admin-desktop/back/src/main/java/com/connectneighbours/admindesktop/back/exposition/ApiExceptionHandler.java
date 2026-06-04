@@ -1,9 +1,9 @@
 package com.connectneighbours.admindesktop.back.exposition;
 
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentConflictException;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentDeletionNotAllowedException;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentNotFoundException;
-import com.connectneighbours.admindesktop.back.domain.exception.InvalidIncidentException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentConflictException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.InvalidIncidentException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;

@@ -9,11 +9,11 @@ import com.connectneighbours.admindesktop.back.application.incident.service.aler
 import com.connectneighbours.admindesktop.back.application.incident.service.alert.UpdateAlertDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentDeletionNotAllowedException;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentConflictException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentConflictException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

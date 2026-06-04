@@ -7,13 +7,12 @@ import com.connectneighbours.admindesktop.back.application.incident.service.aler
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
-import com.connectneighbours.admindesktop.back.domain.exception.AlertNotFoundException;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentNotFoundException;
-import com.connectneighbours.admindesktop.back.domain.incident.Incident;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentService;
+import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.incident.*;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,6 +120,19 @@ public class IncidentManagement {
                 .map(IncidentMapper::toDTO)
                 .toList();
     }
+
+    public List<Incident> listByStatus(IncidentStatus status) {
+        return incidentRepository.findByStatus(status);
+    }
+
+    public List<Incident> listByType(IncidentType type) {
+        return incidentRepository.findByType(type);
+    }
+
+    public List<Incident> listByDateRange(LocalDateTime start, LocalDateTime end) {
+        return incidentRepository.findByCreatedAtBetween(start, end);
+    }
+
 
 
     private Incident loadIncident(UUID id) {

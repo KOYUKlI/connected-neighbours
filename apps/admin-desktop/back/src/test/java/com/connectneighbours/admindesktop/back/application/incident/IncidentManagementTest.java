@@ -9,10 +9,15 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
-import com.connectneighbours.admindesktop.back.domain.exception.IncidentDeletionNotAllowedException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
 import com.connectneighbours.admindesktop.back.domain.incident.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -147,6 +152,34 @@ class IncidentManagementTest {
     }
 
     @Test
+    void listByStatus_shouldReturnMatchingIncidents() {
+        var i1 = new Incident("t1", "d1", IncidentType.MAINTENANCE);
+        i1.resolve();
+        incidentRepo.save(i1);
+
+        var i2 = new Incident("t2", "d2", IncidentType.MAINTENANCE);
+        incidentRepo.save(i2);
+
+        var result = management.listByStatus(IncidentStatus.RESOLVED);
+
+        assertThat(result).containsExactly(i1);
+    }
+
+    @Test
+    void listByType_shouldReturnMatchingIncidents() {
+        var i1 = new Incident("t1", "d1", IncidentType.MAINTENANCE);
+        var i2 = new Incident("t2", "d2", IncidentType.MAINTENANCE);
+        incidentRepo.save(i1);
+        incidentRepo.save(i2);
+
+        var result = management.listByType(IncidentType.MAINTENANCE);
+
+        assertThat(result).containsExactly(i1);
+    }
+
+
+
+    @Test
     void getIncident_shouldReturnCorrectIncident() {
         var incident = management.createIncident(
                 new CreationIncidentDTO("Fire", "Kitchen", IncidentType.MAINTENANCE)
@@ -157,6 +190,26 @@ class IncidentManagementTest {
         assertEquals("Fire", result.title());
         assertEquals("Kitchen", result.description());
     }
+
+    @Test
+    void listByDateRange_shouldReturnMatchingIncidents() {
+        var clock = Clock.fixed(Instant.parse("2024-01-10T00:00:00Z"), ZoneOffset.UTC);
+        var now = LocalDateTime.now(clock);
+
+        var i1 = new Incident("t1", "d1", IncidentType.MAINTENANCE, clock);
+        incidentRepo.save(i1);
+
+        var i2 = new Incident("t2", "d2", IncidentType.MAINTENANCE, clock);
+        incidentRepo.save(i2);
+
+        var result = management.listByDateRange(
+                now.minusDays(1),
+                now
+        );
+
+        assertThat(result).containsExactly(i1, i2);
+    }
+
 
     @Test
     void deleteIncident_shouldDelete_whenStatusIsResolved() {

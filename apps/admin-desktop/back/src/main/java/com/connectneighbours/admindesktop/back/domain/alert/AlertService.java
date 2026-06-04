@@ -1,7 +1,7 @@
 package com.connectneighbours.admindesktop.back.domain.alert;
 
-import com.connectneighbours.admindesktop.back.domain.exception.AlertAlreadyOpenException;
-import com.connectneighbours.admindesktop.back.domain.exception.AlertAlreadyResolvedException;
+import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyOpenException;
+import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyResolvedException;
 
 public class AlertService {
 

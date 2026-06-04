@@ -1,4 +1,4 @@
-package com.connectneighbours.admindesktop.back.domain.exception;
+package com.connectneighbours.admindesktop.back.domain.exception.alert;
 
 public class AlertNotFoundException extends RuntimeException {
     public AlertNotFoundException(String message) {

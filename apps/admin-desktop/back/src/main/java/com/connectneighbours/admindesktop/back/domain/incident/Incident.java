@@ -6,9 +6,11 @@ import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity(name = "incident")
@@ -51,6 +53,15 @@ public class Incident {
         this.description = description;
         this.type = type;
         this.status = IncidentStatus.CREATED;
+    }
+
+    public Incident(String title, String description, IncidentType type, Clock clock) {
+        this.incidentId = UUID.randomUUID();
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.status = IncidentStatus.CREATED;
+        this.createdAt = LocalDateTime.now(clock);
 
     }
 
@@ -131,4 +142,18 @@ public class Incident {
     public boolean isInProgress(){
         return status.equals(IncidentStatus.IN_PROGRESS);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incident incident = (Incident) o;
+        return Objects.equals(incidentId, incident.incidentId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(incidentId);
+    }
+
 }

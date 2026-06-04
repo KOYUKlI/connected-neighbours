@@ -1,7 +1,9 @@
 package com.connectneighbours.admindesktop.back.domain.incident;
 
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
-import com.connectneighbours.admindesktop.back.domain.exception.*;
+import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyResolvedException;
+import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotResolvedException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.*;
 
 public class IncidentService {
     public void open(Incident incident){
