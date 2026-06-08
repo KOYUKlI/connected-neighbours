@@ -1,4 +1,4 @@
-package com.connectneighbours.admindesktop.back.application.incident;
+package com.connectneighbours.admindesktop.back.application.incident.alert;
 
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;

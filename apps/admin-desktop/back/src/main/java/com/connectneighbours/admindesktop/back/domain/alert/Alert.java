@@ -1,6 +1,7 @@
 package com.connectneighbours.admindesktop.back.domain.alert;
 
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -18,9 +19,9 @@ public class Alert {
     @JoinColumn(name = "incident_id")
     private Incident incident;
 
-//    @ManyToOne(optional = false)
-//    @JoinColumn(name = "reporter_id")
-//    private Reporter reporter;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "reporter_id")
+    private Reporter reporter;
 
     @Column(length = 1000)
     private String message;
@@ -52,6 +53,10 @@ public class Alert {
 
     public UUID getAlertId() {
         return alertId;
+    }
+
+    public Reporter getReporter() {
+        return reporter;
     }
 
     public Incident getIncident() {

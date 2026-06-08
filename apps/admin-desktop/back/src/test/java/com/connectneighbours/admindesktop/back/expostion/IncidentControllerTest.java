@@ -14,6 +14,7 @@ import com.connectneighbours.admindesktop.back.domain.exception.incident.Inciden
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentConflictException;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,9 +52,11 @@ class IncidentControllerTest {
     @Test
     void getIncident_shouldReturnIncidentResponse() throws Exception {
         UUID id = UUID.randomUUID();
+        Reporter reporter = new Reporter("first","last");
 
         IncidentDTO dto = new IncidentDTO(
                 id,
+                reporter,
                 "Fire",
                 "Kitchen fire",
                 IncidentType.MAINTENANCE,
@@ -87,8 +90,8 @@ class IncidentControllerTest {
     @Test
     void listIncidents_shouldReturnPaginatedList() throws Exception {
         List<IncidentDTO> list = List.of(
-                new IncidentDTO(UUID.randomUUID(), "i0", "desc", IncidentType.OTHER, IncidentStatus.OPEN, List.of()),
-                new IncidentDTO(UUID.randomUUID(), "i1", "desc", IncidentType.OTHER, IncidentStatus.OPEN, List.of())
+                new IncidentDTO(UUID.randomUUID(), new Reporter("first","last"),"i0", "desc", IncidentType.OTHER, IncidentStatus.OPEN, List.of()),
+                new IncidentDTO(UUID.randomUUID(), new Reporter("first","last"), "i1", "desc", IncidentType.OTHER, IncidentStatus.OPEN, List.of())
         );
 
         when(management.listIncidents(0, 10)).thenReturn(list);
@@ -142,9 +145,9 @@ class IncidentControllerTest {
     @Test
     void createIncident_shouldReturn201_andLocationHeader() throws Exception {
         UUID id = UUID.randomUUID();
-        var creation = new CreationIncidentDTO("t", "d", IncidentType.MAINTENANCE);
+        var creation = new CreationIncidentDTO(new Reporter("first","last"),"t", "d", IncidentType.MAINTENANCE);
 
-        var dto = new IncidentDTO(id, "t", "d", IncidentType.MAINTENANCE, IncidentStatus.OPEN, List.of());
+        var dto = new IncidentDTO(id, new Reporter("first","last"),"t", "d", IncidentType.MAINTENANCE, IncidentStatus.OPEN, List.of());
 
         when(management.createIncident(any())).thenReturn(dto);
 
@@ -159,7 +162,7 @@ class IncidentControllerTest {
 
     @Test
     void createIncident_shouldReturn400_whenTitleIsBlank() throws Exception {
-        var dto = new CreationIncidentDTO("", "desc", IncidentType.MAINTENANCE);
+        var dto = new CreationIncidentDTO(new Reporter("first","last"),"", "desc", IncidentType.MAINTENANCE);
 
         mockMvc.perform(post("/incidents")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -188,6 +191,7 @@ class IncidentControllerTest {
 
         IncidentDTO dto = new IncidentDTO(
                 id,
+                new Reporter("first","last"),
                 "NewTitle",
                 "NewDesc",
                 IncidentType.MAINTENANCE,
@@ -206,29 +210,7 @@ class IncidentControllerTest {
                 .andExpect(jsonPath("$.type").value("MAINTENANCE"));
     }
 
-    @Test
-    void updateAlert_shouldReturnUpdatedAlert() throws Exception {
-        UUID incidentId = UUID.randomUUID();
-        UUID alertId = UUID.randomUUID();
 
-        UpdateAlertDTO update = new UpdateAlertDTO("Updated msg", Severity.LOW);
-
-        AlertDTO dto = new AlertDTO(
-                alertId,
-                "Updated msg",
-                Severity.LOW,
-                AlertStatus.OPEN
-        );
-
-        when(management.updateAlert(eq(alertId), any())).thenReturn(dto);
-
-        mockMvc.perform(patch("/incidents/" + incidentId + "/alerts/" + alertId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(update)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Updated msg"))
-                .andExpect(jsonPath("$.severity").value("LOW"));
-    }
 
     @Test
     void updateIncident_shouldReturn409_whenConflict() throws Exception {

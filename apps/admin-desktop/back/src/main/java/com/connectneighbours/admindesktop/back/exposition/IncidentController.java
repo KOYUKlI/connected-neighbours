@@ -79,15 +79,15 @@ public class IncidentController {
         return IncidentMapper.toResponseDTO(updated);
     }
 
-    @PatchMapping("/{incidentId}/alerts/{alertId}")
-    public AlertResponseDTO updateAlert(
-            @PathVariable UUID incidentId,
-            @PathVariable UUID alertId,
-            @RequestBody UpdateAlertDTO dto
-    ) {
-        var updated = incidentManagement.updateAlert(alertId, dto);
-        return AlertMapper.toResponseDTO(updated);
-    }
+//    @PatchMapping("/{incidentId}/alerts/{alertId}")
+//    public AlertResponseDTO updateAlert(
+//            @PathVariable UUID incidentId,
+//            @PathVariable UUID alertId,
+//            @RequestBody UpdateAlertDTO dto
+//    ) {
+//        var updated = incidentManagement.updateAlert(alertId, dto);
+//        return AlertMapper.toResponseDTO(updated);
+//    }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

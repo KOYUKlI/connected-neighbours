@@ -3,6 +3,7 @@ package com.connectneighbours.admindesktop.back.domain.incident;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -19,6 +20,10 @@ public class Incident {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
     private UUID incidentId;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "reporter_id")
+    private Reporter reporter;
 
     @Column(nullable = false, length = 50)
     private String title;
@@ -47,8 +52,9 @@ public class Incident {
     public Incident() {
     }
 
-    public Incident(String title, String description, IncidentType type) {
+    public Incident(Reporter reporter,String title, String description, IncidentType type) {
         this.incidentId = UUID.randomUUID();
+        this.reporter = reporter;
         this.title = title;
         this.description = description;
         this.type = type;
@@ -67,6 +73,10 @@ public class Incident {
 
     public UUID getIncidentId() {
         return incidentId;
+    }
+
+    public Reporter getReporter() {
+        return reporter;
     }
 
     public String getTitle() {

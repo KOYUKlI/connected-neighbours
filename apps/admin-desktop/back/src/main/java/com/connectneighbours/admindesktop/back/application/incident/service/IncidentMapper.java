@@ -7,6 +7,7 @@ public class IncidentMapper {
     public static IncidentDTO toDTO(Incident incident) {
         return new IncidentDTO(
                 incident.getIncidentId(),
+                incident.getReporter(),
                 incident.getTitle(),
                 incident.getDescription(),
                 incident.getType(),

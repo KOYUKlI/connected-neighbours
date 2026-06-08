@@ -30,7 +30,7 @@ public class IncidentManagement {
     }
 
     public IncidentDTO createIncident(CreationIncidentDTO dto) {
-        Incident incident = new Incident(dto.title(), dto.description(), dto.type());
+        Incident incident = new Incident(dto.reporter(), dto.title(), dto.description(), dto.type());
         incidentService.open(incident);
         var savedIncident = incidentRepository.save(incident);
 
@@ -81,13 +81,6 @@ public class IncidentManagement {
         return IncidentMapper.toDTO(savedIncident);
     }
 
-    public AlertDTO resolveAlert(UUID alertId) {
-        Alert alert = loadAlert(alertId);
-        alertService.resolve(alert);
-        var savedAlert = alertRepository.save(alert);
-        return AlertMapper.toDTO(savedAlert);
-    }
-
     public IncidentDTO updateIncident(UUID incidentId, UpdateIncidentDTO dto) {
         Incident incident = loadIncident(incidentId);
 
@@ -121,16 +114,22 @@ public class IncidentManagement {
                 .toList();
     }
 
-    public List<Incident> listByStatus(IncidentStatus status) {
-        return incidentRepository.findByStatus(status);
+    public List<IncidentDTO> listByStatus(IncidentStatus status) {
+        return incidentRepository.findByStatus(status).stream()
+                .map(IncidentMapper::toDTO)
+                .toList();
     }
 
-    public List<Incident> listByType(IncidentType type) {
-        return incidentRepository.findByType(type);
+    public List<IncidentDTO> listByType(IncidentType type) {
+        return incidentRepository.findByType(type).stream()
+                .map(IncidentMapper::toDTO)
+                .toList();
     }
 
-    public List<Incident> listByDateRange(LocalDateTime start, LocalDateTime end) {
-        return incidentRepository.findByCreatedAtBetween(start, end);
+    public List<IncidentDTO> listByDateRange(LocalDateTime start, LocalDateTime end) {
+        return incidentRepository.findByCreatedAtBetween(start, end).stream()
+                .map(IncidentMapper::toDTO)
+                .toList();
     }
 
 
