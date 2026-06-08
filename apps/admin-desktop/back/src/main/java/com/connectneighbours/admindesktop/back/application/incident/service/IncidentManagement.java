@@ -92,16 +92,6 @@ public class IncidentManagement {
         return IncidentMapper.toDTO(saved);
     }
 
-    public AlertDTO updateAlert(UUID alertId, UpdateAlertDTO dto) {
-        Alert alert = loadAlert(alertId);
-
-        alert.setMessage(dto.message());
-        alert.setSeverity(dto.severity());
-
-        var saved = alertRepository.save(alert);
-        return AlertMapper.toDTO(saved);
-    }
-
     public IncidentDTO getIncident(UUID incidentId) {
         return IncidentMapper.toDTO(loadIncident(incidentId));
     }

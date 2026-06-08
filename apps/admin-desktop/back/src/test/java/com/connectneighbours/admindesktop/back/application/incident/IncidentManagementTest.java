@@ -11,6 +11,7 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.*;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,10 +21,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IncidentManagementTest {
 
@@ -41,6 +44,53 @@ class IncidentManagementTest {
         alertService = new AlertService();
         management = new IncidentManagement(alertRepo, incidentRepo, alertService, incidentService);
     }
+
+    @Test
+    void startIncidentProgress_shouldSetStatusToInProgress() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(
+                        new Reporter("first", "last"),
+                        "Leak",
+                        "Water leak",
+                        IncidentType.MAINTENANCE
+                )
+        );
+
+        var updated = management.startIncidentProgress(incident.id());
+
+        assertEquals(IncidentStatus.IN_PROGRESS, updated.status());
+        assertEquals(IncidentStatus.IN_PROGRESS, incidentRepo.findById(incident.id()).get().getStatus());
+    }
+
+    @Test
+    void startIncidentProgress_shouldThrowIfIncidentNotFound() {
+        UUID unknown = UUID.randomUUID();
+        assertThrows(IncidentNotFoundException.class, () -> management.startIncidentProgress(unknown));
+    }
+
+    @Test
+    void resolveIncident_shouldSetStatusToResolved() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(
+                        new Reporter("first", "last"),
+                        "Leak",
+                        "Water leak",
+                        IncidentType.MAINTENANCE
+                )
+        );
+
+        var updated = management.resolveIncident(incident.id());
+
+        assertEquals(IncidentStatus.RESOLVED, updated.status());
+        assertEquals(IncidentStatus.RESOLVED, incidentRepo.findById(incident.id()).get().getStatus());
+    }
+
+    @Test
+    void resolveIncident_shouldThrowIfIncidentNotFound() {
+        UUID unknown = UUID.randomUUID();
+        assertThrows(IncidentNotFoundException.class, () -> management.resolveIncident(unknown));
+    }
+
 
     @Test
     void createIncident_shouldCreateAndReturnDTO() {
