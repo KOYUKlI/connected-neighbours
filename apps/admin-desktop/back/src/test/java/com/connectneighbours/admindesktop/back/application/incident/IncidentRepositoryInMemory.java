@@ -4,6 +4,7 @@ import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -66,6 +67,13 @@ public class IncidentRepositoryInMemory implements IncidentRepository {
     public List<Incident> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end) {
         return data.values().stream()
                 .filter(i -> i.getCreatedAt().isAfter(start) && i.getCreatedAt().isBefore(end))
+                .toList();
+    }
+
+    @Override
+    public List<Incident> findByReporter(Reporter reporter) {
+        return data.values().stream()
+                .filter(i -> i.getReporter().equals(reporter))
                 .toList();
     }
 

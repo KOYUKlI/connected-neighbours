@@ -17,16 +17,12 @@ import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class IncidentManagementTest {
 
@@ -35,6 +31,8 @@ class IncidentManagementTest {
     private IncidentService incidentService;
     private AlertService alertService;
     private IncidentManagement management;
+    private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
 
     @BeforeEach
     void setup() {
@@ -271,6 +269,104 @@ class IncidentManagementTest {
         assertThatThrownBy(() -> management.deleteIncident(incident.getIncidentId()))
                 .isInstanceOf(IncidentDeletionNotAllowedException.class)
                 .hasMessageContaining("must be resolved or closed");
+    }
+
+    @Test
+    void findByReporter_returnsEmptyList_whenNoIncidents() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var result = incidentRepo.findByReporter(reporter1);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByReporter_returnsOnlyIncidentsOfGivenReporter() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var reporter2 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "Alice",
+                "Smith"
+        );
+
+        var i1 = new Incident(reporter1, "t1", "d1", IncidentType.SECURITY, clock);
+        var i2 = new Incident(reporter1, "t2", "d2", IncidentType.MAINTENANCE, clock);
+        var i3 = new Incident(reporter2, "t3", "d3", IncidentType.SECURITY, clock);
+
+        incidentRepo.save(i1);
+        incidentRepo.save(i2);
+        incidentRepo.save(i3);
+
+        var result = incidentRepo.findByReporter(reporter1);
+
+        assertEquals(2, result.size());
+        assertTrue(result.contains(i1));
+        assertTrue(result.contains(i2));
+        assertFalse(result.contains(i3));
+    }
+
+    @Test
+    void findByReporter_returnsEmptyList_whenReporterHasNoIncidents() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var reporter2 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "Alice",
+                "Smith"
+        );
+
+        var i1 = new Incident(reporter1, "t1", "d1", IncidentType.SECURITY, clock);
+        incidentRepo.save(i1);
+
+        var result = incidentRepo.findByReporter(reporter2);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByReporter_doesNotReturnIncidentsOfOtherReporter() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var reporter2 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "Alice",
+                "Smith"
+        );
+
+        var i1 = new Incident(reporter1, "t1", "d1", IncidentType.SECURITY, clock);
+        var i2 = new Incident(reporter2, "t2", "d2", IncidentType.MAINTENANCE, clock);
+
+        incidentRepo.save(i1);
+        incidentRepo.save(i2);
+
+        var result = incidentRepo.findByReporter(reporter1);
+
+        assertEquals(1, result.size());
+        assertTrue(result.contains(i1));
+        assertFalse(result.contains(i2));
     }
 
 

@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.back.domain.incident;
 
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -18,5 +19,6 @@ public interface IncidentRepository {
     List<Incident> findByStatus(IncidentStatus status);
     List<Incident> findByType(IncidentType type);
     List<Incident> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    List<Incident> findByReporter(Reporter reporter);
     void delete(Incident incident);
 }
