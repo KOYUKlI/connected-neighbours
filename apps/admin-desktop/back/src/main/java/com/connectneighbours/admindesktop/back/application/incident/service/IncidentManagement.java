@@ -10,12 +10,16 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.*;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class IncidentManagement {
     private final AlertRepository alertRepository;
     private final IncidentRepository incidentRepository;
@@ -104,6 +108,10 @@ public class IncidentManagement {
                 .toList();
     }
 
+    public Page<IncidentDTO> listIncidents(Pageable pageable){
+        return incidentRepository.findAll(pageable).map(IncidentMapper::toDTO);
+    }
+
     public List<IncidentDTO> listByStatus(IncidentStatus status) {
         return incidentRepository.findByStatus(status).stream()
                 .map(IncidentMapper::toDTO)
@@ -121,8 +129,6 @@ public class IncidentManagement {
                 .map(IncidentMapper::toDTO)
                 .toList();
     }
-
-
 
     private Incident loadIncident(UUID id) {
         return incidentRepository.findById(id)

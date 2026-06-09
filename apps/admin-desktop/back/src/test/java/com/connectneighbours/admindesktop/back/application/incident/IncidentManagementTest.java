@@ -220,10 +220,10 @@ class IncidentManagementTest {
         var clock = Clock.fixed(Instant.parse("2024-01-10T00:00:00Z"), ZoneOffset.UTC);
         var now = LocalDateTime.now(clock);
 
-        var i1 = new Incident("t1", "d1", IncidentType.MAINTENANCE, clock);
+        var i1 = new Incident(new Reporter("first","last"),"t1", "d1", IncidentType.MAINTENANCE, clock);
         incidentRepo.save(i1);
 
-        var i2 = new Incident("t2", "d2", IncidentType.MAINTENANCE, clock);
+        var i2 = new Incident(new Reporter("first","last"),"t2", "d2", IncidentType.MAINTENANCE, clock);
         incidentRepo.save(i2);
 
         var result = management.listByDateRange(

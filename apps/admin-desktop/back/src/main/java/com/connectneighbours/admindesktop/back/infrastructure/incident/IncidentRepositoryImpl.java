@@ -6,12 +6,14 @@ import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public class IncidentRepositoryImpl implements IncidentRepository {
     private final IncidentDAO incidentDAO;
 

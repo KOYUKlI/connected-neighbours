@@ -61,8 +61,9 @@ public class Incident {
         this.status = IncidentStatus.CREATED;
     }
 
-    public Incident(String title, String description, IncidentType type, Clock clock) {
+    public Incident(Reporter reporter,String title, String description, IncidentType type, Clock clock) {
         this.incidentId = UUID.randomUUID();
+        this.reporter = reporter;
         this.title = title;
         this.description = description;
         this.type = type;
