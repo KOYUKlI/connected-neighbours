@@ -10,4 +10,5 @@ public interface StatisticsService {
     ResolutionRate resolutionRate();
     List<ReporterActivity> reporterActivity();
     IncidentDistributionByType incidentDistributionByType(IncidentType type);
+    List<IncidentDistributionByType> listIncidentDistributedByType();
 }

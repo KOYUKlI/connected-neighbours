@@ -1,4 +1,42 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.statistics.StatisticsService;
+
+import java.time.LocalDate;
+import java.util.List;
+
 public class StatisticsManagement {
+    private final StatisticsService service;
+
+    public StatisticsManagement(StatisticsService service) {
+        this.service = service;
+    }
+
+    public IncidentCountByPeriodDTO countIncidents(LocalDate start, LocalDate end) {
+        var incidentCountByPeriod = service.countIncidents(start,end);
+        return StatisticsMapper.toIncidentCountByPeriodDTO(incidentCountByPeriod);
+    }
+
+    public ResolutionRateDTO resolutionRate() {
+        var resolutionRate = service.resolutionRate();
+        return StatisticsMapper.toResolutionRateDTO(resolutionRate);
+    }
+
+    public List<ReporterActivityDTO> reporterActivity() {
+        return  service.reporterActivity().stream()
+                .map(StatisticsMapper::toReporterActivityDTO)
+                .toList();
+    }
+
+    public IncidentDistributionByTypeDTO incidentCountByPeriod(IncidentType type) {
+        var incidentDistributionByType =  service.incidentDistributionByType(type);
+        return StatisticsMapper.toIncidentDistributionByTypeDTO(incidentDistributionByType);
+    }
+
+    public List<IncidentDistributionByTypeDTO> listIncidentDistributedByType() {
+        return service.listIncidentDistributedByType().stream()
+                .map(StatisticsMapper::toIncidentDistributionByTypeDTO)
+                .toList();
+    }
 }

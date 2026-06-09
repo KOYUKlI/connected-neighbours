@@ -1,4 +1,12 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-public record ReporterActivityDTO() {
+import java.util.UUID;
+
+public record ReporterActivityDTO(
+        UUID idReporter,
+        String firstname,
+        String lastname,
+        Long incidentCount,
+        Long alertCount
+) {
 }

@@ -1,4 +1,10 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-public record IncidentDistributionByTypeDTO() {
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+
+public record IncidentDistributionByTypeDTO(
+        IncidentType type,
+        Long count,
+        String percentage
+) {
 }

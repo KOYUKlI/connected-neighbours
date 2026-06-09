@@ -1,4 +1,6 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-public record IncidentCountByPeriodDTO() {
+import java.time.LocalDate;
+
+public record IncidentCountByPeriodDTO(LocalDate start, LocalDate end, Long size) {
 }

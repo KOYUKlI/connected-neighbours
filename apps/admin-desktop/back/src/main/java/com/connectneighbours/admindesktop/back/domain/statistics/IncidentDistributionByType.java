@@ -5,6 +5,6 @@ import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 public record IncidentDistributionByType(
         IncidentType type,
         Long count,
-        Double percentage
+        Double rate
 ) {
 }

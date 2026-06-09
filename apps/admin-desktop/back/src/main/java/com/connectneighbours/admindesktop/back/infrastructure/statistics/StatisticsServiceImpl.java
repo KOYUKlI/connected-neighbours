@@ -7,8 +7,10 @@ import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
 import com.connectneighbours.admindesktop.back.domain.statistics.*;
 
+import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.List;
 
 public class StatisticsServiceImpl implements StatisticsService {
@@ -62,5 +64,12 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .filter(incident -> incident.getType().equals(type))
                 .count();
         return new IncidentDistributionByType(type,count, (double) count/total);
+    }
+
+    @Override
+    public List<IncidentDistributionByType> listIncidentDistributedByType() {
+        return Arrays.stream(IncidentType.values())
+                .map(this::incidentDistributionByType)
+                .toList();
     }
 }
