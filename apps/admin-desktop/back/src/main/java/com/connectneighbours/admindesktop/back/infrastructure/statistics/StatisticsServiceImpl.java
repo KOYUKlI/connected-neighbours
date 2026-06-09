@@ -13,6 +13,8 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.Double.NaN;
+
 public class StatisticsServiceImpl implements StatisticsService {
     private final IncidentRepository incidentRepository;
     private final AlertRepository alertRepository;
@@ -63,7 +65,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         var count =  list.stream()
                 .filter(incident -> incident.getType().equals(type))
                 .count();
-        return new IncidentDistributionByType(type,count, (double) count/total);
+        return new IncidentDistributionByType(type,count, Double.isNaN((double) count / total) ? 0.0 : (double) count / total );
     }
 
     @Override

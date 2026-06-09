@@ -7,7 +7,7 @@ import com.connectneighbours.admindesktop.back.domain.statistics.ResolutionRate;
 
 public class StatisticsMapper {
     public static IncidentCountByPeriodDTO toIncidentCountByPeriodDTO(IncidentCountByPeriod incidentCountByPeriod){
-        return new IncidentCountByPeriodDTO(incidentCountByPeriod.start(),incidentCountByPeriod.end(), incidentCountByPeriod.size());
+        return new IncidentCountByPeriodDTO(incidentCountByPeriod.start(),incidentCountByPeriod.end(), incidentCountByPeriod.count());
     }
 
     public static ResolutionRateDTO toResolutionRateDTO(ResolutionRate resolutionRate) {
