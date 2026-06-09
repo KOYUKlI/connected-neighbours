@@ -29,6 +29,14 @@ public class Reporter {
     public Reporter() {
     }
 
+    public Reporter(LocalDateTime dateCreation, LocalDateTime dateUpdate, String firstname, String lastname) {
+        this.idReporter = UUID.randomUUID();
+        this.dateCreation = dateCreation;
+        this.dateUpdate = dateUpdate;
+        this.firstname = firstname;
+        this.lastname = lastname;
+    }
+
     public Reporter(String firstname, String lastname) {
         this.idReporter = UUID.randomUUID();
         this.firstname = firstname;
