@@ -1,18 +1,29 @@
 package com.connectneighbours.admindesktop.back.application.incident.service.alert;
 
+import com.connectneighbours.admindesktop.back.application.incident.service.IncidentDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
+import com.connectneighbours.admindesktop.back.infrastructure.incident.IncidentRepositoryImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class AlertManagement {
     private final AlertRepository alertRepository;
     private final AlertService alertService;
+    private final IncidentRepository incidentRepository;
 
-    public AlertManagement(AlertRepository alertRepository, AlertService alertService) {
+    public AlertManagement(AlertRepository alertRepository, AlertService alertService,IncidentRepository incidentRepository) {
         this.alertRepository = alertRepository;
         this.alertService = alertService;
+        this.incidentRepository = incidentRepository;
     }
 
     public AlertDTO resolveAlert(UUID alertId) {
@@ -51,6 +62,19 @@ public class AlertManagement {
         return list.stream()
                 .map(AlertMapper::toDTO)
                 .toList();
+    }
+
+    public List<AlertDTO> listByIncident(IncidentDTO dto){
+        var incident = loadIncident(dto.id());
+        var list = alertRepository.findByIncident(incident);
+        return list.stream()
+                .map(AlertMapper::toDTO)
+                .toList();
+    }
+
+    private Incident loadIncident(UUID id){
+        return incidentRepository.findById(id)
+                .orElseThrow(() -> new IncidentNotFoundException("Incident not found with id : " + id));
     }
 
     private Alert loadAlert(UUID id) {

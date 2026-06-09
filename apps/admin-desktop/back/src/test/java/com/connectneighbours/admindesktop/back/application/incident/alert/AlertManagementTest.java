@@ -1,29 +1,37 @@
 package com.connectneighbours.admindesktop.back.application.incident.alert;
 
+import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
+import com.connectneighbours.admindesktop.back.application.incident.service.IncidentMapper;
 import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.incident.service.alert.UpdateAlertDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentService;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AlertManagementTest {
     private AlertRepository alertRepo;
     private AlertService alertService;
+    private IncidentRepository incidentRepo;
     private AlertManagement management;
 
     @BeforeEach
     void setup() {
         alertRepo = new AlertRepositoryInMemory();
         alertService = new AlertService();
-        management = new AlertManagement(alertRepo,alertService);
+        incidentRepo = new IncidentRepositoryInMemory();
+        management = new AlertManagement(alertRepo,alertService,incidentRepo);
     }
     private Alert createSampleAlert() {
         Alert alert = new Alert(
@@ -111,4 +119,46 @@ public class AlertManagementTest {
         assertEquals(1, resolved.size());
         assertEquals(AlertStatus.RESOLVED, resolved.get(0).status());
     }
+
+    @Test
+    void listByIncident_shouldReturnAlertsForGivenIncident() {
+        var incidentService = new IncidentService();
+
+        var incident = new Incident(
+                new Reporter("first", "last"),
+                "Leak",
+                "Water leak",
+                IncidentType.MAINTENANCE
+        );
+        incidentService.open(incident);
+        incidentRepo.save(incident);
+
+        var alert1 = new Alert(incident, "A1", Severity.CRITICAL);
+        alertService.open(alert1);
+        alertRepo.save(alert1);
+
+        var alert2 = new Alert(incident, "A2", Severity.LOW);
+        alertService.open(alert2);
+        alertRepo.save(alert2);
+
+        var otherIncident = new Incident(
+                new Reporter("x", "y"),
+                "Other",
+                "Other desc",
+                IncidentType.SECURITY
+        );
+        incidentService.open(otherIncident);
+        incidentRepo.save(otherIncident);
+
+        var alertOther = new Alert(otherIncident, "B1", Severity.MEDIUM);
+        alertService.open(alertOther);
+        alertRepo.save(alertOther);
+
+        var list = management.listByIncident(IncidentMapper.toDTO(incident));
+
+        assertEquals(2, list.size());
+        assertTrue(list.stream().anyMatch(a -> a.message().equals("A1")));
+        assertTrue(list.stream().anyMatch(a -> a.message().equals("A2")));
+    }
+
 }

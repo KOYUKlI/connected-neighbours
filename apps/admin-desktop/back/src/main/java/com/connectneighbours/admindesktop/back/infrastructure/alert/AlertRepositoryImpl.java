@@ -5,11 +5,13 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public class AlertRepositoryImpl implements AlertRepository {
     private final AlertDAO alertDAO;
 
