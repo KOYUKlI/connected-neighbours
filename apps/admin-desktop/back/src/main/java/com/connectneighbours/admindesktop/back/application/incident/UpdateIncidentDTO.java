@@ -1,4 +1,4 @@
-package com.connectneighbours.admindesktop.back.application.incident.service;
+package com.connectneighbours.admindesktop.back.application.incident;
 
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 

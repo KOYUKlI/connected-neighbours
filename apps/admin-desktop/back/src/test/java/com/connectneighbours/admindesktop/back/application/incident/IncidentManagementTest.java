@@ -1,11 +1,7 @@
 package com.connectneighbours.admindesktop.back.application.incident;
 
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertRepositoryInMemory;
-import com.connectneighbours.admindesktop.back.application.incident.service.CreationIncidentDTO;
-import com.connectneighbours.admindesktop.back.application.incident.service.IncidentManagement;
-import com.connectneighbours.admindesktop.back.application.incident.service.IncidentMapper;
-import com.connectneighbours.admindesktop.back.application.incident.service.UpdateIncidentDTO;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.CreationAlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.CreationAlertDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
@@ -215,7 +211,6 @@ class IncidentManagementTest {
 
     @Test
     void listByDateRange_shouldReturnMatchingIncidents() {
-        var clock = Clock.fixed(Instant.parse("2024-01-10T00:00:00Z"), ZoneOffset.UTC);
         var now = LocalDateTime.now(clock);
 
         var i1 = new Incident(new Reporter("first","last"),"t1", "d1", IncidentType.MAINTENANCE, clock);
@@ -238,14 +233,11 @@ class IncidentManagementTest {
 
     @Test
     void deleteIncident_shouldDelete_whenStatusIsResolved() {
-
         var incident = new Incident(new Reporter("first","last"), "t", "d", IncidentType.MAINTENANCE);
         incident.resolve();
         incidentRepo.save(incident);
 
-
         management.deleteIncident(incident.getIncidentId());
-
 
         assertThat(incidentRepo.findById(incident.getIncidentId())).isEmpty();
     }

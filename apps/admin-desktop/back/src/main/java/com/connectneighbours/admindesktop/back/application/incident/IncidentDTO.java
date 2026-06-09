@@ -1,6 +1,6 @@
-package com.connectneighbours.admindesktop.back.application.incident.service;
+package com.connectneighbours.admindesktop.back.application.incident;
 
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;

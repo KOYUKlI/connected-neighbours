@@ -1,9 +1,8 @@
-package com.connectneighbours.admindesktop.back.application.incident.service;
+package com.connectneighbours.admindesktop.back.application.incident;
 
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertDTO;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertMapper;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.CreationAlertDTO;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.UpdateAlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertMapper;
+import com.connectneighbours.admindesktop.back.application.incident.alert.CreationAlertDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
