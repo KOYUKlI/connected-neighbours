@@ -5,6 +5,7 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 
 import java.util.*;
 
@@ -45,6 +46,13 @@ public class AlertRepositoryInMemory implements AlertRepository {
     public List<Alert> findByStatus(AlertStatus status) {
         return data.values().stream()
                 .filter(a -> a.getStatus() == status)
+                .toList();
+    }
+
+    @Override
+    public List<Alert> findByReporter(Reporter reporter) {
+        return data.values().stream()
+                .filter(a -> a.getReporter().equals(reporter))
                 .toList();
     }
 

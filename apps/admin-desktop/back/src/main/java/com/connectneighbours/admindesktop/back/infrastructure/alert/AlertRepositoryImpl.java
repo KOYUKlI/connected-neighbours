@@ -5,6 +5,7 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -47,6 +48,11 @@ public class AlertRepositoryImpl implements AlertRepository {
     @Override
     public List<Alert> findByStatus(AlertStatus status) {
         return alertDAO.findByStatus(status);
+    }
+
+    @Override
+    public List<Alert> findByReporter(Reporter reporter) {
+        return alertDAO.findByReporter(reporter);
     }
 
     @Override

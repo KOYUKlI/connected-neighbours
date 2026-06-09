@@ -15,9 +15,11 @@ import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static java.time.LocalTime.now;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AlertManagementTest {
@@ -160,5 +162,127 @@ public class AlertManagementTest {
         assertTrue(list.stream().anyMatch(a -> a.message().equals("A1")));
         assertTrue(list.stream().anyMatch(a -> a.message().equals("A2")));
     }
+
+    @Test
+    void findByReporter_returnsEmptyList_whenNoAlerts()
+    {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var result = alertRepo.findByReporter(reporter1);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByReporter_returnsOnlyAlertsOfGivenReporter() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var reporter2 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "Alice",
+                "Smith"
+        );
+
+        var a1 = new Alert(null, "msg", Severity.HIGH);
+        a1.setReporter(reporter1);
+        a1.setCreatedAt(LocalDateTime.now());
+        a1.setResolvedAt(LocalDateTime.now());
+
+        var a2 = new Alert(null, "msg", Severity.LOW);
+        a2.setReporter(reporter1);
+        a2.setCreatedAt(LocalDateTime.now());
+        a2.setResolvedAt(LocalDateTime.now());
+
+        var a3 = new Alert(null, "msg", Severity.MEDIUM);
+        a3.setReporter(reporter2);
+        a3.setCreatedAt(LocalDateTime.now());
+        a3.setResolvedAt(LocalDateTime.now());
+
+        alertRepo.save(a1);
+        alertRepo.save(a2);
+        alertRepo.save(a3);
+
+        var result = alertRepo.findByReporter(reporter1);
+
+        assertEquals(2, result.size());
+        assertTrue(result.contains(a1));
+        assertTrue(result.contains(a2));
+        assertFalse(result.contains(a3));
+    }
+
+    @Test
+    void findByReporter_returnsEmptyList_whenReporterHasNoAlerts() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var reporter2 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "Alice",
+                "Smith"
+        );
+
+        var a1 = new Alert(null, "msg", Severity.HIGH);
+        a1.setReporter(reporter1);
+        a1.setCreatedAt(LocalDateTime.now());
+        a1.setResolvedAt(LocalDateTime.now());
+
+        alertRepo.save(a1);
+
+        var result = alertRepo.findByReporter(reporter2);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByReporter_doesNotReturnAlertsOfOtherReporter() {
+        var reporter1 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "John",
+                "Doe"
+        );
+
+        var reporter2 = new Reporter(
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                "Alice",
+                "Smith"
+        );
+
+        var a1 = new Alert(null, "msg", Severity.HIGH);
+        a1.setReporter(reporter1);
+        a1.setCreatedAt(LocalDateTime.now());
+        a1.setResolvedAt(LocalDateTime.now());
+
+        var a2 = new Alert(null, "msg", Severity.HIGH);
+        a2.setReporter(reporter2);
+        a2.setCreatedAt(LocalDateTime.now());
+        a2.setResolvedAt(LocalDateTime.now());
+
+        alertRepo.save(a1);
+        alertRepo.save(a2);
+
+        var result = alertRepo.findByReporter(reporter1);
+
+        assertEquals(1, result.size());
+        assertTrue(result.contains(a1));
+        assertFalse(result.contains(a2));
+    }
+
 
 }

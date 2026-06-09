@@ -1,6 +1,7 @@
 package com.connectneighbours.admindesktop.back.domain.alert;
 
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,5 +14,6 @@ public interface AlertRepository {
     List<Alert> findByIncident(Incident incident);
     List<Alert> findBySeverity(Severity severity);
     List<Alert> findByStatus(AlertStatus status);
+    List<Alert> findByReporter(Reporter reporter);
     void delete(Alert alert);
 }

@@ -91,6 +91,18 @@ public class Alert {
         this.severity = severity;
     }
 
+    public void setReporter(Reporter reporter) {
+        this.reporter = reporter;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
     public void resolve() {
         this.status = AlertStatus.RESOLVED;
     }
