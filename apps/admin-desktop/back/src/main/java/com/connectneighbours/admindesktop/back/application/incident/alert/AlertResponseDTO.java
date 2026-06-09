@@ -1,4 +1,4 @@
-package com.connectneighbours.admindesktop.back.application.incident.service.alert;
+package com.connectneighbours.admindesktop.back.application.incident.alert;
 
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;

@@ -1,10 +1,7 @@
 package com.connectneighbours.admindesktop.back.application.incident.alert;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
-import com.connectneighbours.admindesktop.back.application.incident.service.IncidentMapper;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertDTO;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.AlertManagement;
-import com.connectneighbours.admindesktop.back.application.incident.service.alert.UpdateAlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.IncidentMapper;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
@@ -111,7 +108,6 @@ public class AlertManagementTest {
     @Test
     void listByStatus_shouldFilterCorrectly() {
         Alert a1 = createSampleAlert();
-        Alert a2 = createSampleAlert();
 
         alertService.resolve(a1);
         alertRepo.save(a1);

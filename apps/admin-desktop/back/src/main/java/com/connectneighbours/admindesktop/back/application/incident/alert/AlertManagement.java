@@ -1,14 +1,11 @@
-package com.connectneighbours.admindesktop.back.application.incident.service.alert;
+package com.connectneighbours.admindesktop.back.application.incident.alert;
 
-import com.connectneighbours.admindesktop.back.application.incident.service.IncidentDTO;
+import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
-import com.connectneighbours.admindesktop.back.infrastructure.incident.IncidentRepositoryImpl;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
