@@ -1,5 +1,9 @@
 package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
-public interface PluginRepository {
+import java.util.UUID;
 
+public interface PluginRepository {
+    PluginDTO save();
+    PluginDTO findById(UUID uuid);
+    void delete(UUID uuid);
 }
