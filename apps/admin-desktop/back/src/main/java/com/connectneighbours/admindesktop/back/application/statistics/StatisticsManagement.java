@@ -24,7 +24,7 @@ public class StatisticsManagement {
     }
 
     public List<ReporterActivityDTO> reporterActivity() {
-        return  service.reporterActivity().stream()
+        return service.reporterActivity().stream()
                 .map(StatisticsMapper::toReporterActivityDTO)
                 .toList();
     }
