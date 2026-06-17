@@ -4,6 +4,8 @@ import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class PluginContext {
@@ -30,11 +32,18 @@ public class PluginContext {
         return reporterDTOList;
     }
 
-    public void log() {
-        loggerPlugin.info("message");
+    public LoggerPlugin getLoggerPlugin() {
+        return loggerPlugin;
     }
 
-    public void saveFile() {}
+    public void log(String message) {
+        loggerPlugin.info(message);
+    }
+
+    public void saveFile(String name) {
+        var pathSavePlugin = new File("/plugins/output/");
+        new File(pathSavePlugin.getPath() + name);
+    }
 
     public void export(){}
 }

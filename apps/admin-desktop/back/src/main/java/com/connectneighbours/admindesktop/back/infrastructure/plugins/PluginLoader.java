@@ -1,13 +1,16 @@
 package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
 import com.connectneighbours.admindesktop.back.infrastructure.plugins.exceptions.PluginNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,9 +34,18 @@ public class PluginLoader {
         return file.listFiles();
     }
 
-    private PluginMetaData inspect(String name) throws IOException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        var plugin = load(name);
-        return new PluginMetaData(plugin.getName(),plugin.getVersion(),plugin.getDescription(),"main");
+    public PluginMetaData inspect(String name) {
+        var file = findJarByName(name);
+        try(JarFile jar = new JarFile(file)) {
+            var entry = jar.getJarEntry("plugin.json");
+            if(entry == null) throw new PluginNotFoundException("Plugin not found with name :" +name);
+            try(InputStream inputStream = jar.getInputStream(entry)) {
+                var json = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                return new ObjectMapper().readValue(json,PluginMetaData.class);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private File findJarByName(String name) {
