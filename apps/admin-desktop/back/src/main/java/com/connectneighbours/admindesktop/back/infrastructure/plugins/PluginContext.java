@@ -42,7 +42,10 @@ public class PluginContext {
 
     public void saveFile(String name) {
         var pathSavePlugin = new File("/plugins/output/");
-        new File(pathSavePlugin.getPath() + name);
+        var savedPlugin = new File(pathSavePlugin.getPath() + name);
+        if(!savedPlugin.exists()) {
+
+        }
     }
 
     public void export(){}
