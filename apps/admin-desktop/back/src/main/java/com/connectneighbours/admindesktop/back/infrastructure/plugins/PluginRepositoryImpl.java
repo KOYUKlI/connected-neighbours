@@ -1,24 +1,44 @@
 package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class PluginRepositoryImpl implements PluginRepository{
-    private Map<UUID,PluginDTO> data = new HashMap<>();
+    private final Map<UUID,PluginDTO> data = new HashMap<>();
 
     @Override
-    public PluginDTO save() {
-        return null;
+    public PluginDTO save(PluginDTO pluginDTO) {
+        data.put(pluginDTO.uuid(),pluginDTO);
+        return pluginDTO;
     }
 
     @Override
-    public PluginDTO findById(UUID uuid) {
-        return null;
+    public Optional<PluginDTO> findById(UUID uuid) {
+        return Optional.ofNullable(data.get(uuid));
     }
 
     @Override
     public void delete(UUID uuid) {
+        data.remove(uuid);
+    }
 
+    @Override
+    public List<PluginDTO> findByName(String name) {
+        return data.values().stream()
+                .filter(p -> p.name().equals(name))
+                .toList();
+    }
+
+    @Override
+    public List<PluginDTO> findByAuthor(String author) {
+        return data.values().stream()
+                .filter(p -> p.author().equals(author))
+                .toList();
+    }
+
+    @Override
+    public List<PluginDTO> findByStatePlugin(StatePlugin statePlugin) {
+        return data.values().stream()
+                .filter(p -> p.statePlugin().equals(statePlugin))
+                .toList();
     }
 }

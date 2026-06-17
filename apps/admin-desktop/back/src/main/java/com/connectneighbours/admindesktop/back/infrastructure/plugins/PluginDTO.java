@@ -1,4 +1,6 @@
 package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
-public record PluginDTO(String name, String version, String author, String description, String path, String mainClass, StatePlugin statePlugin) {
+import java.util.UUID;
+
+public record PluginDTO(UUID uuid,String name, String version, String author, String description, String path, String mainClass, StatePlugin statePlugin) {
 }
