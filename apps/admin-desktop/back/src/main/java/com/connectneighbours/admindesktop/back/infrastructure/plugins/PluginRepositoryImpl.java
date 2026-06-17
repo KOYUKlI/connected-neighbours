@@ -41,4 +41,9 @@ public class PluginRepositoryImpl implements PluginRepository{
                 .filter(p -> p.statePlugin().equals(statePlugin))
                 .toList();
     }
+
+    @Override
+    public List<PluginDTO> findAll() {
+        return data.values().stream().toList();
+    }
 }

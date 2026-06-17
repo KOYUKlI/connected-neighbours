@@ -34,6 +34,12 @@ public class PluginManagement {
 
     public PluginDTO execute(UUID uuid) throws IOException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         var pluginDto = pluginRepository.findById(uuid).orElseThrow(() -> new PluginNotFoundException("Plugin not found with UUID : " + uuid));
+
+        if (pluginDto.statePlugin() == StatePlugin.DEACTIVATE) {
+            throw new IllegalStateException("Cannot execute a deactivated plugin");
+        }
+
+
         var plugin = pluginLoader.load(new File(pluginDto.path()));
         var running = new PluginDTO(pluginDto.uuid(),pluginDto.name(),pluginDto.version(),pluginDto.author(),pluginDto.description(),pluginDto.path(),pluginDto.mainClass(),StatePlugin.RUNNING);
         pluginRepository.save(running);
