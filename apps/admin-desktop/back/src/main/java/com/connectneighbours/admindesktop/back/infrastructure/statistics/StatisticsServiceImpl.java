@@ -31,20 +31,20 @@ public class StatisticsServiceImpl implements StatisticsService {
         var startTime = start.atStartOfDay();
         var endTime = end.atTime(LocalTime.MAX);
 
-        var count = (long) incidentRepository.findByCreatedAtBetween(startTime,endTime).size();
+        var count = (long) incidentRepository.findByCreatedAtBetween(startTime, endTime).size();
 
-        return new IncidentCountByPeriod(start,end, count);
+        return new IncidentCountByPeriod(start, end, count);
     }
 
     @Override
     public ResolutionRate resolutionRate() {
-        var totalIncidents =  incidentRepository.findAll().size();
-        if(totalIncidents == 0) {
-            return new ResolutionRate(0.0,0L,0L);
+        var totalIncidents = incidentRepository.findAll().size();
+        if (totalIncidents == 0) {
+            return new ResolutionRate(0.0, 0L, 0L);
         }
 
         var resolvedIncident = incidentRepository.findByStatus(IncidentStatus.RESOLVED).size();
-        return new ResolutionRate((double) resolvedIncident/totalIncidents,(long) resolvedIncident,(long) totalIncidents);
+        return new ResolutionRate((double) resolvedIncident / totalIncidents, (long) resolvedIncident, (long) totalIncidents);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .map(r -> {
                     var countIncidentList = incidentRepository.findByReporter(r).size();
                     var countAlertList = alertRepository.findByReporter(r).size();
-                    return new ReporterActivity(r.getIdReporter(),r.getFirstname(),r.getLastname(),(long) countIncidentList,(long) countAlertList);
+                    return new ReporterActivity(r.getIdReporter(), r.getFirstname(), r.getLastname(), (long) countIncidentList, (long) countAlertList);
                 })
                 .toList();
     }
@@ -62,10 +62,10 @@ public class StatisticsServiceImpl implements StatisticsService {
     public IncidentDistributionByType incidentDistributionByType(IncidentType type) {
         var list = incidentRepository.findAll();
         var total = list.size();
-        var count =  list.stream()
+        var count = list.stream()
                 .filter(incident -> incident.getType().equals(type))
                 .count();
-        return new IncidentDistributionByType(type,count, Double.isNaN((double) count / total) ? 0.0 : (double) count / total );
+        return new IncidentDistributionByType(type, count, Double.isNaN((double) count / total) ? 0.0 : (double) count / total);
     }
 
     @Override

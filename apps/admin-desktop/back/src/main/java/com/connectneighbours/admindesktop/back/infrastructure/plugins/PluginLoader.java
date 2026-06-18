@@ -24,8 +24,8 @@ public class PluginLoader {
     public Plugin load(File jarFile) throws IOException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, ClassNotFoundException {
         var name = jarFile.getName();
         var file = findJarByName(name);
-        var cl = new URLClassLoader(new URL[]{file.toURI().toURL()},this.getClass().getClassLoader());
-        var pluginClassName = findPluginClassInJar(file,cl);
+        var cl = new URLClassLoader(new URL[]{file.toURI().toURL()}, this.getClass().getClassLoader());
+        var pluginClassName = findPluginClassInJar(file, cl);
         var clazz = cl.loadClass(pluginClassName);
         return (Plugin) clazz.getDeclaredConstructor().newInstance();
     }
@@ -36,12 +36,12 @@ public class PluginLoader {
     }
 
     public PluginMetaData inspect(File pluginFile) {
-        try(JarFile jar = new JarFile(pluginFile)) {
+        try (JarFile jar = new JarFile(pluginFile)) {
             var entry = jar.getJarEntry("plugin.json");
-            if(entry == null) throw new PluginNotFoundException("Plugin not found with name :" + pluginFile.getName());
-            try(InputStream inputStream = jar.getInputStream(entry)) {
+            if (entry == null) throw new PluginNotFoundException("Plugin not found with name :" + pluginFile.getName());
+            try (InputStream inputStream = jar.getInputStream(entry)) {
                 var json = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-                return new ObjectMapper().readValue(json,PluginMetaData.class);
+                return new ObjectMapper().readValue(json, PluginMetaData.class);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -78,16 +78,16 @@ public class PluginLoader {
         return plugins.stream().filter(f -> f.getName().equals(name)).findFirst().orElseThrow(() -> new PluginNotFoundException("Plugin not found with name : " + name));
     }
 
-    private String findPluginClassInJar(File jarFile,URLClassLoader cl) {
-        try(JarFile jar = new JarFile(jarFile)) {
-            for(JarEntry entry : Collections.list(jar.entries())) {
-              if(entry.getName().endsWith(".class")){
-                  var className = entry.getName().replace("/",".").replace(".class","");
-                  var clazz = cl.loadClass(className);
-                  if (Plugin.class.isAssignableFrom(clazz) && !clazz.isInterface()){
-                      return className;
-                  }
-              }
+    private String findPluginClassInJar(File jarFile, URLClassLoader cl) {
+        try (JarFile jar = new JarFile(jarFile)) {
+            for (JarEntry entry : Collections.list(jar.entries())) {
+                if (entry.getName().endsWith(".class")) {
+                    var className = entry.getName().replace("/", ".").replace(".class", "");
+                    var clazz = cl.loadClass(className);
+                    if (Plugin.class.isAssignableFrom(clazz) && !clazz.isInterface()) {
+                        return className;
+                    }
+                }
 
             }
 

@@ -9,10 +9,16 @@ import java.util.UUID;
 
 public interface ReporterRepository {
     Reporter save(Reporter reporter);
+
     Optional<Reporter> findById(UUID reporterId);
+
     List<Reporter> findAll();
+
     Page<Reporter> findAll(Pageable pageable);
+
     List<Reporter> findByFirstname(String firstname);
+
     List<Reporter> findByLastname(String lastname);
+
     void delete(Reporter reporter);
 }

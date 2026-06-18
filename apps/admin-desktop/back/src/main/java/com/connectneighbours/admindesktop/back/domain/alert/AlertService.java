@@ -10,13 +10,13 @@ public class AlertService {
         alert.open();
     }
 
-    public void resolve(Alert alert){
-        if(alert.isResolved()) throw new AlertAlreadyResolvedException("Alert already resolved");
+    public void resolve(Alert alert) {
+        if (alert.isResolved()) throw new AlertAlreadyResolvedException("Alert already resolved");
 
         alert.resolve();
     }
 
-    public boolean canBeResolved(Alert alert){
+    public boolean canBeResolved(Alert alert) {
         return !alert.isResolved();
     }
 }

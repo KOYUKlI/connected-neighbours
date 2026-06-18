@@ -6,15 +6,15 @@ import com.connectneighbours.admindesktop.back.domain.statistics.ReporterActivit
 import com.connectneighbours.admindesktop.back.domain.statistics.ResolutionRate;
 
 public class StatisticsMapper {
-    public static IncidentCountByPeriodDTO toIncidentCountByPeriodDTO(IncidentCountByPeriod incidentCountByPeriod){
-        return new IncidentCountByPeriodDTO(incidentCountByPeriod.start(),incidentCountByPeriod.end(), incidentCountByPeriod.count());
+    public static IncidentCountByPeriodDTO toIncidentCountByPeriodDTO(IncidentCountByPeriod incidentCountByPeriod) {
+        return new IncidentCountByPeriodDTO(incidentCountByPeriod.start(), incidentCountByPeriod.end(), incidentCountByPeriod.count());
     }
 
     public static ResolutionRateDTO toResolutionRateDTO(ResolutionRate resolutionRate) {
-        return new ResolutionRateDTO(FormatPercentage.formatPercentage(resolutionRate.rate()),resolutionRate.resolved(),resolutionRate.total());
+        return new ResolutionRateDTO(FormatPercentage.formatPercentage(resolutionRate.rate()), resolutionRate.resolved(), resolutionRate.total());
     }
 
-    public static ReporterActivityDTO toReporterActivityDTO(ReporterActivity reporterActivity){
+    public static ReporterActivityDTO toReporterActivityDTO(ReporterActivity reporterActivity) {
         return new ReporterActivityDTO(reporterActivity.idReporter(), reporterActivity.firstname(), reporterActivity.lastname(), reporterActivity.incidentCount(), reporterActivity.alertCount());
     }
 

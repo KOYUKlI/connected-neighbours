@@ -1,4 +1,6 @@
 package com.connectneighbours.admindesktop.back.application.reporter;
 
-public record CreationReporterDTO(String firstname,String lastname) {
+import jakarta.validation.constraints.NotNull;
+
+public record CreationReporterDTO(@NotNull String firstname, @NotNull String lastname) {
 }

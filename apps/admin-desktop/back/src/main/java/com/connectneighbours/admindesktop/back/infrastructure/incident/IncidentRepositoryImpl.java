@@ -49,7 +49,7 @@ public class IncidentRepositoryImpl implements IncidentRepository {
 
     @Override
     public List<Incident> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end) {
-        return incidentDAO.findByCreatedAtBetween(start,end);
+        return incidentDAO.findByCreatedAtBetween(start, end);
     }
 
     @Override

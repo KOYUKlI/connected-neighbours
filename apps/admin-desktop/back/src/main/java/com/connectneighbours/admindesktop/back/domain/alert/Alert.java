@@ -40,7 +40,8 @@ public class Alert {
 
     private LocalDateTime resolvedAt;
 
-    public Alert() {}
+    public Alert() {
+    }
 
     public Alert(Incident incident, String message, Severity severity) {
         this.alertId = UUID.randomUUID();
@@ -115,7 +116,7 @@ public class Alert {
         return status.equals(AlertStatus.RESOLVED);
     }
 
-    public boolean isCritical(){
+    public boolean isCritical() {
         return severity.equals(Severity.CRITICAL);
     }
 

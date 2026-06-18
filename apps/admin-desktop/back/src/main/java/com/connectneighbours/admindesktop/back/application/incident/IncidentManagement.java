@@ -107,7 +107,7 @@ public class IncidentManagement {
                 .toList();
     }
 
-    public Page<IncidentDTO> listIncidents(Pageable pageable){
+    public Page<IncidentDTO> listIncidents(Pageable pageable) {
         return incidentRepository.findAll(pageable).map(IncidentMapper::toDTO);
     }
 

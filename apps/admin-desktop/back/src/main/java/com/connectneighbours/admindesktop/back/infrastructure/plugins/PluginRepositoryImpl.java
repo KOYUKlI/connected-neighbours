@@ -2,12 +2,12 @@ package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
 import java.util.*;
 
-public class PluginRepositoryImpl implements PluginRepository{
-    private final Map<UUID,PluginDTO> data = new HashMap<>();
+public class PluginRepositoryImpl implements PluginRepository {
+    private final Map<UUID, PluginDTO> data = new HashMap<>();
 
     @Override
     public PluginDTO save(PluginDTO pluginDTO) {
-        data.put(pluginDTO.uuid(),pluginDTO);
+        data.put(pluginDTO.uuid(), pluginDTO);
         return pluginDTO;
     }
 

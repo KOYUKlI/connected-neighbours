@@ -12,7 +12,10 @@ import java.util.UUID;
 
 public interface IncidentDAO extends JpaRepository<Incident, UUID> {
     List<Incident> findByStatus(IncidentStatus status);
+
     List<Incident> findByType(IncidentType type);
+
     List<Incident> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
     List<Incident> findByReporter(Reporter reporter);
 }

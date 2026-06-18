@@ -21,14 +21,14 @@ public class PluginManagement {
     public PluginDTO install(File jarFile) {
         var pluginInstalled = pluginLoader.installJar(jarFile);
         var pluginMetaData = pluginLoader.inspect(pluginInstalled);
-        var dto = new PluginDTO(UUID.nameUUIDFromBytes(pluginMetaData.name().getBytes()), pluginMetaData.name(), pluginMetaData.version(), pluginMetaData.author(), pluginMetaData.description(), pluginInstalled.getPath(), pluginMetaData.main(),StatePlugin.ACTIVATE);
+        var dto = new PluginDTO(UUID.nameUUIDFromBytes(pluginMetaData.name().getBytes()), pluginMetaData.name(), pluginMetaData.version(), pluginMetaData.author(), pluginMetaData.description(), pluginInstalled.getPath(), pluginMetaData.main(), StatePlugin.ACTIVATE);
         return pluginRepository.save(dto);
     }
 
     public PluginDTO load(UUID uuid) throws IOException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         var plugin = pluginRepository.findById(uuid).orElseThrow(() -> new PluginNotFoundException("Plugin not found with UUID : " + uuid));
         pluginLoader.load(new File(plugin.path()));
-        var dto = new PluginDTO(plugin.uuid(),plugin.name(),plugin.version(),plugin.author(),plugin.description(),plugin.path(),plugin.mainClass(),StatePlugin.ACTIVATE);
+        var dto = new PluginDTO(plugin.uuid(), plugin.name(), plugin.version(), plugin.author(), plugin.description(), plugin.path(), plugin.mainClass(), StatePlugin.ACTIVATE);
         return pluginRepository.save(dto);
     }
 
@@ -41,16 +41,16 @@ public class PluginManagement {
 
 
         var plugin = pluginLoader.load(new File(pluginDto.path()));
-        var running = new PluginDTO(pluginDto.uuid(),pluginDto.name(),pluginDto.version(),pluginDto.author(),pluginDto.description(),pluginDto.path(),pluginDto.mainClass(),StatePlugin.RUNNING);
+        var running = new PluginDTO(pluginDto.uuid(), pluginDto.name(), pluginDto.version(), pluginDto.author(), pluginDto.description(), pluginDto.path(), pluginDto.mainClass(), StatePlugin.RUNNING);
         pluginRepository.save(running);
         plugin.execute(pluginContext);
-        var finished = new PluginDTO(pluginDto.uuid(),pluginDto.name(),pluginDto.version(),pluginDto.author(),pluginDto.description(),pluginDto.path(),pluginDto.mainClass(),StatePlugin.ACTIVATE);
+        var finished = new PluginDTO(pluginDto.uuid(), pluginDto.name(), pluginDto.version(), pluginDto.author(), pluginDto.description(), pluginDto.path(), pluginDto.mainClass(), StatePlugin.ACTIVATE);
         return pluginRepository.save(finished);
     }
 
     public PluginDTO deactivate(UUID uuid) {
         var pluginDto = pluginRepository.findById(uuid).orElseThrow(() -> new PluginNotFoundException("Plugin not found with UUID : " + uuid));
-        var dto = new PluginDTO(pluginDto.uuid(),pluginDto.name(),pluginDto.version(),pluginDto.author(),pluginDto.description(),pluginDto.path(),pluginDto.mainClass(),StatePlugin.DEACTIVATE);
+        var dto = new PluginDTO(pluginDto.uuid(), pluginDto.name(), pluginDto.version(), pluginDto.author(), pluginDto.description(), pluginDto.path(), pluginDto.mainClass(), StatePlugin.DEACTIVATE);
         return pluginRepository.save(dto);
     }
 

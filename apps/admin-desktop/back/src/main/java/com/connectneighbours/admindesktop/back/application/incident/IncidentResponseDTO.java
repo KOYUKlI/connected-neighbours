@@ -16,5 +16,6 @@ public record IncidentResponseDTO(
         @NotNull IncidentType type,
         @NotNull IncidentStatus status,
         List<AlertResponseDTO> alerts
-) {}
+) {
+}
 

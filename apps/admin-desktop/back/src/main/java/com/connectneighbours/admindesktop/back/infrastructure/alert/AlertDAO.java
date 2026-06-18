@@ -12,7 +12,10 @@ import java.util.UUID;
 
 public interface AlertDAO extends JpaRepository<Alert, UUID> {
     List<Alert> findByIncident(Incident incident);
+
     List<Alert> findBySeverity(Severity severity);
+
     List<Alert> findByStatus(AlertStatus status);
+
     List<Alert> findByReporter(Reporter reporter);
 }

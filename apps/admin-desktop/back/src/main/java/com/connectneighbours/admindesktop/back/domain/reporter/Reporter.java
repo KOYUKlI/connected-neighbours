@@ -13,7 +13,7 @@ public class Reporter {
     @Column(nullable = false)
     private UUID idReporter;
 
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime dateCreation;
 

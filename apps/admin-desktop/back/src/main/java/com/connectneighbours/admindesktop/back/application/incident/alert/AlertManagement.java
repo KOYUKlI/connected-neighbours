@@ -17,7 +17,7 @@ public class AlertManagement {
     private final AlertService alertService;
     private final IncidentRepository incidentRepository;
 
-    public AlertManagement(AlertRepository alertRepository, AlertService alertService,IncidentRepository incidentRepository) {
+    public AlertManagement(AlertRepository alertRepository, AlertService alertService, IncidentRepository incidentRepository) {
         this.alertRepository = alertRepository;
         this.alertService = alertService;
         this.incidentRepository = incidentRepository;
@@ -54,14 +54,14 @@ public class AlertManagement {
                 .toList();
     }
 
-    public List<AlertDTO> listByStatus(AlertStatus status){
+    public List<AlertDTO> listByStatus(AlertStatus status) {
         var list = alertRepository.findByStatus(status);
         return list.stream()
                 .map(AlertMapper::toDTO)
                 .toList();
     }
 
-    public List<AlertDTO> listByIncident(IncidentDTO dto){
+    public List<AlertDTO> listByIncident(IncidentDTO dto) {
         var incident = loadIncident(dto.id());
         var list = alertRepository.findByIncident(incident);
         return list.stream()
@@ -69,7 +69,7 @@ public class AlertManagement {
                 .toList();
     }
 
-    private Incident loadIncident(UUID id){
+    private Incident loadIncident(UUID id) {
         return incidentRepository.findById(id)
                 .orElseThrow(() -> new IncidentNotFoundException("Incident not found with id : " + id));
     }

@@ -12,13 +12,20 @@ import java.util.UUID;
 
 public interface IncidentRepository {
     Incident save(Incident incident);
+
     Optional<Incident> findById(UUID incidentId);
+
     List<Incident> findAll();
+
     Page<Incident> findAll(Pageable pageable);
 
     List<Incident> findByStatus(IncidentStatus status);
+
     List<Incident> findByType(IncidentType type);
+
     List<Incident> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
     List<Incident> findByReporter(Reporter reporter);
+
     void delete(Incident incident);
 }

@@ -9,5 +9,5 @@ public record ReporterDTO(
         @NotNull UUID idReporter,
         @NotBlank String firstname,
         @NotBlank String lastname
-        ) {
+) {
 }

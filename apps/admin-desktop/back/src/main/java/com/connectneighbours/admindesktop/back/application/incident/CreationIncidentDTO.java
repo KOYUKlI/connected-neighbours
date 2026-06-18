@@ -6,9 +6,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record CreationIncidentDTO(
-       @NotNull Reporter reporter,
-       @NotBlank String title,
-       @NotBlank String description,
-       @NotNull IncidentType type
-) {}
+        @NotNull Reporter reporter,
+        @NotBlank String title,
+        @NotBlank String description,
+        @NotNull IncidentType type
+) {
+}
 

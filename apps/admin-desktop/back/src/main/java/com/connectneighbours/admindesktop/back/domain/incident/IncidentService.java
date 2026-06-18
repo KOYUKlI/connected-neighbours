@@ -6,38 +6,39 @@ import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotRe
 import com.connectneighbours.admindesktop.back.domain.exception.incident.*;
 
 public class IncidentService {
-    public void open(Incident incident){
-        if(incident.isOpen()) throw new IncidentAlreadyOpenException("Incident already open");
+    public void open(Incident incident) {
+        if (incident.isOpen()) throw new IncidentAlreadyOpenException("Incident already open");
 
-        if(incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident already resolved");
+        if (incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident already resolved");
 
         incident.open();
     }
 
-    public void resolve(Incident incident){
-        if(incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident already resolved");
+    public void resolve(Incident incident) {
+        if (incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident already resolved");
 
-        if (incident.hasCriticalOpenAlerts()) throw new IncidentHasCriticalAlertsException("Cannot resolve incident with critical alerts");
+        if (incident.hasCriticalOpenAlerts())
+            throw new IncidentHasCriticalAlertsException("Cannot resolve incident with critical alerts");
 
         incident.resolve();
     }
 
-    public void startProgress(Incident incident){
-        if(incident.isInProgress()) throw new IncidentAlreadyInProgressException("Incident already in progress");
+    public void startProgress(Incident incident) {
+        if (incident.isInProgress()) throw new IncidentAlreadyInProgressException("Incident already in progress");
 
         incident.inProgress();
     }
 
-    public void attachAlert(Incident incident, Alert alert){
-        if(incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident Already resolved");
+    public void attachAlert(Incident incident, Alert alert) {
+        if (incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident Already resolved");
 
-        if(alert.isResolved()) throw new AlertAlreadyResolvedException("Alert already resolved");
+        if (alert.isResolved()) throw new AlertAlreadyResolvedException("Alert already resolved");
 
         incident.getAlerts().add(alert);
     }
 
-    public void detachAlert(Incident incident, Alert alert){
-        if(!alert.isResolved()) throw new AlertNotResolvedException("Alert not resolved");
+    public void detachAlert(Incident incident, Alert alert) {
+        if (!alert.isResolved()) throw new AlertNotResolvedException("Alert not resolved");
 
         incident.getAlerts().remove(alert);
     }

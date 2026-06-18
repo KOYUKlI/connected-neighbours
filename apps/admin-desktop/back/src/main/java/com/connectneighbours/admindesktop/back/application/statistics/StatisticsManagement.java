@@ -14,7 +14,7 @@ public class StatisticsManagement {
     }
 
     public IncidentCountByPeriodDTO countIncidents(LocalDate start, LocalDate end) {
-        var incidentCountByPeriod = service.countIncidents(start,end);
+        var incidentCountByPeriod = service.countIncidents(start, end);
         return StatisticsMapper.toIncidentCountByPeriodDTO(incidentCountByPeriod);
     }
 
@@ -30,7 +30,7 @@ public class StatisticsManagement {
     }
 
     public IncidentDistributionByTypeDTO incidentCountByPeriod(IncidentType type) {
-        var incidentDistributionByType =  service.incidentDistributionByType(type);
+        var incidentDistributionByType = service.incidentDistributionByType(type);
         return StatisticsMapper.toIncidentDistributionByTypeDTO(incidentDistributionByType);
     }
 

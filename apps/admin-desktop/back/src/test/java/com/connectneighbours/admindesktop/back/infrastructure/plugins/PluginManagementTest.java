@@ -33,7 +33,6 @@ public class PluginManagementTest {
     }
 
 
-
     @Test
     void testInstall() {
         File jar = new File("fake.jar");
@@ -159,7 +158,6 @@ public class PluginManagementTest {
     }
 
 
-
     @Test
     void testDeactivate() {
         File jar = new File("fake.jar");
@@ -196,7 +194,7 @@ public class PluginManagementTest {
         assertEquals(installed.path(), deactivated.path());
         assertEquals(installed.mainClass(), deactivated.mainClass());
 
-        assertEquals(StatePlugin.DEACTIVATE, deactivated.statePlugin() );
+        assertEquals(StatePlugin.DEACTIVATE, deactivated.statePlugin());
     }
 
     @Test

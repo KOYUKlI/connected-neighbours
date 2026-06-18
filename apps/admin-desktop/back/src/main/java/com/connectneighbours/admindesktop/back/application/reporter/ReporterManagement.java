@@ -24,7 +24,7 @@ public class ReporterManagement {
     }
 
     public Page<ReporterDTO> listReporter(Pageable pageable) {
-       return reporterRepository.findAll(pageable).map(ReporterMapper::toDTO);
+        return reporterRepository.findAll(pageable).map(ReporterMapper::toDTO);
     }
 
     public List<ReporterDTO> listByFirstname(String firstname) {
@@ -34,19 +34,19 @@ public class ReporterManagement {
                 .toList();
     }
 
-    public List<ReporterDTO> listByLastname(String lastname){
+    public List<ReporterDTO> listByLastname(String lastname) {
         var list = reporterRepository.findByLastname(lastname);
         return list.stream()
                 .map(ReporterMapper::toDTO)
                 .toList();
     }
 
-    public void deleteReporter(UUID id){
+    public void deleteReporter(UUID id) {
         var reporter = loadReporter(id);
         reporterRepository.delete(reporter);
     }
 
-    private Reporter loadReporter(UUID uuid){
+    private Reporter loadReporter(UUID uuid) {
         return reporterRepository.findById(uuid).orElseThrow(() -> new ReporterNotFoundException("reporter not found with id : " + uuid));
     }
 }

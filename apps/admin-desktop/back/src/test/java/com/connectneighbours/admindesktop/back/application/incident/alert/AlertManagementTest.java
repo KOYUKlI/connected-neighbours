@@ -30,8 +30,9 @@ public class AlertManagementTest {
         alertRepo = new AlertRepositoryInMemory();
         alertService = new AlertService();
         incidentRepo = new IncidentRepositoryInMemory();
-        management = new AlertManagement(alertRepo,alertService,incidentRepo);
+        management = new AlertManagement(alertRepo, alertService, incidentRepo);
     }
+
     private Alert createSampleAlert() {
         Alert alert = new Alert(
                 null,
@@ -160,8 +161,7 @@ public class AlertManagementTest {
     }
 
     @Test
-    void findByReporter_returnsEmptyList_whenNoAlerts()
-    {
+    void findByReporter_returnsEmptyList_whenNoAlerts() {
         var reporter1 = new Reporter(
                 LocalDateTime.now(),
                 LocalDateTime.now(),

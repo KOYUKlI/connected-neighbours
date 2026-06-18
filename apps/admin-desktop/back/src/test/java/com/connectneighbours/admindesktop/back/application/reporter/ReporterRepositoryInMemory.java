@@ -9,11 +9,11 @@ import org.springframework.data.domain.Pageable;
 import java.util.*;
 
 public class ReporterRepositoryInMemory implements ReporterRepository {
-    private final Map<UUID,Reporter> data = new HashMap<>();
+    private final Map<UUID, Reporter> data = new HashMap<>();
 
     @Override
     public Reporter save(Reporter reporter) {
-        data.put(reporter.getIdReporter(),reporter);
+        data.put(reporter.getIdReporter(), reporter);
         return reporter;
     }
 
@@ -30,10 +30,10 @@ public class ReporterRepositoryInMemory implements ReporterRepository {
     @Override
     public Page<Reporter> findAll(Pageable pageable) {
         var content = findAll(pageable.getPageNumber(), pageable.getPageSize());
-        return new PageImpl<>(content,pageable,data.size());
+        return new PageImpl<>(content, pageable, data.size());
     }
 
-    public List<Reporter> findAll(int page,int size) {
+    public List<Reporter> findAll(int page, int size) {
         return data.values().stream()
                 .skip((long) page * size)
                 .limit(size)

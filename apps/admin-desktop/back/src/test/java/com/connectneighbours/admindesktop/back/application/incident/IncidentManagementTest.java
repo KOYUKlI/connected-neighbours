@@ -88,7 +88,7 @@ class IncidentManagementTest {
 
     @Test
     void createIncident_shouldCreateAndReturnDTO() {
-        var dto = new CreationIncidentDTO(new Reporter("first","last"),"Fire", "Kitchen fire", IncidentType.MAINTENANCE);
+        var dto = new CreationIncidentDTO(new Reporter("first", "last"), "Fire", "Kitchen fire", IncidentType.MAINTENANCE);
 
         var result = management.createIncident(dto);
 
@@ -100,7 +100,7 @@ class IncidentManagementTest {
     @Test
     void updateIncident_shouldModifyFields() {
         var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first","last"),"Old", "Desc", IncidentType.MAINTENANCE)
+                new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
         );
 
         var updated = management.updateIncident(
@@ -116,7 +116,7 @@ class IncidentManagementTest {
     @Test
     void addAlertToIncident_shouldAttachAlert() {
         var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first","last"),"Leak", "Water leak", IncidentType.MAINTENANCE)
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE)
         );
 
         var alert = management.addAlertToIncident(
@@ -132,7 +132,7 @@ class IncidentManagementTest {
     @Test
     void detachAlert_shouldRemoveAlertFromIncident() {
         var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first","last"),"Leak", "Water leak", IncidentType.MAINTENANCE)
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE)
         );
 
         var alert = management.addAlertToIncident(
@@ -154,7 +154,7 @@ class IncidentManagementTest {
     void listIncidents_shouldReturnPaginatedResults() {
         for (int i = 0; i < 15; i++) {
             management.createIncident(
-                    new CreationIncidentDTO(new Reporter("first","last"),"i" + i, "desc", IncidentType.MAINTENANCE)
+                    new CreationIncidentDTO(new Reporter("first", "last"), "i" + i, "desc", IncidentType.MAINTENANCE)
             );
         }
 
@@ -167,11 +167,11 @@ class IncidentManagementTest {
 
     @Test
     void listByStatus_shouldReturnMatchingIncidents() {
-        var i1 = new Incident(new Reporter("first","last"), "t1", "d1", IncidentType.MAINTENANCE);
+        var i1 = new Incident(new Reporter("first", "last"), "t1", "d1", IncidentType.MAINTENANCE);
         i1.resolve();
         incidentRepo.save(i1);
 
-        var i2 = new Incident(new Reporter("first","last"), "t2", "d2", IncidentType.MAINTENANCE);
+        var i2 = new Incident(new Reporter("first", "last"), "t2", "d2", IncidentType.MAINTENANCE);
         incidentRepo.save(i2);
 
         var result = management.listByStatus(IncidentStatus.RESOLVED);
@@ -182,8 +182,8 @@ class IncidentManagementTest {
 
     @Test
     void listByType_shouldReturnMatchingIncidents() {
-        var i1 = new Incident(new Reporter("first","last"), "t1", "d1", IncidentType.MAINTENANCE);
-        var i2 = new Incident(new Reporter("first","last"), "t2", "d2", IncidentType.MAINTENANCE);
+        var i1 = new Incident(new Reporter("first", "last"), "t1", "d1", IncidentType.MAINTENANCE);
+        var i2 = new Incident(new Reporter("first", "last"), "t2", "d2", IncidentType.MAINTENANCE);
         incidentRepo.save(i1);
         incidentRepo.save(i2);
 
@@ -192,15 +192,14 @@ class IncidentManagementTest {
         var i1Dto = IncidentMapper.toDTO(i1);
         var i2Dto = IncidentMapper.toDTO(i2);
 
-        assertThat(result).containsExactly(i1Dto,i2Dto);
+        assertThat(result).containsExactly(i1Dto, i2Dto);
     }
-
 
 
     @Test
     void getIncident_shouldReturnCorrectIncident() {
         var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first","last"),"Fire", "Kitchen", IncidentType.MAINTENANCE)
+                new CreationIncidentDTO(new Reporter("first", "last"), "Fire", "Kitchen", IncidentType.MAINTENANCE)
         );
 
         var result = management.getIncident(incident.id());
@@ -213,10 +212,10 @@ class IncidentManagementTest {
     void listByDateRange_shouldReturnMatchingIncidents() {
         var now = LocalDateTime.now(clock);
 
-        var i1 = new Incident(new Reporter("first","last"),"t1", "d1", IncidentType.MAINTENANCE, clock);
+        var i1 = new Incident(new Reporter("first", "last"), "t1", "d1", IncidentType.MAINTENANCE, clock);
         incidentRepo.save(i1);
 
-        var i2 = new Incident(new Reporter("first","last"),"t2", "d2", IncidentType.MAINTENANCE, clock);
+        var i2 = new Incident(new Reporter("first", "last"), "t2", "d2", IncidentType.MAINTENANCE, clock);
         incidentRepo.save(i2);
 
         var result = management.listByDateRange(
@@ -227,13 +226,13 @@ class IncidentManagementTest {
         var i1Dto = IncidentMapper.toDTO(i1);
         var i2Dto = IncidentMapper.toDTO(i2);
 
-        assertThat(result).containsExactly(i1Dto,i2Dto);
+        assertThat(result).containsExactly(i1Dto, i2Dto);
     }
 
 
     @Test
     void deleteIncident_shouldDelete_whenStatusIsResolved() {
-        var incident = new Incident(new Reporter("first","last"), "t", "d", IncidentType.MAINTENANCE);
+        var incident = new Incident(new Reporter("first", "last"), "t", "d", IncidentType.MAINTENANCE);
         incident.resolve();
         incidentRepo.save(incident);
 
@@ -244,7 +243,7 @@ class IncidentManagementTest {
 
     @Test
     void deleteIncident_shouldDelete_whenStatusIsClosed() {
-        var incident = new Incident(new Reporter("first","last"), "t", "d", IncidentType.MAINTENANCE);
+        var incident = new Incident(new Reporter("first", "last"), "t", "d", IncidentType.MAINTENANCE);
         incident.close();
         incidentRepo.save(incident);
 
@@ -255,7 +254,7 @@ class IncidentManagementTest {
 
     @Test
     void deleteIncident_shouldThrow_whenStatusIsOpen() {
-        var incident = new Incident(new Reporter("first","last"), "t", "d", IncidentType.MAINTENANCE);
+        var incident = new Incident(new Reporter("first", "last"), "t", "d", IncidentType.MAINTENANCE);
         incidentRepo.save(incident);
 
         assertThatThrownBy(() -> management.deleteIncident(incident.getIncidentId()))

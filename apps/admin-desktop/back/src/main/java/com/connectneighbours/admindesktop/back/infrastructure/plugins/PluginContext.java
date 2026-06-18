@@ -45,17 +45,18 @@ public class PluginContext {
     }
 
     public void saveFile(String fileName, byte[] content) {
-        if(fileName  == null || fileName .isBlank()) throw new IllegalArgumentException("fileName cannot be empty or null");
+        if (fileName == null || fileName.isBlank())
+            throw new IllegalArgumentException("fileName cannot be empty or null");
 
         try {
-            var pluginDir = new File("/plugins/output/"+ pluginName);
+            var pluginDir = new File("/plugins/output/" + pluginName);
 
-            if(!pluginDir.exists()) pluginDir.mkdirs();
+            if (!pluginDir.exists()) pluginDir.mkdirs();
 
-            var pluginFile = new File(pluginDir.getPath(), fileName );
+            var pluginFile = new File(pluginDir.getPath(), fileName);
 
-            if(pluginFile.exists()){
-                var message = "File already exist : " +fileName;
+            if (pluginFile.exists()) {
+                var message = "File already exist : " + fileName;
                 loggerPlugin.error(message);
                 throw new PluginAlreadyExistException(message);
             }

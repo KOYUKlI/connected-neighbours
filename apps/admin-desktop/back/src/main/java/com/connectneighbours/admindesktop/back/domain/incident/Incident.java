@@ -42,9 +42,9 @@ public class Incident {
     @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL)
     private List<Alert> alerts = new ArrayList<>();
 
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     @CreationTimestamp
-    private LocalDateTime  createdAt;
+    private LocalDateTime createdAt;
 
     @Column
     private LocalDateTime resolvedAt;
@@ -52,7 +52,7 @@ public class Incident {
     public Incident() {
     }
 
-    public Incident(Reporter reporter,String title, String description, IncidentType type) {
+    public Incident(Reporter reporter, String title, String description, IncidentType type) {
         this.incidentId = UUID.randomUUID();
         this.reporter = reporter;
         this.title = title;
@@ -61,7 +61,7 @@ public class Incident {
         this.status = IncidentStatus.CREATED;
     }
 
-    public Incident(Reporter reporter,String title, String description, IncidentType type, Clock clock) {
+    public Incident(Reporter reporter, String title, String description, IncidentType type, Clock clock) {
         this.incidentId = UUID.randomUUID();
         this.reporter = reporter;
         this.title = title;
@@ -121,24 +121,24 @@ public class Incident {
     }
 
     public void resolve() {
-       this.status = IncidentStatus.RESOLVED;
-       this.resolvedAt = LocalDateTime.now();
+        this.status = IncidentStatus.RESOLVED;
+        this.resolvedAt = LocalDateTime.now();
     }
 
     public void open() {
         this.status = IncidentStatus.OPEN;
     }
 
-    public void close(){
+    public void close() {
         this.status = IncidentStatus.CLOSED;
         this.resolvedAt = LocalDateTime.now();
     }
 
-    public void inProgress(){
+    public void inProgress() {
         this.status = IncidentStatus.IN_PROGRESS;
     }
 
-    public boolean hasCriticalOpenAlerts(){
+    public boolean hasCriticalOpenAlerts() {
         return alerts.stream().anyMatch(a -> a.getSeverity().equals(Severity.CRITICAL) && !a.isResolved() && a.getStatus().equals(AlertStatus.OPEN));
     }
 
@@ -146,11 +146,11 @@ public class Incident {
         return status.equals(IncidentStatus.RESOLVED);
     }
 
-    public boolean isOpen(){
+    public boolean isOpen() {
         return status.equals(IncidentStatus.OPEN);
     }
 
-    public boolean isInProgress(){
+    public boolean isInProgress() {
         return status.equals(IncidentStatus.IN_PROGRESS);
     }
 

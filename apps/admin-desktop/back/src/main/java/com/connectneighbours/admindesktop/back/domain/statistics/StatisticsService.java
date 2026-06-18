@@ -7,8 +7,12 @@ import java.util.List;
 
 public interface StatisticsService {
     IncidentCountByPeriod countIncidents(LocalDate start, LocalDate end);
+
     ResolutionRate resolutionRate();
+
     List<ReporterActivity> reporterActivity();
+
     IncidentDistributionByType incidentDistributionByType(IncidentType type);
+
     List<IncidentDistributionByType> listIncidentDistributedByType();
 }
