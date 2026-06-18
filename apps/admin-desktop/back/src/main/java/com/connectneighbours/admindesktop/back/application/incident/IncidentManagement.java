@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +34,7 @@ public class IncidentManagement {
     }
 
     public IncidentDTO createIncident(CreationIncidentDTO dto) {
+        validateCreate(dto);
         Incident incident = new Incident(dto.reporter(), dto.title(), dto.description(), dto.type());
         incidentService.open(incident);
         var savedIncident = incidentRepository.save(incident);
@@ -57,6 +59,10 @@ public class IncidentManagement {
     }
 
     public AlertDTO addAlertToIncident(UUID incidentId, CreationAlertDTO dto) {
+        if (incidentId == null) throw new IllegalArgumentException("Incident ID cannot be null");
+
+        validateCreationAlert(dto);
+
         Incident incident = loadIncident(incidentId);
 
         Alert alert = new Alert(
@@ -75,6 +81,9 @@ public class IncidentManagement {
     }
 
     public IncidentDTO detachAlertFromIncident(UUID incidentId, UUID alertId) {
+        if (incidentId == null) throw new IllegalArgumentException("Incident ID cannot be null");
+        if (alertId == null) throw new IllegalArgumentException("Alert ID cannot be null");
+
         Incident incident = loadIncident(incidentId);
         Alert alert = loadAlert(alertId);
 
@@ -85,6 +94,9 @@ public class IncidentManagement {
     }
 
     public IncidentDTO updateIncident(UUID incidentId, UpdateIncidentDTO dto) {
+        if(incidentId == null) throw new IllegalArgumentException("UUID cannot be null");
+
+        validateUpdate(dto);
         Incident incident = loadIncident(incidentId);
 
         incident.setTitle(dto.title());
@@ -141,11 +153,35 @@ public class IncidentManagement {
     }
 
     public void deleteIncident(UUID id) {
+        if (id == null) throw new IllegalArgumentException("UUID cannot be null");
+
         Incident incident = loadIncident(id);
 
         incidentService.ensureCanBeDeleted(incident);
 
         incidentRepository.delete(incident);
+    }
+
+    private void validateCreate(CreationIncidentDTO dto) {
+        if (dto.reporter() == null) throw new IllegalArgumentException("Reporter cannot be null");
+        if (dto.title() == null || dto.title().isBlank()) throw new IllegalArgumentException("Title cannot be null or empty");
+        if (dto.description() == null || dto.description().isBlank()) throw new IllegalArgumentException("Description cannot be null or empty");
+        if (dto.type() == null) throw new IllegalArgumentException("Type cannot be null");
+    }
+
+    private void validateUpdate(UpdateIncidentDTO dto) {
+        if (dto.title() == null || dto.title().isBlank()) throw new IllegalArgumentException("Title cannot be null or empty");
+        if (dto.description() == null || dto.description().isBlank()) throw new IllegalArgumentException("Description cannot be null or empty");
+        if (dto.type() == null) throw new IllegalArgumentException("Type cannot be null");
+    }
+
+
+    private void validateCreationAlert(CreationAlertDTO dto) {
+        if (dto == null) throw new IllegalArgumentException("Alert DTO cannot be null");
+        if (dto.message() == null || dto.message().isBlank())
+            throw new IllegalArgumentException("Alert message cannot be null or empty");
+        if (dto.severity() == null)
+            throw new IllegalArgumentException("Severity cannot be null");
     }
 
 }

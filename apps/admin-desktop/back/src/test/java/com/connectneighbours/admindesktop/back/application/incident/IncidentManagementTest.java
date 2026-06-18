@@ -98,6 +98,58 @@ class IncidentManagementTest {
     }
 
     @Test
+    void createIncident_shouldThrow_whenTitleIsNull() {
+        var dto = new CreationIncidentDTO(
+                new Reporter("first", "last"),
+                null,
+                "desc",
+                IncidentType.MAINTENANCE
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
+    }
+
+
+    @Test
+    void createIncident_shouldThrow_whenTitleIsBlank() {
+        var dto = new CreationIncidentDTO(
+                new Reporter("first", "last"),
+                "",
+                "desc",
+                IncidentType.MAINTENANCE
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
+    }
+
+
+    @Test
+    void createIncident_shouldThrow_whenDescriptionIsNull() {
+        var dto = new CreationIncidentDTO(
+                new Reporter("first", "last"),
+                "Leak",
+                null,
+                IncidentType.MAINTENANCE
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
+    }
+
+
+    @Test
+    void createIncident_shouldThrow_whenReporterIsNull() {
+        var dto = new CreationIncidentDTO(
+                null,
+                "Leak",
+                "desc",
+                IncidentType.MAINTENANCE
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
+    }
+
+
+    @Test
     void updateIncident_shouldModifyFields() {
         var incident = management.createIncident(
                 new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
@@ -114,6 +166,37 @@ class IncidentManagementTest {
     }
 
     @Test
+    void updateIncident_shouldThrow_whenTitleIsNull() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
+        );
+
+        var dto = new UpdateIncidentDTO(null, "NewDesc", IncidentType.MAINTENANCE);
+
+        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.id(), dto));
+    }
+
+
+    @Test
+    void updateIncident_shouldThrow_whenDescriptionIsBlank() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
+        );
+
+        var dto = new UpdateIncidentDTO("New", "", IncidentType.MAINTENANCE);
+
+        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.id(), dto));
+    }
+
+    @Test
+    void updateIncident_shouldThrow_whenIdIsNull() {
+        var dto = new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE);
+
+        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(null, dto));
+    }
+
+
+    @Test
     void addAlertToIncident_shouldAttachAlert() {
         var incident = management.createIncident(
                 new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE)
@@ -127,6 +210,61 @@ class IncidentManagementTest {
         assertEquals("Pipe broken", alert.message());
         assertEquals(1, incidentRepo.findById(incident.id()).get().getAlerts().size());
     }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenIncidentIdIsNull() {
+        var dto = new CreationAlertDTO("msg", Severity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(null, dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenDtoIsNull() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
+        );
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), null));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenMessageIsNull() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
+        );
+
+        var dto = new CreationAlertDTO(null, Severity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenMessageIsBlank() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
+        );
+
+        var dto = new CreationAlertDTO("", Severity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenSeverityIsNull() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
+        );
+
+        var dto = new CreationAlertDTO("msg", null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
 
 
     @Test
@@ -149,6 +287,26 @@ class IncidentManagementTest {
         var updated = incidentRepo.findById(incident.id()).get();
         assertEquals(0, updated.getAlerts().size());
     }
+
+    @Test
+    void detachAlert_shouldThrow_whenIncidentIdIsNull() {
+        var alertId = UUID.randomUUID();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.detachAlertFromIncident(null, alertId));
+    }
+
+
+    @Test
+    void detachAlert_shouldThrow_whenAlertIdIsNull() {
+        var incident = management.createIncident(
+                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
+        );
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.detachAlertFromIncident(incident.id(), null));
+    }
+
 
     @Test
     void listIncidents_shouldReturnPaginatedResults() {
@@ -261,6 +419,12 @@ class IncidentManagementTest {
                 .isInstanceOf(IncidentDeletionNotAllowedException.class)
                 .hasMessageContaining("must be resolved or closed");
     }
+
+    @Test
+    void deleteIncident_shouldThrow_whenIdIsNull() {
+        assertThrows(IllegalArgumentException.class, () -> management.deleteIncident(null));
+    }
+
 
     @Test
     void findByReporter_returnsEmptyList_whenNoIncidents() {
