@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+
+<fx:root type="AnchorPane"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         prefWidth="409" prefHeight="140"
+         style="-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
+
+    <AnchorPane layoutX="0" layoutY="0" prefHeight="40" prefWidth="409"
+                style="-fx-background-color: #e53935; -fx-background-radius: 8 8 0 0;">
+        <Label text="⚠ Cadena coupé retrouvé au sol"
+               layoutX="12" layoutY="10"
+               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14;" />
+    </AnchorPane>
+
+
+    <HBox layoutX="12" layoutY="50" spacing="10">
+
+        <ImageView fx:id="avatarImage"
+                   fitWidth="48"
+                   fitHeight="48"
+                   preserveRatio="true"
+                   smooth="true" />
+
+        <Label fx:id="titleLabel" text="Titre" />
+
+        <VBox spacing="4">
+            <Label text="Julie M."
+                   style="-fx-font-weight: bold; -fx-font-size: 13;" />
+
+            <Label text="Créée le: 12/04/2024 08:15"
+                   style="-fx-font-size: 12; -fx-text-fill: #555;" />
+
+            <Label text="Statut: Résolue – Résolue le: 12/04/2024 10:30"
+                   style="-fx-font-size: 12; -fx-text-fill: #e53935; -fx-font-weight: bold;" />
+
+            <Label text="Détails: Cadenas coupé et vélo disparu."
+                   style="-fx-font-size: 12; -fx-text-fill: #333;" />
+        </VBox>
+    </HBox>
+
+</fx:root>

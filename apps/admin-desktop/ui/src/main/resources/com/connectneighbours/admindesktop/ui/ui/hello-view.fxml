@@ -5,6 +5,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <?import javafx.scene.control.Button?>
+<?import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.controller.WidgetAlert?>
 <VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.connectneighbours.admindesktop.ui.ui.HelloController">
     <padding>
@@ -13,4 +14,6 @@
 
     <Label fx:id="welcomeText"/>
     <Button text="Hello!" onAction="#onHelloButtonClick"/>
+    <WidgetAlert />
 </VBox>
+
