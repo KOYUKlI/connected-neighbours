@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
+import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.statistics.StatisticsService;
 
@@ -37,6 +38,17 @@ public class StatisticsManagement {
     public List<IncidentDistributionByTypeDTO> listIncidentDistributedByType() {
         return service.listIncidentDistributedByType().stream()
                 .map(StatisticsMapper::toIncidentDistributionByTypeDTO)
+                .toList();
+    }
+
+    public AlertDistributionBySeverityDTO alertDistributionBySeverity(Severity severity) {
+        var alertDistributionBySeverity = service.alertDistributionBySeverity(severity);
+        return StatisticsMapper.toAlertDistributionBySeverityDTO(alertDistributionBySeverity);
+    }
+
+    public List<AlertDistributionBySeverityDTO> listAlertDistributionBySeverity() {
+        return service.listAlertDistributionBySeverity().stream()
+                .map(StatisticsMapper::toAlertDistributionBySeverityDTO)
                 .toList();
     }
 }

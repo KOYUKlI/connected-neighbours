@@ -1,9 +1,11 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
+import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.statistics.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -92,6 +94,49 @@ public class StatisticsManagementTest {
         assertEquals(2, dtoList.size());
         assertEquals("20%", dtoList.get(0).percentage());
         assertEquals("30%", dtoList.get(1).percentage());
+    }
+
+    @Test
+    void alertDistributionBySeverity_returnsMappedDTO() {
+        var domain = new AlertDistributionBySeverity(
+                Severity.CRITICAL,
+                5L,
+                0.5
+        );
+
+        Mockito.when(service.alertDistributionBySeverity(Severity.CRITICAL))
+                .thenReturn(domain);
+
+        var dto = management.alertDistributionBySeverity(Severity.CRITICAL);
+
+        assertEquals(Severity.CRITICAL, dto.severity());
+        assertEquals(5L, dto.count());
+        assertEquals("50%", dto.percentage());
+    }
+
+    @Test
+    void listAlertDistributionBySeverity_returnsMappedDTOList() {
+        var domainList = List.of(
+                new AlertDistributionBySeverity(Severity.CRITICAL, 2L, 0.2),
+                new AlertDistributionBySeverity(Severity.LOW, 3L, 0.3)
+        );
+
+        Mockito.when(service.listAlertDistributionBySeverity())
+                .thenReturn(domainList);
+
+        var dtoList = management.listAlertDistributionBySeverity();
+
+        assertEquals(2, dtoList.size());
+
+        var d1 = dtoList.get(0);
+        assertEquals(Severity.CRITICAL, d1.severity());
+        assertEquals(2L, d1.count());
+        assertEquals("20%", d1.percentage());
+
+        var d2 = dtoList.get(1);
+        assertEquals(Severity.LOW, d2.severity());
+        assertEquals(3L, d2.count());
+        assertEquals("30%", d2.percentage());
     }
 
 

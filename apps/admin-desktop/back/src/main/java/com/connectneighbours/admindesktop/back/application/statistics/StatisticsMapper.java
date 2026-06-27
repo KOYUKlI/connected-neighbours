@@ -1,9 +1,6 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-import com.connectneighbours.admindesktop.back.domain.statistics.IncidentCountByPeriod;
-import com.connectneighbours.admindesktop.back.domain.statistics.IncidentDistributionByType;
-import com.connectneighbours.admindesktop.back.domain.statistics.ReporterActivity;
-import com.connectneighbours.admindesktop.back.domain.statistics.ResolutionRate;
+import com.connectneighbours.admindesktop.back.domain.statistics.*;
 
 public class StatisticsMapper {
     public static IncidentCountByPeriodDTO toIncidentCountByPeriodDTO(IncidentCountByPeriod incidentCountByPeriod) {
@@ -20,5 +17,9 @@ public class StatisticsMapper {
 
     public static IncidentDistributionByTypeDTO toIncidentDistributionByTypeDTO(IncidentDistributionByType incidentDistributionByType) {
         return new IncidentDistributionByTypeDTO(incidentDistributionByType.type(), incidentDistributionByType.count(), FormatPercentage.formatPercentage(incidentDistributionByType.rate()));
+    }
+
+    public static AlertDistributionBySeverityDTO toAlertDistributionBySeverityDTO(AlertDistributionBySeverity alertDistributionBySeverity) {
+        return new AlertDistributionBySeverityDTO(alertDistributionBySeverity.severity(), alertDistributionBySeverity.count(), FormatPercentage.formatPercentage(alertDistributionBySeverity.rate()));
     }
 }

@@ -4,6 +4,9 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.*?>
 
+<?import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.alertsymbol.controller.WarningSymbolController?>
+<?import javafx.scene.text.TextFlow?>
+<?import javafx.scene.text.Text?>
 <fx:root type="AnchorPane"
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
@@ -11,12 +14,15 @@
          style="-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
 
     <AnchorPane layoutX="0" layoutY="0" prefHeight="40" prefWidth="409"
+                maxWidth="409" minWidth="409"
                 style="-fx-background-color: #e53935; -fx-background-radius: 8 8 0 0;">
-        <Label text="⚠ Cadena coupé retrouvé au sol"
-               layoutX="12" layoutY="10"
-               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14;" />
-    </AnchorPane>
+        <WarningSymbolController layoutX="8" layoutY="8"/>
 
+        <Label text="Cadena coupé retrouvé au sol"
+               layoutX="40" layoutY="10"
+               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14;" />
+
+    </AnchorPane>
 
     <HBox layoutX="12" layoutY="50" spacing="10">
 
@@ -32,14 +38,23 @@
             <Label text="Julie M."
                    style="-fx-font-weight: bold; -fx-font-size: 13;" />
 
-            <Label text="Créée le: 12/04/2024 08:15"
-                   style="-fx-font-size: 12; -fx-text-fill: #555;" />
+            <TextFlow>
+                <Text text="Créée le: " style="-fx-font-size:12; -fx-text-fill: #555; -fx-font-weight: bold;"/>
+                <Text text="12/04/2024 08:15" style="-fx-font-size:12; -fx-text-fill: #555;"/>
+            </TextFlow>
 
-            <Label text="Statut: Résolue – Résolue le: 12/04/2024 10:30"
-                   style="-fx-font-size: 12; -fx-text-fill: #e53935; -fx-font-weight: bold;" />
+            <TextFlow>
+                <Text text="Statut: " style="-fx-fill: black; -fx-font-size: 12; -fx-font-weight: bold;" />
+                <Text text="Résolue" style="-fx-fill: #69B561; -fx-font-size: 12; -fx-font-weight: bold;" />
+                <Text text=" – Résolue le: "
+                      style="-fx-fill: black; -fx-font-size: 12; -fx-font-weight: bold" />
+                <Text text="12/04/2024 10:30" style="-fx-fill: black; -fx-font-size: 12;"/>
+            </TextFlow>
 
-            <Label text="Détails: Cadenas coupé et vélo disparu."
-                   style="-fx-font-size: 12; -fx-text-fill: #333;" />
+            <TextFlow>
+                <Text text="Détails: " style="-fx-font-size: 12; -fx-text-fill: #333; -fx-font-weight: bold;"/>
+                <Text text="Cadenas coupé et vélo disparu." style="-fx-font-size: 12; -fx-text-fill: #333;"/>
+            </TextFlow>
         </VBox>
     </HBox>
 

@@ -1,6 +1,7 @@
 package com.connectneighbours.admindesktop.back.infrastructure;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
@@ -176,4 +177,67 @@ public class StatisticsServiceImplTest {
             assertEquals(single.rate(), fromList.rate());
         }
     }
+
+    @Test
+    void alertDistributionBySeverity_returnsZero_whenNoAlerts() {
+        var result = service.alertDistributionBySeverity(Severity.CRITICAL);
+
+        assertEquals(Severity.CRITICAL, result.severity());
+        assertEquals(0L, result.count());
+        assertEquals(0.0, result.rate());
+    }
+
+    @Test
+    void alertDistributionBySeverity_returnsCorrectValues() {
+        var r = new Reporter(LocalDateTime.now(), LocalDateTime.now(), "A", "B");
+
+        var i1 = new Incident(r, "t1", "d1", IncidentType.SECURITY, clock);
+        var i2 = new Incident(r, "t2", "d2", IncidentType.SECURITY, clock);
+
+        incidentRepo.save(i1);
+        incidentRepo.save(i2);
+
+        var a1 = new Alert(i1, "msg1", Severity.CRITICAL);
+        a1.setReporter(r);
+
+        var a2 = new Alert(i2, "msg2", Severity.CRITICAL);
+        a2.setReporter(r);
+
+        var a3 = new Alert(i1, "msg3", Severity.LOW);
+        a3.setReporter(r);
+
+        alertRepo.save(a1);
+        alertRepo.save(a2);
+        alertRepo.save(a3);
+
+        var result = service.alertDistributionBySeverity(Severity.CRITICAL);
+
+        assertEquals(Severity.CRITICAL, result.severity());
+        assertEquals(2L, result.count());
+        assertEquals(2.0 / 3.0, result.rate());
+    }
+
+    @Test
+    void listAlertDistributionBySeverity_returnsAllSeverities() {
+        var list = service.listAlertDistributionBySeverity();
+        assertEquals(Severity.values().length, list.size());
+    }
+
+    @Test
+    void listAlertDistributionBySeverity_valuesMatchIndividualCalls() {
+        var list = service.listAlertDistributionBySeverity();
+
+        for (var severity : Severity.values()) {
+            var single = service.alertDistributionBySeverity(severity);
+            var fromList = list.stream()
+                    .filter(d -> d.severity().equals(severity))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertEquals(single.count(), fromList.count());
+            assertEquals(single.rate(), fromList.rate());
+        }
+    }
+
+
 }

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController?>
+<?import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.controller.AlertStatsController?>
+<?import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.controller.WidgetAlertController?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         fx:id="mainAlertContainer"
+         spacing="10"
+         maxWidth="750"
+         prefWidth="750"
+         style="-fx-background-color: #E8ECF8; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
+    <HBox spacing="10" style="-fx-padding: 10 15 10 15;">
+        <Button text="Retour"
+                fx:id="btnReturn"
+                style="
+                -fx-background-color: #FFFFFF;
+                -fx-background-radius: 8;
+                -fx-border-color: #DDE1F0;
+                -fx-border-radius: 8;
+                -fx-padding: 6 14 6 14;
+                -fx-text-fill: #1A73E8;
+                -fx-font-weight: bold;
+                -fx-font-size: 13;
+                -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 2, 0, 0, 1);
+            ">
+            <graphic>
+                <Label text="◀" style="-fx-text-fill: #1A73E8; -fx-font-size: 14;"/>
+            </graphic>
+        </Button>
+
+        <Label text="Incident #1052 - Vol de vélo"
+               style="
+               -fx-font-size: 15;
+               -fx-font-weight: bold;
+               -fx-text-fill: #1A3E8A;
+           "/>
+    </HBox>
+
+
+
+    <VBox spacing="10" fillWidth="false"
+          style="-fx-border-color: #DDE1F0;
+                 -fx-padding: 10 15 10 15;"
+          alignment="CENTER">
+        <AlertStatsController/>
+        <HBox spacing="10" alignment="CENTER">
+            <MenuBar>
+                <Menu fx:id="menuGravity" text="Gravité">
+                    <MenuItem fx:id="gravityAll" text="Toutes"/>
+                    <MenuItem fx:id="gravityCritical" text="Critique"/>
+                    <MenuItem fx:id="gravityHigh" text="Haute"/>
+                    <MenuItem fx:id="gravityMedium" text="Moyenne"/>
+                    <MenuItem fx:id="gravityLow" text="Mineure"/>
+                </Menu>
+            </MenuBar>
+
+            <MenuBar>
+                <Menu fx:id="menuStatus" text="Statut">
+                    <MenuItem fx:id="statusAll" text="Tous"/>
+                    <MenuItem fx:id="statusResolved" text="Résolue"/>
+                    <MenuItem fx:id="statusInProgress" text="En cours"/>
+                    <MenuItem fx:id="statusClosed" text="Fermée"/>
+                </Menu>
+            </MenuBar>
+
+            <MenuBar>
+                <Menu fx:id="menuDate" text="Date">
+                    <MenuItem fx:id="dateAll" text="Toutes"/>
+                    <MenuItem fx:id="dateToday" text="Aujourd’hui"/>
+                    <MenuItem fx:id="dateWeek" text="Cette semaine"/>
+                    <MenuItem fx:id="dateMonth" text="Ce mois"/>
+                </Menu>
+            </MenuBar>
+
+
+            <Button text="Filtrer"
+                    style="-fx-background-color: #39A435; -fx-background-radius: 6;"
+                    textFill="white"/>
+        </HBox>
+    </VBox>
+    <VBox alignment="CENTER"
+          style="-fx-padding: 10 15 10 15;">
+        <HBox spacing="150">
+            <AlertDistributionByGravityController/>
+            <VBox fillWidth="false" spacing="10" alignment="TOP_RIGHT">
+                <WidgetAlertController/>
+                <WidgetAlertController/>
+            </VBox>
+        </HBox>
+    </VBox>
+</fx:root>

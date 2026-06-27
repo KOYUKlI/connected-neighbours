@@ -8,11 +8,11 @@ import javafx.scene.layout.AnchorPane;
 
 import java.io.IOException;
 
-public class WidgetAlert extends AnchorPane {
+public class WidgetAlertController extends AnchorPane {
     @FXML private Label titleLabel;
     private final WidgetAlertViewModel vm = new WidgetAlertViewModel();
 
-    public WidgetAlert() {
+    public WidgetAlertController() {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource(
                         "/com/connectneighbours/admindesktop/ui/ui/features/alert/widgetalert/view/widget-alert-view.fxml"

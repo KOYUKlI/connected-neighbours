@@ -1,6 +1,7 @@
 package com.connectneighbours.admindesktop.back.infrastructure.statistics;
 
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
+import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
@@ -72,6 +73,23 @@ public class StatisticsServiceImpl implements StatisticsService {
     public List<IncidentDistributionByType> listIncidentDistributedByType() {
         return Arrays.stream(IncidentType.values())
                 .map(this::incidentDistributionByType)
+                .toList();
+    }
+
+    @Override
+    public AlertDistributionBySeverity alertDistributionBySeverity(Severity severity) {
+        var list = alertRepository.findAll();
+        var total = list.size();
+        var count = list.stream()
+                .filter(alert -> alert.getSeverity().equals(severity))
+                .count();
+        return new AlertDistributionBySeverity(severity,count, Double.isNaN((double) count/total) ? 0.0 : (double) count/total);
+    }
+
+    @Override
+    public List<AlertDistributionBySeverity> listAlertDistributionBySeverity() {
+        return Arrays.stream(Severity.values())
+                .map(this::alertDistributionBySeverity)
                 .toList();
     }
 }

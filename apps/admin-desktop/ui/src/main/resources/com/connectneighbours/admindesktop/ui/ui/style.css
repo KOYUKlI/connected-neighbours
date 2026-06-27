@@ -1,0 +1,22 @@
+.menu-bar {
+    -fx-background-color: #f8f9fc;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 4 10 4 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 3, 0, 0, 1);
+}
+
+.menu-bar .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1a1a1a;
+}
+
+.menu {
+    -fx-padding: 0 8 0 8;
+}
+
+.menu-item {
+    -fx-font-size: 13px;
+    -fx-text-fill: #1a1a1a;
+}
