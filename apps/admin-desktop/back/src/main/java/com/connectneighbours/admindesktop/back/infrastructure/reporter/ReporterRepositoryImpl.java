@@ -4,11 +4,13 @@ import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public class ReporterRepositoryImpl implements ReporterRepository {
     private final ReporterDAO reporterDAO;
 
@@ -49,5 +51,10 @@ public class ReporterRepositoryImpl implements ReporterRepository {
     @Override
     public void delete(Reporter reporter) {
         reporterDAO.delete(reporter);
+    }
+
+    @Override
+    public long count() {
+        return reporterDAO.count();
     }
 }

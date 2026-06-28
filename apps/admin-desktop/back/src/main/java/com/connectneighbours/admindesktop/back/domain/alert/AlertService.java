@@ -2,7 +2,9 @@ package com.connectneighbours.admindesktop.back.domain.alert;
 
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyOpenException;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyResolvedException;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AlertService {
 
     public void open(Alert alert) {

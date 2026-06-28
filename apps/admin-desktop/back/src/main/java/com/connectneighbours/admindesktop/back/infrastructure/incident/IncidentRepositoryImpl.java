@@ -66,4 +66,9 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     public Page<Incident> findAll(Pageable pageable) {
         return incidentDAO.findAll(pageable);
     }
+
+    @Override
+    public long count() {
+        return incidentDAO.count();
+    }
 }

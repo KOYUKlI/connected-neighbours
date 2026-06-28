@@ -7,6 +7,7 @@ import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
 import com.connectneighbours.admindesktop.back.domain.statistics.*;
+import org.springframework.stereotype.Repository;
 
 import java.lang.reflect.Array;
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ import java.util.List;
 
 import static java.lang.Double.NaN;
 
+@Repository
 public class StatisticsServiceImpl implements StatisticsService {
     private final IncidentRepository incidentRepository;
     private final AlertRepository alertRepository;

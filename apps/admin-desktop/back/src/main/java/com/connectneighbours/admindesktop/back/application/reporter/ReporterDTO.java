@@ -8,6 +8,7 @@ import java.util.UUID;
 public record ReporterDTO(
         @NotNull UUID idReporter,
         @NotBlank String firstname,
-        @NotBlank String lastname
+        @NotBlank String lastname,
+        @NotBlank String avatarPath
 ) {
 }

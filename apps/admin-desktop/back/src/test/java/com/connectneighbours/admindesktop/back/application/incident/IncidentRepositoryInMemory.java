@@ -81,4 +81,9 @@ public class IncidentRepositoryInMemory implements IncidentRepository {
     public void delete(Incident incident) {
         data.remove(incident.getIncidentId());
     }
+
+    @Override
+    public long count() {
+        return 0;
+    }
 }

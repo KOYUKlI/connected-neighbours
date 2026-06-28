@@ -59,4 +59,9 @@ public class AlertRepositoryImpl implements AlertRepository {
     public void delete(Alert alert) {
         alertDAO.delete(alert);
     }
+
+    @Override
+    public long count() {
+        return alertDAO.count();
+    }
 }

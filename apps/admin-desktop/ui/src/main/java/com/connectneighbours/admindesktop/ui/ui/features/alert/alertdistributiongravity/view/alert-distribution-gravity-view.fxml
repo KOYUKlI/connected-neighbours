@@ -9,7 +9,7 @@
          xmlns:fx="http://javafx.com/fxml"
          spacing="10" fillWidth="false" alignment="CENTER">
     <Text text="Répartition par Gravité" style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
-    <Group>
+    <Group fx:id="graphDistribution">
 
 
         <Arc centerX="100" centerY="100" radiusX="80" radiusY="80"

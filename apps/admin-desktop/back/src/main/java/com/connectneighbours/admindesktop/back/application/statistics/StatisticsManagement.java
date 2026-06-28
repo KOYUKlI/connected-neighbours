@@ -3,10 +3,12 @@ package com.connectneighbours.admindesktop.back.application.statistics;
 import com.connectneighbours.admindesktop.back.domain.alert.Severity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.statistics.StatisticsService;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Service
 public class StatisticsManagement {
     private final StatisticsService service;
 

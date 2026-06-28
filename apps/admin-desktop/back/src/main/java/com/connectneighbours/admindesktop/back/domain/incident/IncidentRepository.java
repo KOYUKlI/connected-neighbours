@@ -28,4 +28,6 @@ public interface IncidentRepository {
     List<Incident> findByReporter(Reporter reporter);
 
     void delete(Incident incident);
+
+    long count();
 }

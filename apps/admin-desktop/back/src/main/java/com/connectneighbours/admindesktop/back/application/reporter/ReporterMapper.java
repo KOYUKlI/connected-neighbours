@@ -7,7 +7,8 @@ public class ReporterMapper {
         return new ReporterDTO(
                 reporter.getIdReporter(),
                 reporter.getFirstname(),
-                reporter.getLastname()
+                reporter.getLastname(),
+                reporter.getAvatarPath()
         );
     }
 }

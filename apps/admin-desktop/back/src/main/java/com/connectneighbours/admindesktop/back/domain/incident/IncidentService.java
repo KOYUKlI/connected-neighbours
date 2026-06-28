@@ -4,7 +4,9 @@ import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyResolvedException;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotResolvedException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.*;
+import org.springframework.stereotype.Service;
 
+@Service
 public class IncidentService {
     public void open(Incident incident) {
         if (incident.isOpen()) throw new IncidentAlreadyOpenException("Incident already open");

@@ -4,16 +4,35 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
 
 public class HelloApplication extends Application {
+
+    private static ApplicationContext springContext;
+
+    public static void setSpringContext(ApplicationContext ctx) {
+        springContext = ctx;
+    }
+
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-        stage.setTitle("Hello!");
+        FXMLLoader loader = new FXMLLoader(
+                HelloApplication.class.getResource("hello-view.fxml")
+        );
+        loader.setControllerFactory(HelloApplication.getSpringContext()::getBean);
+        Scene scene = new Scene(loader.load());
         stage.setScene(scene);
+        stage.setWidth(1100);
+        stage.setHeight(700);
         stage.show();
     }
+
+    public static ApplicationContext getSpringContext() {
+        return springContext;
+    }
 }
+
+
+

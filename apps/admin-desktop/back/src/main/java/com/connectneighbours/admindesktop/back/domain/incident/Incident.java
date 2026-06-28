@@ -53,7 +53,6 @@ public class Incident {
     }
 
     public Incident(Reporter reporter, String title, String description, IncidentType type) {
-        this.incidentId = UUID.randomUUID();
         this.reporter = reporter;
         this.title = title;
         this.description = description;

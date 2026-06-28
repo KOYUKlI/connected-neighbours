@@ -60,4 +60,9 @@ public class AlertRepositoryInMemory implements AlertRepository {
     public void delete(Alert alert) {
         data.remove(alert.getAlertId());
     }
+
+    @Override
+    public long count() {
+        return 0;
+    }
 }

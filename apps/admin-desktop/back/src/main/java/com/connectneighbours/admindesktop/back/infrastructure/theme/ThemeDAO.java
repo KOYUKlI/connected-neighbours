@@ -10,5 +10,5 @@ import java.util.UUID;
 public interface ThemeDAO extends JpaRepository<Theme, UUID> {
     List<Theme> findByName(String name);
 
-    List<Theme> findByRGB(RGB rgb);
+    List<Theme> findByRgb(RGB rgb);
 }

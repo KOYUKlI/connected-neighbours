@@ -17,17 +17,21 @@ public class WarningSymbolController extends Pane {
     public WarningSymbolController() {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource(
-                        "../view/warning-symbol-view.fxml"
+                        "/com/connectneighbours/admindesktop/ui/ui/features/alert/widgetalert/alertsymbol/view/warning-symbol-view.fxml"
                 )
-
         );
         loader.setRoot(this);
         loader.setController(this);
+
         try {
             loader.load();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Erreur chargement warning-symbol-view.fxml", e);
         }
+    }
+
+    public Text getIcon() {
+        return icon;
     }
 
     public void setColor(Paint color) {

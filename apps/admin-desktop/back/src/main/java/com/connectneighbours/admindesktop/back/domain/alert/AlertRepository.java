@@ -23,4 +23,6 @@ public interface AlertRepository {
     List<Alert> findByReporter(Reporter reporter);
 
     void delete(Alert alert);
+
+    long count();
 }

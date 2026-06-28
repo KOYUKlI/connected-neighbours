@@ -207,7 +207,7 @@ class IncidentManagementTest {
                 new CreationAlertDTO("Pipe broken", Severity.CRITICAL)
         );
 
-        assertEquals("Pipe broken", alert.message());
+        assertEquals("Pipe broken", alert.details());
         assertEquals(1, incidentRepo.findById(incident.id()).get().getAlerts().size());
     }
 

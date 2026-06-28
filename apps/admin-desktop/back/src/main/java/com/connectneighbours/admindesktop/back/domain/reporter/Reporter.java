@@ -1,7 +1,9 @@
 package com.connectneighbours.admindesktop.back.domain.reporter;
 
 import jakarta.persistence.*;
+import javafx.scene.image.Image;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,6 +19,7 @@ public class Reporter {
     @CreationTimestamp
     private LocalDateTime dateCreation;
 
+    @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime dateUpdate;
 
@@ -26,21 +29,25 @@ public class Reporter {
     @Column(nullable = false, length = 50)
     private String lastname;
 
+    @Column(length = 255)
+    private String avatarPath;
+
+
     public Reporter() {
     }
 
     public Reporter(LocalDateTime dateCreation, LocalDateTime dateUpdate, String firstname, String lastname) {
-        this.idReporter = UUID.randomUUID();
+//        this.idReporter = UUID.randomUUID();
         this.dateCreation = dateCreation;
         this.dateUpdate = dateUpdate;
         this.firstname = firstname;
         this.lastname = lastname;
     }
 
-    public Reporter(String firstname, String lastname) {
-        this.idReporter = UUID.randomUUID();
+    public Reporter(String firstname, String lastname, String avatarPath) {
         this.firstname = firstname;
         this.lastname = lastname;
+        this.avatarPath = avatarPath;
     }
 
     public UUID getIdReporter() {
@@ -62,4 +69,25 @@ public class Reporter {
     public String getLastname() {
         return lastname;
     }
+
+    public String getAvatarPath() {
+        return avatarPath;
+    }
+
+    public void setFirstname(String firstname) {
+        this.firstname = firstname;
+    }
+
+    public void setLastname(String lastname) {
+        this.lastname = lastname;
+    }
+
+    public void setDateCreation(LocalDateTime dateCreation) {
+        this.dateCreation = dateCreation;
+    }
+
+    public void setDateUpdate(LocalDateTime dateUpdate) {
+        this.dateUpdate = dateUpdate;
+    }
 }
+

@@ -23,8 +23,11 @@ public class Alert {
     @JoinColumn(name = "reporter_id")
     private Reporter reporter;
 
+    @Column(length = 50)
+    private String title;
+
     @Column(length = 1000)
-    private String message;
+    private String details;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -43,10 +46,24 @@ public class Alert {
     public Alert() {
     }
 
+    public Alert(Incident incident,
+                 Reporter reporter,
+                 String title,
+                 String details,
+                 Severity severity) {
+        this.incident = incident;
+        this.reporter = reporter;
+        this.title = title;
+        this.details = details;
+        this.severity = severity;
+        this.status = AlertStatus.CREATED;
+    }
+
+
     public Alert(Incident incident, String message, Severity severity) {
         this.alertId = UUID.randomUUID();
         this.incident = incident;
-        this.message = message;
+        this.details = message;
         this.severity = severity;
         this.status = AlertStatus.CREATED;
 
@@ -64,8 +81,12 @@ public class Alert {
         return incident;
     }
 
-    public String getMessage() {
-        return message;
+    public String getDetails() {
+        return details;
+    }
+
+    public String getTitle() {
+        return title;
     }
 
     public Severity getSeverity() {
@@ -84,8 +105,8 @@ public class Alert {
         return resolvedAt;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setDetails(String details) {
+        this.details = details;
     }
 
     public void setSeverity(Severity severity) {

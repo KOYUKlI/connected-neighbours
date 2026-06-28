@@ -7,11 +7,13 @@ import com.connectneighbours.admindesktop.back.domain.exception.incident.Inciden
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class AlertManagement {
     private final AlertRepository alertRepository;
     private final AlertService alertService;
@@ -33,7 +35,7 @@ public class AlertManagement {
     public AlertDTO updateAlert(UUID alertId, UpdateAlertDTO dto) {
         Alert alert = loadAlert(alertId);
 
-        alert.setMessage(dto.message());
+        alert.setDetails(dto.message());
         alert.setSeverity(dto.severity());
 
         var saved = alertRepository.save(alert);

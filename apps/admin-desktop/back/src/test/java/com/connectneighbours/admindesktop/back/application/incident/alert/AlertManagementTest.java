@@ -67,7 +67,7 @@ public class AlertManagementTest {
 
         AlertDTO updated = management.updateAlert(alert.getAlertId(), dto);
 
-        assertEquals("Updated message", updated.message());
+        assertEquals("Updated message", updated.details());
         assertEquals(Severity.CRITICAL, updated.severity());
     }
 
@@ -156,8 +156,8 @@ public class AlertManagementTest {
         var list = management.listByIncident(IncidentMapper.toDTO(incident));
 
         assertEquals(2, list.size());
-        assertTrue(list.stream().anyMatch(a -> a.message().equals("A1")));
-        assertTrue(list.stream().anyMatch(a -> a.message().equals("A2")));
+        assertTrue(list.stream().anyMatch(a -> a.details().equals("A1")));
+        assertTrue(list.stream().anyMatch(a -> a.details().equals("A2")));
     }
 
     @Test

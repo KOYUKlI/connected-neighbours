@@ -9,18 +9,26 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.*;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class IncidentManagement {
+    @Autowired
+    private DataSource dataSource;
+
+
     private final AlertRepository alertRepository;
     private final IncidentRepository incidentRepository;
     private final AlertService alertService;
@@ -129,6 +137,7 @@ public class IncidentManagement {
                 .toList();
     }
 
+
     public List<IncidentDTO> listByType(IncidentType type) {
         return incidentRepository.findByType(type).stream()
                 .map(IncidentMapper::toDTO)
@@ -182,6 +191,12 @@ public class IncidentManagement {
             throw new IllegalArgumentException("Alert message cannot be null or empty");
         if (dto.severity() == null)
             throw new IllegalArgumentException("Severity cannot be null");
+    }
+
+    @PostConstruct
+    public void debug() {
+        System.out.println(">>> IncidentManagement bean = " + this);
+        System.out.println(">>> DataSource = " + dataSource);
     }
 
 }

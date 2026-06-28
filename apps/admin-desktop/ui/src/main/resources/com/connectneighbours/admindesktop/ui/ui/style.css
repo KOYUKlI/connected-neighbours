@@ -1,15 +1,6 @@
-.menu-bar {
-    -fx-background-color: #f8f9fc;
-    -fx-border-color: #e0e0e0;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 4 10 4 10;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 3, 0, 0, 1);
-}
-
 .menu-bar .label {
     -fx-font-weight: bold;
-    -fx-text-fill: #1a1a1a;
+    -fx-text-fill: #17295A;
 }
 
 .menu {
@@ -18,5 +9,80 @@
 
 .menu-item {
     -fx-font-size: 13px;
-    -fx-text-fill: #1a1a1a;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17295A;
 }
+
+.filter-button {
+    -fx-background-color: #39A435;
+    -fx-background-radius: 6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 6 14;
+}
+
+.filter-button:hover {
+    -fx-background-color: #006400
+}
+
+.details-scroll {
+    -fx-background-color: white;
+    -fx-background: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.details-scroll .viewport {
+    -fx-background-color: white;
+}
+
+
+.hbox-filter {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 4 10;
+    -fx-spacing: 6;
+    -fx-alignment: center;
+}
+
+
+.hbox-filter:hover {
+    -fx-background-color: rgba(23, 41, 90, 0.05);
+}
+
+.return-button {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 8;
+    -fx-border-color: #DDE1F0;
+    -fx-border-radius: 8;
+    -fx-padding: 6 14 6 14;
+    -fx-text-fill: #1A73E8;
+    -fx-font-weight: bold;
+    -fx-font-size: 13;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 2, 0, 0, 1);
+}
+
+
+
+
+.return-button:hover {
+    -fx-background-color: #F5F8FF;
+    -fx-text-fill: #0F5BD7;
+    -fx-cursor: hand;
+}
+
+.return-icon {
+    -fx-text-fill: #1A73E8;
+    -fx-font-size: 14;
+}
+
+.return-button:hover .return-icon {
+    -fx-text-fill: #0F5BD7;
+}
+
+
+
+

@@ -15,7 +15,10 @@ public class WidgetAlertViewModel {
         if (source == null) {
             alert.severityProperty().set("");
             alert.statusProperty().set("");
-            alert.messageProperty().set("");
+            alert.detailsProperty().set("");
+            alert.titleProperty().set("");
+            alert.reporterNameProperty().set("");
+
             alert.reporterProperty().firstnameProperty().set("");
             alert.reporterProperty().lastnameProperty().set("");
             alert.reporterProperty().avatarProperty().set(null);
@@ -24,12 +27,18 @@ public class WidgetAlertViewModel {
 
         alert.severityProperty().set(source.severityProperty().get());
         alert.statusProperty().set(source.statusProperty().get());
-        alert.messageProperty().set(source.messageProperty().get());
+        alert.detailsProperty().set(source.detailsProperty().get());
+        alert.titleProperty().set(source.titleProperty().get());
 
-        alert.reporterProperty().firstnameProperty().set(source.reporterProperty().firstnameProperty().get());
-        alert.reporterProperty().lastnameProperty().set(source.reporterProperty().lastnameProperty().get());
         alert.reporterProperty().avatarProperty().set(source.reporterProperty().avatarProperty().get());
+        alert.reporterNameProperty().set(source.reporterNameProperty().get());
+        alert.createdAtProperty().set(source.createdAtProperty().get());
+        alert.resolvedAtProperty().set(source.createdAtProperty().get());
+
     }
+
+
+
 }
 
 

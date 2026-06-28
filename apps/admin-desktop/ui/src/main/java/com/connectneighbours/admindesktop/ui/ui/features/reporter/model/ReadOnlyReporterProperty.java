@@ -7,5 +7,6 @@ import javafx.scene.image.Image;
 public interface ReadOnlyReporterProperty {
     ReadOnlyStringProperty firstnameProperty();
     ReadOnlyStringProperty lastnameProperty();
+    ReadOnlyStringProperty fullNameProperty();
     ReadOnlyObjectProperty<Image> avatarProperty();
 }

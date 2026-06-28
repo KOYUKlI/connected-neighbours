@@ -3,11 +3,13 @@ package com.connectneighbours.admindesktop.back.infrastructure.theme;
 import com.connectneighbours.admindesktop.back.domain.theme.RGB;
 import com.connectneighbours.admindesktop.back.domain.theme.Theme;
 import com.connectneighbours.admindesktop.back.domain.theme.ThemeRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public class ThemeRepositoryImpl implements ThemeRepository {
     private final ThemeDAO themeDAO;
 
@@ -32,7 +34,7 @@ public class ThemeRepositoryImpl implements ThemeRepository {
 
     @Override
     public List<Theme> findByRGB(RGB rgb) {
-        return themeDAO.findByRGB(rgb);
+        return themeDAO.findByRgb(rgb);
     }
 
     @Override

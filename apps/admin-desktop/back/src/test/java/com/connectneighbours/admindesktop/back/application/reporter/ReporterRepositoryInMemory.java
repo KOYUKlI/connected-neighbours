@@ -58,4 +58,9 @@ public class ReporterRepositoryInMemory implements ReporterRepository {
     public void delete(Reporter reporter) {
         data.remove(reporter.getIdReporter());
     }
+
+    @Override
+    public long count() {
+        return 0;
+    }
 }

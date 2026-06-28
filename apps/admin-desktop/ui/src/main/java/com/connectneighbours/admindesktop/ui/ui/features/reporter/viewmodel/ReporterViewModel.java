@@ -1,7 +1,11 @@
 package com.connectneighbours.admindesktop.ui.ui.features.reporter.viewmodel;
 
+import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.controller.WidgetAlertController;
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReadOnlyReporterProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.SimpleReporterProperty;
+import javafx.scene.image.Image;
+
+import java.util.Objects;
 
 public class ReporterViewModel {
 
@@ -15,7 +19,12 @@ public class ReporterViewModel {
         if (source == null) {
             reporter.firstnameProperty().set("");
             reporter.lastnameProperty().set("");
-            reporter.avatarProperty().set(null);
+            reporter.avatarProperty().set(
+                    new Image(Objects.requireNonNull(WidgetAlertController.class
+                                    .getResource("/assets/default_avatar.png"))
+                            .toExternalForm())
+            );
+
             return;
         }
 

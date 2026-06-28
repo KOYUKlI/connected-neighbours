@@ -21,4 +21,6 @@ public interface ReporterRepository {
     List<Reporter> findByLastname(String lastname);
 
     void delete(Reporter reporter);
+
+    long count();
 }
