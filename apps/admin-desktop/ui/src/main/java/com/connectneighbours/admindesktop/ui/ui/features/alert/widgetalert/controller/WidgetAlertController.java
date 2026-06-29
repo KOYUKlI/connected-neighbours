@@ -56,8 +56,6 @@ public class WidgetAlertController extends AnchorPane {
     @FXML
     private void initialize() {
         symbol = new WarningSymbolController();
-        symbol.setLayoutX(8);
-        symbol.setLayoutY(6);
         warningSymbolContainer.getChildren().add(symbol);
         titleLabel.textProperty().bind(viewModelWidget.alertProperty().titleProperty());
         avatarImage.imageProperty().bind(viewModelWidget.alertProperty().reporterProperty().avatarProperty());
