@@ -1,7 +1,6 @@
 package com.connectneighbours.admindesktop.ui.ui.features.reporter.model;
 
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
-import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.image.Image;
@@ -13,4 +12,5 @@ public interface ReporterProperty extends ReadOnlyReporterProperty{
     ObjectProperty<Image> avatarProperty();
 
     void set(ReporterDTO source);
+    void set(ReporterProperty source);
 }

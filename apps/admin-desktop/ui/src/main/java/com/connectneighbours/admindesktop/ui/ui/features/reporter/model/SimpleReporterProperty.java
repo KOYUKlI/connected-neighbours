@@ -64,4 +64,28 @@ public class SimpleReporterProperty implements ReporterProperty {
                 )
         );
     }
+
+    @Override
+    public void set(ReporterProperty source) {
+        if (source == null) {
+            firstnameProperty().set("");
+            lastnameProperty().set("");
+            avatarProperty().set(null);
+            return;
+        }
+
+        firstnameProperty().set(source.firstnameProperty().get());
+        lastnameProperty().set(source.lastnameProperty().get());
+        avatarProperty().set(source.avatarProperty().get());
+    }
+
+    @Override
+    public ReporterProperty get() {
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return fullName.getValue();
+    }
 }

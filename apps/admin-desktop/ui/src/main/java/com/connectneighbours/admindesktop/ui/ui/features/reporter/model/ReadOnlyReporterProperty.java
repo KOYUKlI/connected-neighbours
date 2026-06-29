@@ -9,4 +9,6 @@ public interface ReadOnlyReporterProperty {
     ReadOnlyStringProperty lastnameProperty();
     ReadOnlyStringProperty fullNameProperty();
     ReadOnlyObjectProperty<Image> avatarProperty();
+
+    ReporterProperty get();
 }

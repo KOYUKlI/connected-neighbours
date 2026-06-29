@@ -3,13 +3,23 @@ package com.connectneighbours.admindesktop.ui.ui;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.controller.IncidentTableController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.model.ReadOnlyIncidentTableProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.model.SimpleIncidentTableProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.viewmodel.IncidentTableViewModel;
+import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReadOnlyReporterProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReporterProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.SimpleReporterProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.layout.VBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -48,7 +58,47 @@ public class HelloController {
     @FXML
     public void initialize() {
         homeContent = new ArrayList<>(mainContainer.getChildren());
+
+        var page = incidentManagement.listIncidents(PageRequest.of(0, 10));
+        var incidents = page.getContent();
+        if (incidents.isEmpty()) return;
+
+        try {
+            IncidentTableController tableController = new IncidentTableController();
+            tableController.setParent(this);
+
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/connectneighbours/admindesktop/ui/ui/features/incident/incidenttable/view/incident-table-view.fxml")
+            );
+
+            loader.setRoot(tableController);
+            loader.setController(tableController);
+
+            loader.load();
+
+
+            List<IncidentTableViewModel> models = incidents.stream()
+                    .map(dto -> {
+                        var newDto = incidentManagement.startIncidentProgress(dto.id());
+                        var vm = new IncidentTableViewModel();
+                        vm.setDto(newDto);
+                        vm.setIncidentTable(mapToProperty(newDto));
+                        return vm;
+                    })
+                    .toList();
+
+
+            tableController.getIncidentTable().getItems().setAll(models);
+
+
+            mainContainer.getChildren().setAll(tableController);
+            homeContent = new ArrayList<>(mainContainer.getChildren());
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur chargement incident-table-view.fxml", e);
+        }
     }
+
 
     @FXML
     protected void onHelloButtonClick() {
@@ -56,21 +106,13 @@ public class HelloController {
     }
 
     @FXML
-    public void goToAlerts() {
-
-        var page = incidentManagement.listIncidents(PageRequest.of(0, 10));
-        var incidents = page.getContent();
-
-        if (incidents.isEmpty()) return;
-
-        IncidentDTO firstIncident = incidents.getFirst();
-
+    public void goToAlerts(IncidentDTO incident) {
         AlertViewController alertView = new AlertViewController();
-
         alertView.setParent(this);
-        alertView.loadIncident(firstIncident);
+        alertView.loadIncident(incident);
         mainContainer.getChildren().setAll(alertView);
     }
+
 
     public void showHome() {
         mainContainer.getChildren().setAll(homeContent);
@@ -83,6 +125,39 @@ public class HelloController {
     public AlertManagement getAlertManagement() {
         return alertManagement;
     }
+
+    private ReadOnlyIncidentTableProperty mapToProperty(IncidentDTO dto) {
+        SimpleIncidentTableProperty p = new SimpleIncidentTableProperty();
+
+        p.incidentIdProperty().set(dto.displayId());
+
+        p.titleProperty().set(dto.title());
+
+
+        p.typeProperty().set(dto.type().toString());
+
+
+        p.statusProperty().set(dto.status().toString());
+
+
+        p.createdAtProperty().set(dto.createdAt());
+        p.resolvedAtProperty().set(dto.resolvedAt());
+
+        p.alertsCountProperty().set(dto.alerts().size());
+
+        p.reporterProperty().set((ReporterProperty) mapReporter(dto.reporter()));
+
+        return p;
+    }
+
+    private ReadOnlyReporterProperty mapReporter(ReporterDTO dto) {
+        SimpleReporterProperty p = new SimpleReporterProperty();
+        p.firstnameProperty().set(dto.firstname());
+        p.lastnameProperty().set(dto.lastname());
+        p.avatarProperty().set(new Image(dto.avatarPath()));
+        return p;
+    }
+
 }
 
 
