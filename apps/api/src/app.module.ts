@@ -5,11 +5,13 @@ import * as Joi from 'joi';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AlertsModule } from './alerts/alerts.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EventsModule } from './events/events.module';
+import { IncidentsModule } from './incidents/incidents.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
@@ -74,6 +76,8 @@ import { VotesModule } from './votes/votes.module';
     ContractsModule,
     NeighborhoodsModule,
     EventsModule,
+    IncidentsModule,
+    AlertsModule,
     VotesModule,
     DocumentsModule,
     MessagingModule,
