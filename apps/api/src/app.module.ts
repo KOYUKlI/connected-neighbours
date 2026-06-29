@@ -10,6 +10,7 @@ import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { DocumentsModule } from './documents/documents.module';
+import { DslModule } from './dsl/dsl.module';
 import { EventsModule } from './events/events.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { MessagingModule } from './messaging/messaging.module';
@@ -77,6 +78,7 @@ import { VotesModule } from './votes/votes.module';
     ContractsModule,
     NeighborhoodsModule,
     EventsModule,
+    DslModule,
     IncidentsModule,
     AlertsModule,
     SyncModule,
