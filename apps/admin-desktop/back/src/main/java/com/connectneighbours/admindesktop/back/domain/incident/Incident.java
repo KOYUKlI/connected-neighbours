@@ -21,6 +21,9 @@ public class Incident {
     @Column(nullable = false)
     private UUID incidentId;
 
+    @Column(nullable = false, unique = true)
+    private String displayId;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "reporter_id")
     private Reporter reporter;
@@ -58,6 +61,7 @@ public class Incident {
         this.description = description;
         this.type = type;
         this.status = IncidentStatus.CREATED;
+        this.displayId = generateDisplayId();
     }
 
     public Incident(Reporter reporter, String title, String description, IncidentType type, Clock clock) {
@@ -73,6 +77,10 @@ public class Incident {
 
     public UUID getIncidentId() {
         return incidentId;
+    }
+
+    public String getDisplayId() {
+        return displayId;
     }
 
     public Reporter getReporter() {
@@ -164,6 +172,11 @@ public class Incident {
     @Override
     public int hashCode() {
         return Objects.hash(incidentId);
+    }
+
+    private String generateDisplayId() {
+        long number = System.currentTimeMillis() % 100000; // simple, unique
+        return "INC-" + String.format("%05d", number);
     }
 
 }
