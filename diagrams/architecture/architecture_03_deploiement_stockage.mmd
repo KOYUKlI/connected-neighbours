@@ -1,0 +1,23 @@
+flowchart LR
+    Docker["Docker Compose"] --> ApiContainer["Container API"]
+    Docker --> WebContainer["Container Web utilisateur"]
+    Docker --> AdminContainer["Container Admin web"]
+    Docker --> MongoContainer["Container MongoDB"]
+    Docker --> Neo4jContainer["Container Neo4j"]
+    Docker --> MinioContainer["Container MinIO"]
+    Docker --> KeycloakContainer["Container Keycloak"]
+
+    WebContainer --> ApiContainer
+    AdminContainer --> ApiContainer
+    ApiContainer --> MongoContainer
+    ApiContainer --> Neo4jContainer
+    ApiContainer --> MinioContainer
+    ApiContainer --> KeycloakContainer
+
+    JavaFX["JavaFX hors Docker"] --> ApiContainer
+    JavaFX --> LocalDB[("Base locale H2 ou SQLite")]
+
+    MongoContainer --> MongoData[("Volume MongoDB")]
+    Neo4jContainer --> Neo4jData[("Volume Neo4j")]
+    MinioContainer --> MinioData[("Volume MinIO")]
+    KeycloakContainer --> KeycloakData[("Volume Keycloak")]

@@ -1,0 +1,36 @@
+flowchart LR
+    Resident["Habitant"] --> WebUser["Web utilisateur React"]
+    Admin["Administrateur"] --> AdminWeb["Back-office React"]
+    Admin --> JavaFX["Application JavaFX"]
+
+    WebUser --> Gateway["API NestJS Fastify"]
+    AdminWeb --> Gateway
+    JavaFX --> Gateway
+
+    subgraph API["API centrale"]
+        Gateway --> Auth["Auth et rôles"]
+        Gateway --> Core["Services, contrats, points"]
+        Gateway --> Community["Événements, votes, messagerie"]
+        Gateway --> AdminModules["Incidents, alertes, modération"]
+        Gateway --> Documents["Documents et signatures"]
+        Gateway --> Sync["Synchronisation JavaFX"]
+        Gateway --> DSL["Micro-langage MongoDB"]
+        Gateway --> RGPD["RGPD"]
+    end
+
+    Auth --> Keycloak["Keycloak cible"]
+    Core --> MongoDB[("MongoDB")]
+    Community --> MongoDB
+    AdminModules --> MongoDB
+    Documents --> MongoDB
+    Documents --> MinIO[("MinIO")]
+    Community --> MinIO
+    Sync --> MongoDB
+    DSL --> MongoDB
+    RGPD --> MongoDB
+    Community --> Neo4j[("Neo4j")]
+    Core --> Neo4j
+
+    JavaFX --> LocalDB[("Base locale H2 ou SQLite")]
+    JavaFX --> Outbox[("Outbox locale")]
+    Outbox --> Sync
