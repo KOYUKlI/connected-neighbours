@@ -8,22 +8,30 @@
          style="-fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
 
     <VBox spacing="15" alignment="CENTER">
-        <HBox spacing="15" alignment="CENTER">
-            <VBox alignment="CENTER" prefWidth="200" prefHeight="100" style="-fx-background-color: #F8F8F8; -fx-background-radius: 8;">
-                <Label text="Total Alertes" style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
-                <Label fx:id="totalAlerts" text="4" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
+        <HBox spacing="15" alignment="CENTER" fillHeight="false">
+            <VBox alignment="CENTER" HBox.hgrow="ALWAYS" maxHeight="100"
+                  style="-fx-background-color: #F8F8F8; -fx-background-radius: 8;">
+                <Label text="Total Alertes"
+                       style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
+                <Label fx:id="totalAlerts" text="4"
+                       style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
             </VBox>
 
-            <VBox alignment="CENTER" prefWidth="200" prefHeight="100" style="-fx-background-color: #FDEEEE; -fx-background-radius: 8;">
-                <Label text="Alertes Critiques" style="-fx-font-weight: bold; -fx-text-fill: #D91E25;"/>
-                <Label fx:id="totalAlertsCritical" text="1" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #D91E25;"/>
+            <VBox alignment="CENTER" HBox.hgrow="ALWAYS" maxHeight="100"
+                  style="-fx-background-color: #FDEEEE; -fx-background-radius: 8;">
+                <Label text="Alertes Critiques"
+                       style="-fx-font-weight: bold; -fx-text-fill: #D91E25;"/>
+                <Label fx:id="totalAlertsCritical" text="1"
+                       style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #D91E25;"/>
             </VBox>
 
-            <VBox alignment="CENTER" prefWidth="200" prefHeight="100" style="-fx-background-color: #F8F8F8; -fx-background-radius: 8;">
-                <Label text="Temps de Résolution Moyen" style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
-                <Label fx:id="averageResolutionTime" text="2 heures" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
+            <VBox alignment="CENTER" HBox.hgrow="ALWAYS" maxHeight="100"
+                  style="-fx-background-color: #F8F8F8; -fx-background-radius: 8;">
+                <Label text="Temps de Résolution Moyen"
+                       style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
+                <Label fx:id="averageResolutionTime" text="2 heures"
+                       style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
             </VBox>
         </HBox>
     </VBox>
 </fx:root>
-

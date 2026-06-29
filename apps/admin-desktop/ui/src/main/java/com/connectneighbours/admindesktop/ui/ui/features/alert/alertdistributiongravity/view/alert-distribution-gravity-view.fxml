@@ -8,9 +8,11 @@
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
          spacing="10" fillWidth="false" alignment="CENTER">
-    <Text text="Répartition par Gravité" style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
-    <Group fx:id="graphDistribution">
 
+    <Text text="Répartition par Gravité"
+          style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
+
+    <Group fx:id="graphDistribution">
 
         <Arc centerX="100" centerY="100" radiusX="80" radiusY="80"
              length="90"
@@ -36,24 +38,32 @@
                  -fx-border-color: #e0e0e0;
                  -fx-border-radius: 8;
                  -fx-padding: 10 15 10 15;"
-          minWidth="150" maxWidth="150" minHeight="150" alignment="CENTER">
+          maxWidth="150" maxHeight="150"
+          alignment="CENTER">
+
         <TextFlow>
             <Circle radius="8" fill="#F03B3D"/>
-            <Text text="  Critique" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="  Critique"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
         </TextFlow>
 
         <TextFlow>
             <Circle radius="8" fill="#2E6BE6"/>
-            <Text text="  Haute" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="  Haute"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
         </TextFlow>
+
         <TextFlow>
             <Circle radius="8" fill="#F7B500"/>
-            <Text text="  Moyenne" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="  Moyenne"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
         </TextFlow>
 
         <TextFlow>
             <Circle radius="8" fill="#69B561"/>
-            <Text text="  Mineure" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="  Mineure"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
         </TextFlow>
+
     </VBox>
 </fx:root>

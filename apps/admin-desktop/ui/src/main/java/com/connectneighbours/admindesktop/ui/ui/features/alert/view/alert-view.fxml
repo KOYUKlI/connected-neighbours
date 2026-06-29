@@ -7,8 +7,9 @@
          xmlns:fx="http://javafx.com/fxml"
          fx:id="mainAlertContainer"
          spacing="10"
-         maxWidth="750"
+         maxWidth="Infinity"
          prefWidth="750"
+         VBox.vgrow="ALWAYS"
          style="-fx-background-color: #E8ECF8; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
 
     <HBox spacing="10" style="-fx-padding: 10 15 10 15;">
@@ -28,13 +29,15 @@
            "/>
     </HBox>
 
-    <VBox spacing="10" fillWidth="false"
+    <VBox fx:id="alertStatsHolder" VBox.vgrow="NEVER"/>
+
+    <VBox spacing="10" fillWidth="true"
           fx:id="alertStatsContainer"
           style="-fx-border-color: #DDE1F0;
                  -fx-padding: 10 15 10 15;"
           alignment="CENTER">
 
-        <HBox spacing="10" alignment="CENTER" fx:id="menuBtn">
+        <HBox spacing="10" alignment="CENTER" fx:id="menuBtn" HBox.hgrow="ALWAYS">
 
             <HBox spacing="6" alignment="CENTER" styleClass="hbox-filter">
                 <MenuBar styleClass="menu-bar">
@@ -78,19 +81,24 @@
 
     </VBox>
 
-
-
     <VBox alignment="CENTER"
+          VBox.vgrow="ALWAYS"
           style="-fx-padding: 10 15 10 15;">
 
-        <HBox spacing="150" fx:id="alertDistribution">
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent;">
+            <content>
+                <HBox spacing="20" fx:id="alertDistribution" alignment="TOP_CENTER">
 
-            <VBox fx:id="alertsContainer"
-                  fillWidth="false"
-                  spacing="10"
-                  alignment="TOP_RIGHT"/>
+                    <VBox fx:id="alertsContainer"
+                          fillWidth="true"
+                          spacing="10"
+                          HBox.hgrow="ALWAYS"
+                          alignment="TOP_LEFT"/>
 
-        </HBox>
+                </HBox>
+            </content>
+        </ScrollPane>
     </VBox>
 
 </fx:root>
