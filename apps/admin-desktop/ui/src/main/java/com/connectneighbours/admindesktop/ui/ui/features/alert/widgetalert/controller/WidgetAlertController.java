@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.controller;
 
+import com.connectneighbours.admindesktop.ui.ui.features.alert.utils.AlertFormatting;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.alertsymbol.controller.WarningSymbolController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.ReadOnlyWidgetAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.viewmodel.WidgetAlertViewModel;
@@ -87,7 +88,7 @@ public class WidgetAlertController extends AnchorPane {
 
         statusFlow.getChildren().addAll(
                 new Text("Statut : "),
-                new Text(viewModelWidget.alertProperty().statusProperty().get())
+                new Text(AlertFormatting.formatAlertStatus(viewModelWidget.alertProperty().statusProperty().get()))
         );
 
         var resolvedAt = viewModelWidget.alertProperty().resolvedAtProperty().get();

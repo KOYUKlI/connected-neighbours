@@ -32,6 +32,13 @@ public class AlertManagement {
         return AlertMapper.toDTO(savedAlert);
     }
 
+    public AlertDTO startAlertProgress(UUID alertId) {
+        Alert alert = loadAlert(alertId);
+        alertService.inProgress(alert);
+        var savedAlert = alertRepository.save(alert);
+        return AlertMapper.toDTO(savedAlert);
+    }
+
     public AlertDTO updateAlert(UUID alertId, UpdateAlertDTO dto) {
         Alert alert = loadAlert(alertId);
 
@@ -66,6 +73,14 @@ public class AlertManagement {
     public List<AlertDTO> listByIncident(IncidentDTO dto) {
         var incident = loadIncident(dto.id());
         var list = alertRepository.findByIncident(incident);
+        return list.stream()
+                .map(AlertMapper::toDTO)
+                .toList();
+    }
+
+    public List<AlertDTO> listByIncidentAndSeverity(IncidentDTO dto, Severity severity) {
+        var incident = loadIncident(dto.id());
+        var list = alertRepository.findByIncidentAndSeverity(incident,severity);
         return list.stream()
                 .map(AlertMapper::toDTO)
                 .toList();

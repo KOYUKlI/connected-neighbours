@@ -32,6 +32,8 @@ public class AlertViewController extends VBox {
     @FXML private VBox alertStatsContainer;
     @FXML private HBox alertDistribution;
 
+    @FXML private Label titleIncident;
+
     @FXML private VBox alertsContainer;
     @FXML private Button btnReturn;
     @FXML private Button btnFilter;
@@ -83,11 +85,13 @@ public class AlertViewController extends VBox {
     }
 
     public void loadIncident(IncidentDTO incident) {
+        titleIncident.textProperty().set("Incident #" + incident.displayId() + " - " + incident.title());
         alertsContainer.getChildren().clear();
 
         for (AlertDTO alert : incident.alerts()) {
+            var newAlertDto = parent.getAlertManagement().resolveAlert(alert.id());
             WidgetAlertController widget = new WidgetAlertController();
-            widget.setAlert(toWidgetProperty(alert));
+            widget.setAlert(toWidgetProperty(newAlertDto));
             alertsContainer.getChildren().add(widget);
         }
         loadStats(incident);
@@ -117,7 +121,7 @@ public class AlertViewController extends VBox {
     private AlertStatsProperty toAlertStatsProperty(IncidentDTO dto) {
         SimpleAlertStatsProperty p = new SimpleAlertStatsProperty();
         p.totalAlertsProperty().set(parent.getAlertManagement().listByIncident(dto).size());
-        p.totalAlertsCriticalProperty().set(parent.getAlertManagement().listBySeverity(Severity.CRITICAL).size());
+        p.totalAlertsCriticalProperty().set(parent.getAlertManagement().listByIncidentAndSeverity(dto,Severity.CRITICAL).size());
         p.averageResolutionTimeProperty().set(0);
         return p;
     }

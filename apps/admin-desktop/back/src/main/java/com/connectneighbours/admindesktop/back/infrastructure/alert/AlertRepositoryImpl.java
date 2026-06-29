@@ -56,6 +56,11 @@ public class AlertRepositoryImpl implements AlertRepository {
     }
 
     @Override
+    public List<Alert> findByIncidentAndSeverity(Incident incident, Severity severity) {
+        return alertDAO.findByIncidentAndSeverity(incident,severity);
+    }
+
+    @Override
     public void delete(Alert alert) {
         alertDAO.delete(alert);
     }

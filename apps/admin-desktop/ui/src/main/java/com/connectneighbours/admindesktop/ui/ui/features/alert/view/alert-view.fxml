@@ -20,6 +20,7 @@
         </Button>
 
         <Label text="Incident"
+               fx:id="titleIncident"
                style="
                -fx-font-size: 15;
                -fx-font-weight: bold;

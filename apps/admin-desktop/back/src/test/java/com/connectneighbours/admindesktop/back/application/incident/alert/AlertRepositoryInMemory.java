@@ -57,6 +57,11 @@ public class AlertRepositoryInMemory implements AlertRepository {
     }
 
     @Override
+    public List<Alert> findByIncidentAndSeverity(Incident incident, Severity severity) {
+        return List.of();
+    }
+
+    @Override
     public void delete(Alert alert) {
         data.remove(alert.getAlertId());
     }

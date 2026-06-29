@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.back.domain.alert;
 
+import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyInProgressException;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyOpenException;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertAlreadyResolvedException;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,11 @@ public class AlertService {
         if (alert.isResolved()) throw new AlertAlreadyResolvedException("Alert already resolved");
 
         alert.resolve();
+    }
+
+    public void inProgress(Alert alert) {
+        if (alert.isInProgress()) throw new AlertAlreadyInProgressException("Alert already in progress");
+        alert.inProgress();
     }
 
     public boolean canBeResolved(Alert alert) {

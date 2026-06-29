@@ -133,6 +133,8 @@ public class Alert {
         this.status = AlertStatus.OPEN;
     }
 
+    public void inProgress() { this.status = AlertStatus.IN_PROGRESS; }
+
     public boolean isResolved() {
         return status.equals(AlertStatus.RESOLVED);
     }
@@ -145,6 +147,6 @@ public class Alert {
         return status.equals(AlertStatus.OPEN);
     }
 
-
+    public boolean isInProgress() { return  status.equals(AlertStatus.IN_PROGRESS);}
 }
 

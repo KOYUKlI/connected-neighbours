@@ -18,4 +18,6 @@ public interface AlertDAO extends JpaRepository<Alert, UUID> {
     List<Alert> findByStatus(AlertStatus status);
 
     List<Alert> findByReporter(Reporter reporter);
+
+    List<Alert> findByIncidentAndSeverity(Incident incident,Severity severity);
 }
