@@ -5,6 +5,7 @@ import * as Joi from 'joi';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AdminModule } from './admin/admin.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
@@ -71,6 +72,7 @@ import { VotesModule } from './votes/votes.module';
       }),
     }),
 
+    AdminModule,
     ServicesModule,
     ApplicationsModule,
     AuthModule,
