@@ -34,12 +34,12 @@ describe('PointsService', () => {
 
     userModelMock.findOneAndUpdate.mockReturnValue(execResult(payer));
 
-    const result = await service.reserve({
-      payerId: 'user_1',
-      serviceId: 'svc_1',
-      contractId: 'contract_1',
-      amount: 30,
-    });
+    const result = await service.reservePoints(
+      'user_1',
+      30,
+      'contract_1',
+      'svc_1',
+    );
 
     expect(userModelMock.findOneAndUpdate).toHaveBeenCalledWith(
       {
@@ -69,12 +69,7 @@ describe('PointsService', () => {
     userModelMock.findOneAndUpdate.mockReturnValue(execResult(null));
 
     await expect(
-      service.reserve({
-        payerId: 'user_1',
-        serviceId: 'svc_1',
-        contractId: 'contract_1',
-        amount: 30,
-      }),
+      service.reservePoints('user_1', 30, 'contract_1', 'svc_1'),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -93,13 +88,13 @@ describe('PointsService', () => {
     userModelMock.findOneAndUpdate.mockReturnValue(execResult(payer));
     userModelMock.findByIdAndUpdate.mockReturnValue(execResult(receiver));
 
-    const result = await service.transferReserved({
-      payerId: 'payer_1',
-      receiverId: 'receiver_1',
-      serviceId: 'svc_1',
-      contractId: 'contract_1',
-      amount: 30,
-    });
+    const result = await service.transferReservedPoints(
+      'payer_1',
+      'receiver_1',
+      30,
+      'contract_1',
+      'svc_1',
+    );
 
     expect(userModelMock.findOneAndUpdate).toHaveBeenCalledWith(
       {
@@ -134,6 +129,46 @@ describe('PointsService', () => {
       payer,
       receiver,
     });
+  });
+
+  it('should release reserved points back to the payer balance', async () => {
+    const payer = {
+      id: 'payer_1',
+      pointsBalance: 100,
+      reservedPoints: 0,
+    };
+
+    userModelMock.findOneAndUpdate.mockReturnValue(execResult(payer));
+
+    const result = await service.releaseReservedPoints(
+      'payer_1',
+      30,
+      'contract_1',
+      'svc_1',
+    );
+
+    expect(userModelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      {
+        _id: 'payer_1',
+        reservedPoints: { $gte: 30 },
+      },
+      {
+        $inc: {
+          pointsBalance: 30,
+          reservedPoints: -30,
+        },
+      },
+      { new: true },
+    );
+    expect(transactionModelMock.create).toHaveBeenCalledWith({
+      type: PointTransactionType.RELEASE,
+      amount: 30,
+      serviceId: 'svc_1',
+      contractId: 'contract_1',
+      fromUserId: 'payer_1',
+      toUserId: null,
+    });
+    expect(result).toEqual(payer);
   });
 });
 

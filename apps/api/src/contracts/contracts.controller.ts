@@ -1,6 +1,14 @@
 import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ContractsService } from './contracts.service';
@@ -14,13 +22,35 @@ export class ContractsController {
 
   @Post('services/:serviceId/accept')
   @ApiOperation({
-    summary: 'Accepter un service et créer un contrat si le service est payant',
+    summary:
+      'Route legacy: accepter directement un service et creer un contrat si payant',
   })
   acceptService(
     @Param('serviceId') serviceId: string,
     @CurrentUser() user: { sub: string },
   ) {
     return this.contractsService.acceptService(serviceId, user.sub);
+  }
+
+  @Post('from-application/:applicationId')
+  @ApiOperation({
+    summary: 'Generer un contrat depuis une candidature acceptee',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Candidature non acceptee, contrat deja existant ou points insuffisants',
+  })
+  @ApiForbiddenResponse({
+    description: 'Seul le proprietaire du service peut generer le contrat',
+  })
+  @ApiNotFoundResponse({
+    description: 'Candidature ou service introuvable',
+  })
+  createFromApplication(
+    @Param('applicationId') applicationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.contractsService.createFromApplication(applicationId, user);
   }
 
   @Get()

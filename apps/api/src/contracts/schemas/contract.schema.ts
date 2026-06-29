@@ -4,10 +4,12 @@ import { HydratedDocument } from 'mongoose';
 export type ContractDocument = HydratedDocument<Contract>;
 
 export enum ContractStatus {
+  DRAFT = 'draft',
   SENT = 'sent',
   ACTIVE = 'active',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  DISPUTED = 'disputed',
 }
 
 @Schema({
@@ -17,6 +19,9 @@ export enum ContractStatus {
 export class Contract {
   @Prop({ required: true, trim: true })
   serviceId: string;
+
+  @Prop({ type: String, trim: true, default: null })
+  applicationId: string | null;
 
   @Prop({ required: true, trim: true })
   requesterId: string;
@@ -30,7 +35,7 @@ export class Contract {
   @Prop({ required: true, trim: true })
   receiverId: string;
 
-  @Prop({ required: true, min: 1 })
+  @Prop({ required: true, min: 0 })
   pricePoints: number;
 
   @Prop({
@@ -52,3 +57,24 @@ export class Contract {
 }
 
 export const ContractSchema = SchemaFactory.createForClass(Contract);
+
+ContractSchema.index(
+  { serviceId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $nin: [ContractStatus.CANCELLED] },
+    },
+  },
+);
+
+ContractSchema.index(
+  { applicationId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      applicationId: { $type: 'string' },
+      status: { $nin: [ContractStatus.CANCELLED] },
+    },
+  },
+);
