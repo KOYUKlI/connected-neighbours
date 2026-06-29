@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.TextFlow?>
+<?import javafx.scene.control.ScrollPane?>
+<fx:root type="AnchorPane"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         prefWidth="409" prefHeight="140"
+         maxWidth="Infinity" maxHeight="Infinity"
+         minWidth="280"
+         style="-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
+
+    <AnchorPane fx:id="widgetHeaderContainer"
+                prefHeight="40" maxHeight="40"
+                AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"
+                style="-fx-background-color: #e53935; -fx-background-radius: 8 8 0 0;">
+        <Pane fx:id="warningSymbolContainer"
+              AnchorPane.leftAnchor="12" AnchorPane.topAnchor="8"/>
+
+        <Label fx:id="titleLabel"
+               layoutX="40" layoutY="10"
+               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14;"/>
+    </AnchorPane>
+
+    <HBox spacing="10"
+          AnchorPane.topAnchor="50" AnchorPane.leftAnchor="12"
+          AnchorPane.rightAnchor="12" AnchorPane.bottomAnchor="12">
+
+        <ImageView fx:id="avatarImage"
+                   fitWidth="48"
+                   fitHeight="48"
+                   preserveRatio="true"
+                   smooth="true"/>
+
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+
+            <Label fx:id="reporterLabel"
+                   style="-fx-font-weight: bold; -fx-font-size: 13;" text="TEST"/>
+
+            <TextFlow fx:id="createdAtFlow"/>
+            <TextFlow fx:id="statusFlow"/>
+
+            <ScrollPane styleClass="details-scroll" VBox.vgrow="ALWAYS" fitToWidth="true">
+                <content>
+                    <TextFlow fx:id="detailsFlow"/>
+                </content>
+            </ScrollPane>
+
+        </VBox>
+    </HBox>
+
+</fx:root>

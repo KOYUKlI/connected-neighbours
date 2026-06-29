@@ -1,0 +1,78 @@
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 10, 0, 0, 2);
+    -fx-padding: 0;
+    -fx-font-family: "Segoe UI", "Roboto", sans-serif;
+    -fx-font-size: 13px;
+}
+
+/* En-tête */
+.table-view .column-header-background {
+    -fx-background-color: #FAFBFC;
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Cellules d'en-tête */
+.table-view .column-header, .table-view .filler {
+    -fx-background-color: transparent;
+    -fx-size: 44px;
+    -fx-border-color: transparent;
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 0 0 0 16;
+}
+
+.table-view .column-header .label {
+    -fx-font-weight: 700;
+    -fx-text-fill: #1E293B;
+    -fx-font-size: 13px;
+}
+
+/* Supprime la flèche de tri par défaut si besoin, sinon ignorer */
+.table-view .column-header-background .show-hide-columns-button {
+    -fx-opacity: 0;
+}
+
+/* Lignes */
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #F1F5F9 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-table-cell-border-color: transparent;
+    -fx-cell-size: 56px;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #FCFCFD;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #F8FAFC;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #DBEAFE;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: #1E293B;
+}
+
+/* Cellules */
+.table-cell {
+    -fx-border-color: transparent;
+    -fx-padding: 8 16 8 16;
+    -fx-text-fill: #334155;
+    -fx-alignment: CENTER-LEFT;
+}
+
+/* Scrollbar discrète (optionnel) */
+.table-view .scroll-bar:vertical,
+.table-view .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}

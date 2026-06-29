@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Polygon?>
+<?import javafx.scene.text.Text?>
+
+<?import java.lang.Double?>
+<fx:root type="Pane"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         prefWidth="24" prefHeight="24">
+
+    <Polygon fx:id="shape" fill="white">
+        <points>
+            <Double fx:value="12"/>
+            <Double fx:value="0"/>
+            <Double fx:value="24"/>
+            <Double fx:value="24"/>
+            <Double fx:value="0"/>
+            <Double fx:value="24"/>
+        </points>
+    </Polygon>
+
+
+
+    <Text fx:id="icon"
+          text="!"
+          x="9" y="18"
+          style="-fx-font-size: 14px; -fx-font-weight: bold;"
+          fill="#F13C3E"/>
+</fx:root>
