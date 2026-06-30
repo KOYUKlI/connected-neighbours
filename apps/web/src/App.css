@@ -249,6 +249,12 @@
   margin: 12px 0 0;
 }
 
+.rgpd-summary-card strong {
+  font-size: 22px;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+}
+
 .two-column-layout {
   align-items: start;
   display: grid;

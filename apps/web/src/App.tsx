@@ -97,6 +97,34 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
   timeStyle: 'short',
 });
 
+const rgpdSectionLabels: Record<string, string> = {
+  exportedAt: 'Date d’export',
+  user: 'Profil utilisateur',
+  services: 'Services créés',
+  applicationsAsApplicant: 'Mes candidatures envoyées',
+  applicationsAsOwner: 'Candidatures reçues',
+  contracts: 'Contrats liés',
+  pointTransactions: 'Transactions de points',
+  incidents: 'Incidents signalés',
+  alerts: 'Alertes liées',
+  syncOperations: 'Opérations de synchronisation',
+  documents: 'Documents',
+};
+
+const rgpdSectionOrder = [
+  'exportedAt',
+  'user',
+  'services',
+  'applicationsAsApplicant',
+  'applicationsAsOwner',
+  'contracts',
+  'pointTransactions',
+  'incidents',
+  'alerts',
+  'syncOperations',
+  'documents',
+] as const;
+
 export default function App() {
   const [token, setToken] = useState(() => getAuthToken());
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -1444,15 +1472,17 @@ function RgpdView({
   onExportRgpd,
   rgpdExport,
 }: RenderSectionProps) {
-  const sections = rgpdExport ? Object.entries(rgpdExport) : [];
+  const sections = rgpdExport ? getRgpdSummarySections(rgpdExport) : [];
 
   return (
     <div className="stack">
       <section className="panel rgpd-panel">
         <div>
-          <h2>Exporter mes donnees</h2>
+          <h2>Exporter mes données</h2>
           <p>
-            L’export affiche les sections renvoyees par l’API RGPD du backend.
+            Cet écran affiche les données personnelles récupérées depuis l’API
+            RGPD. Les identifiants techniques sont normalisés et les mots de
+            passe ne sont jamais exportés.
           </p>
         </div>
         <button
@@ -1469,16 +1499,16 @@ function RgpdView({
         <>
           <div className="dashboard-grid">
             {sections.map(([key, value]) => (
-              <MetricCard
-                detail="Section exportee"
+              <RgpdSummaryCard
+                detail={formatRgpdSectionDetail(key, value)}
                 key={key}
-                label={key}
-                value={countSectionItems(value)}
+                label={rgpdSectionLabels[key] ?? key}
+                value={formatRgpdSectionValue(key, value)}
               />
             ))}
           </div>
           <details className="json-panel" open>
-            <summary>JSON exporte</summary>
+            <summary>JSON exporté complet</summary>
             <pre>{JSON.stringify(rgpdExport, null, 2)}</pre>
           </details>
         </>
@@ -1486,6 +1516,24 @@ function RgpdView({
         <EmptyState message="Aucun export RGPD charge." />
       )}
     </div>
+  );
+}
+
+function RgpdSummaryCard({
+  detail,
+  label,
+  value,
+}: {
+  detail: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <article className="metric-card rgpd-summary-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{detail}</p>
+    </article>
   );
 }
 
@@ -1606,6 +1654,65 @@ function valueOrDash(value?: string | number | null) {
 
 function isActiveApplication(status?: string | null) {
   return status ? ['submitted', 'viewed', 'accepted'].includes(status) : false;
+}
+
+function getRgpdSummarySections(exportData: RgpdExport) {
+  const knownSections = rgpdSectionOrder
+    .filter((key) => key in exportData)
+    .map((key) => [key, exportData[key]] as const);
+  const extraSections = Object.entries(exportData).filter(
+    ([key]) => !rgpdSectionOrder.includes(key as (typeof rgpdSectionOrder)[number]),
+  );
+
+  return [...knownSections, ...extraSections];
+}
+
+function formatRgpdSectionValue(key: string, value: unknown) {
+  if (key === 'exportedAt') {
+    return formatUnknownDate(value);
+  }
+
+  if (key === 'user') {
+    return value ? 'Profil exporté' : 'Profil absent';
+  }
+
+  if (Array.isArray(value)) {
+    return formatElementCount(value.length);
+  }
+
+  return String(countSectionItems(value));
+}
+
+function formatUnknownDate(value: unknown) {
+  if (typeof value === 'string' || value instanceof Date) {
+    return formatDate(value);
+  }
+
+  return '-';
+}
+
+function formatRgpdSectionDetail(key: string, value: unknown) {
+  if (key === 'exportedAt') {
+    return 'Date de génération de l’export';
+  }
+
+  if (key === 'user') {
+    return 'Données principales du compte';
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 ? 'Liste exportée' : 'Aucun élément';
+  }
+
+  return countSectionItems(value) > 0 ? 'Données présentes' : 'Aucun élément';
+}
+
+function formatElementCount(count: number) {
+  if (count === 0) {
+    return 'Aucun élément';
+  }
+
+  return `${formatNumber(count)} élément(s)`;
 }
 
 function countSectionItems(value: unknown) {
