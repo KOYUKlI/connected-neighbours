@@ -60,7 +60,7 @@ export class AlertsService {
 
   async update(id: string, dto: UpdateAlertDto) {
     const alert = await this.alertModel
-      .findByIdAndUpdate(id, dto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true })
       .exec();
 
     if (!alert) {
@@ -78,7 +78,7 @@ export class AlertsService {
           status: AlertStatus.RESOLVED,
           resolvedAt: new Date(),
         },
-        { new: true, runValidators: true },
+        { returnDocument: 'after', runValidators: true },
       )
       .exec();
 

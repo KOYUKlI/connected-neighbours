@@ -53,7 +53,7 @@ describe('PointsService', () => {
           reservedPoints: 30,
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
     expect(transactionModelMock.create).toHaveBeenCalledWith({
       type: PointTransactionType.RESERVATION,
@@ -107,7 +107,7 @@ describe('PointsService', () => {
           reservedPoints: -30,
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
     expect(userModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'receiver_1',
@@ -116,7 +116,7 @@ describe('PointsService', () => {
           pointsBalance: 30,
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
     expect(transactionModelMock.create).toHaveBeenCalledWith({
       type: PointTransactionType.TRANSFER,
@@ -159,7 +159,7 @@ describe('PointsService', () => {
           reservedPoints: -30,
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
     expect(transactionModelMock.create).toHaveBeenCalledWith({
       type: PointTransactionType.RELEASE,

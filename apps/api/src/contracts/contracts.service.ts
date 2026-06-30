@@ -104,7 +104,7 @@ export class ContractsService {
           contractId,
           status: ServiceStatus.AWAITING_SIGNATURES,
         },
-        { new: true, runValidators: true },
+        { returnDocument: 'after', runValidators: true },
       )
       .exec();
 
@@ -403,7 +403,7 @@ export class ContractsService {
 
   private async updateServiceStatus(serviceId: string, status: ServiceStatus) {
     const service = await this.serviceModel
-      .findByIdAndUpdate(serviceId, { status }, { new: true })
+      .findByIdAndUpdate(serviceId, { status }, { returnDocument: 'after' })
       .exec();
 
     if (!service) {

@@ -43,7 +43,7 @@ export class NeighborhoodsService {
 
   async update(id: string, dto: UpdateNeighborhoodDto) {
     const neighborhood = await this.neighborhoodModel
-      .findByIdAndUpdate(id, dto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true })
       .exec();
 
     if (!neighborhood) {
@@ -55,7 +55,7 @@ export class NeighborhoodsService {
 
   async archive(id: string) {
     const neighborhood = await this.neighborhoodModel
-      .findByIdAndUpdate(id, { isActive: false }, { new: true })
+      .findByIdAndUpdate(id, { isActive: false }, { returnDocument: 'after' })
       .exec();
 
     if (!neighborhood) {

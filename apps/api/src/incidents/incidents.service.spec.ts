@@ -73,7 +73,7 @@ describe('IncidentsService', () => {
     expect(incidentModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'incident_1',
       { status: IncidentStatus.RESOLVED },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     expect(result).toEqual(incident);
   });

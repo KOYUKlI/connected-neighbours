@@ -150,7 +150,7 @@ describe('SyncService', () => {
         externalId: 'javafx-incident-1',
         lastSyncedAt: expect.any(Date) as unknown as Date,
       },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     expect(result.acceptedOperations).toHaveLength(1);
     expect(result.rejectedOperations).toHaveLength(0);
@@ -211,7 +211,7 @@ describe('SyncService', () => {
         $set: { lastPullAt: expect.any(Date) as unknown as Date },
         $setOnInsert: { clientId: 'javafx-client-1' },
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true },
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
     );
   });
 

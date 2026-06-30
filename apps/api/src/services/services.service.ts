@@ -52,7 +52,7 @@ export class ServicesService {
     }
 
     const updated = await this.serviceModel
-      .findByIdAndUpdate(id, payload, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, payload, { returnDocument: 'after', runValidators: true })
       .exec();
 
     if (!updated) {

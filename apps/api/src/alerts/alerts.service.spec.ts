@@ -93,7 +93,7 @@ describe('AlertsService', () => {
         status: AlertStatus.RESOLVED,
         resolvedAt: expect.any(Date) as unknown as Date,
       },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     expect(result).toEqual(alert);
   });

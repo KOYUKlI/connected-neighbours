@@ -56,7 +56,7 @@ export class PointsService {
             reservedPoints: amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -112,7 +112,7 @@ export class PointsService {
             reservedPoints: -amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -128,7 +128,7 @@ export class PointsService {
             pointsBalance: amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -185,7 +185,7 @@ export class PointsService {
             reservedPoints: -amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 

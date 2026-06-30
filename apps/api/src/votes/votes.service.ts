@@ -85,7 +85,7 @@ export class VotesService {
       .findOneAndUpdate(
         { voteId: id, userId },
         { voteId: id, userId, selectedOptionIds: dto.selectedOptionIds },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
       )
       .exec();
   }
@@ -113,7 +113,7 @@ export class VotesService {
 
   async close(id: string) {
     const vote = await this.voteModel
-      .findByIdAndUpdate(id, { status: VoteStatus.CLOSED }, { new: true })
+      .findByIdAndUpdate(id, { status: VoteStatus.CLOSED }, { returnDocument: 'after' })
       .exec();
 
     if (!vote) {

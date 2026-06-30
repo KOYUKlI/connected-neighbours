@@ -132,7 +132,7 @@ describe('ServicesService', () => {
         isPaid: false,
         pricePoints: null,
       },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     expect(result).toEqual(updatedDoc);
   });

@@ -55,7 +55,7 @@ export class IncidentsService {
 
   async update(id: string, dto: UpdateIncidentDto) {
     const incident = await this.incidentModel
-      .findByIdAndUpdate(id, dto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true })
       .exec();
 
     if (!incident) {
@@ -70,7 +70,7 @@ export class IncidentsService {
       .findByIdAndUpdate(
         id,
         { status: IncidentStatus.RESOLVED },
-        { new: true, runValidators: true },
+        { returnDocument: 'after', runValidators: true },
       )
       .exec();
 

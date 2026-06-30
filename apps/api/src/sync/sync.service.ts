@@ -211,7 +211,7 @@ export class SyncService {
             ...operation.payload,
             lastSyncedAt: new Date(),
           },
-          { new: true, runValidators: true },
+          { returnDocument: 'after', runValidators: true },
         )
         .exec();
 
@@ -263,7 +263,7 @@ export class SyncService {
 
       const alert = await this.alertModel
         .findByIdAndUpdate(operation.entityId, operation.payload, {
-          new: true,
+          returnDocument: 'after',
           runValidators: true,
         })
         .exec();
@@ -291,7 +291,7 @@ export class SyncService {
           $set: updates,
           $setOnInsert: { clientId },
         },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
       )
       .exec();
   }

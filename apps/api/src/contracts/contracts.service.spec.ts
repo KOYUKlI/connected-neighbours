@@ -108,7 +108,7 @@ describe('ContractsService', () => {
         contractId: expect.any(String) as unknown as string,
         status: ServiceStatus.AWAITING_SIGNATURES,
       },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     expect(result).toEqual({
       service: updatedService,
@@ -264,7 +264,7 @@ describe('ContractsService', () => {
     expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'svc_1',
       { status: ServiceStatus.ACCEPTED },
-      { new: true },
+      { returnDocument: 'after' },
     );
   });
 
@@ -353,7 +353,7 @@ describe('ContractsService', () => {
     expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'svc_1',
       { status: ServiceStatus.CONTRACT_ACTIVE },
-      { new: true },
+      { returnDocument: 'after' },
     );
     expect(result).toEqual(contract);
   });
@@ -460,7 +460,7 @@ describe('ContractsService', () => {
     expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'svc_1',
       { status: ServiceStatus.CANCELLED },
-      { new: true },
+      { returnDocument: 'after' },
     );
     expect(result).toEqual(contract);
   });

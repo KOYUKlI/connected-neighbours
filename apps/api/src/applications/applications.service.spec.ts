@@ -167,7 +167,7 @@ describe('ApplicationsService', () => {
         selectedApplicationId: 'app_1',
         status: ServiceStatus.CANDIDATE_SELECTED,
       },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     expect(result).toEqual(application);
   });

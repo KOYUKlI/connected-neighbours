@@ -157,7 +157,7 @@ export class ApplicationsService {
           selectedApplicationId: application.id,
           status: ServiceStatus.CANDIDATE_SELECTED,
         },
-        { new: true, runValidators: true },
+        { returnDocument: 'after', runValidators: true },
       )
       .exec();
 
