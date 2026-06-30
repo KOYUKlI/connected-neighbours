@@ -32,6 +32,7 @@ describe('ContractsService', () => {
   };
 
   const pointsServiceMock = {
+    releaseReservedPoints: jest.fn(),
     reservePoints: jest.fn(),
     transferReservedPoints: jest.fn(),
   };
@@ -427,6 +428,61 @@ describe('ContractsService', () => {
 
     expect(pointsServiceMock.transferReservedPoints).not.toHaveBeenCalled();
     expect(contract.status).toBe(ContractStatus.COMPLETED);
+  });
+
+  it('should cancel a paid contract and release reserved points', async () => {
+    const contract = contractDocument({
+      id: 'contract_1',
+      serviceId: 'svc_1',
+      requesterId: 'requester_1',
+      providerId: 'provider_1',
+      payerId: 'requester_1',
+      receiverId: 'provider_1',
+      status: ContractStatus.SENT,
+      pricePoints: 50,
+    });
+
+    contractModelMock.findById.mockReturnValue(execResult(contract));
+    serviceModelMock.findByIdAndUpdate.mockReturnValue(
+      execResult({ _id: 'svc_1', status: ServiceStatus.CANCELLED }),
+    );
+
+    const result = await service.cancel('contract_1', 'requester_1');
+
+    expect(pointsServiceMock.releaseReservedPoints).toHaveBeenCalledWith(
+      'requester_1',
+      50,
+      'contract_1',
+      'svc_1',
+    );
+    expect(pointsServiceMock.transferReservedPoints).not.toHaveBeenCalled();
+    expect(contract.status).toBe(ContractStatus.CANCELLED);
+    expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+      'svc_1',
+      { status: ServiceStatus.CANCELLED },
+      { new: true },
+    );
+    expect(result).toEqual(contract);
+  });
+
+  it('should reject cancelling a completed contract', async () => {
+    contractModelMock.findById.mockReturnValue(
+      execResult(
+        contractDocument({
+          id: 'contract_1',
+          serviceId: 'svc_1',
+          requesterId: 'requester_1',
+          providerId: 'provider_1',
+          status: ContractStatus.COMPLETED,
+          pricePoints: 50,
+        }),
+      ),
+    );
+
+    await expect(service.cancel('contract_1', 'requester_1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(pointsServiceMock.releaseReservedPoints).not.toHaveBeenCalled();
   });
 
   it('should throw when the contract does not exist', async () => {

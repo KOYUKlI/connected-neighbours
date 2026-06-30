@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { Service, ServiceDocument } from './schemas/service.schema';
+import { Service, ServiceDocument, ServiceStatus } from './schemas/service.schema';
+
+const SERVICE_UNPUBLISHABLE_STATUSES = new Set<ServiceStatus>([
+  ServiceStatus.COMPLETED,
+  ServiceStatus.CANCELLED,
+  ServiceStatus.DISPUTED,
+]);
 
 @Injectable()
 export class ServicesService {
@@ -56,6 +62,34 @@ export class ServicesService {
     return updated;
   }
 
+  async publish(id: string) {
+    const service = await this.findOne(id);
+
+    if (SERVICE_UNPUBLISHABLE_STATUSES.has(service.status)) {
+      throw new BadRequestException('Ce service ne peut pas etre publie');
+    }
+
+    if (service.status === ServiceStatus.PUBLISHED) {
+      return service;
+    }
+
+    return this.updateStatus(id, ServiceStatus.PUBLISHED);
+  }
+
+  async cancel(id: string) {
+    const service = await this.findOne(id);
+
+    if (service.status === ServiceStatus.COMPLETED) {
+      throw new BadRequestException('Un service termine ne peut pas etre annule');
+    }
+
+    if (service.status === ServiceStatus.CANCELLED) {
+      return service;
+    }
+
+    return this.updateStatus(id, ServiceStatus.CANCELLED);
+  }
+
   async remove(id: string) {
     const deleted = await this.serviceModel.findByIdAndDelete(id).exec();
 
@@ -67,5 +101,21 @@ export class ServicesService {
       deleted: true,
       id,
     };
+  }
+
+  private async updateStatus(id: string, status: ServiceStatus) {
+    const updated = await this.serviceModel
+      .findByIdAndUpdate(
+        id,
+        { status },
+        { returnDocument: 'after', runValidators: true },
+      )
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException(`Service ${id} introuvable`);
+    }
+
+    return updated;
   }
 }

@@ -9,6 +9,7 @@ export enum ServiceType {
 }
 
 export enum ServiceStatus {
+  DRAFT = 'draft',
   PUBLISHED = 'published',
   APPLICATION_RECEIVED = 'application_received',
   CANDIDATE_SELECTED = 'candidate_selected',
@@ -19,6 +20,7 @@ export enum ServiceStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  DISPUTED = 'disputed',
 }
 
 @Schema({

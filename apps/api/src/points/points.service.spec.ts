@@ -7,6 +7,7 @@ describe('PointsService', () => {
   let service: PointsService;
 
   const userModelMock = {
+    findById: jest.fn(),
     findOneAndUpdate: jest.fn(),
     findByIdAndUpdate: jest.fn(),
   };
@@ -169,6 +170,28 @@ describe('PointsService', () => {
       toUserId: null,
     });
     expect(result).toEqual(payer);
+  });
+
+  it('should return the current user point balance', async () => {
+    userModelMock.findById.mockReturnValue(
+      execResult({
+        id: 'user_1',
+        pointsBalance: 75,
+        reservedPoints: 25,
+        passwordHash: 'not-exposed',
+      }),
+    );
+
+    const result = await service.getBalance('user_1');
+
+    expect(userModelMock.findById).toHaveBeenCalledWith('user_1');
+    expect(result).toEqual({
+      userId: 'user_1',
+      pointsBalance: 75,
+      reservedPoints: 25,
+      availablePoints: 75,
+    });
+    expect(result).not.toHaveProperty('passwordHash');
   });
 });
 

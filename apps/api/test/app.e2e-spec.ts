@@ -12,6 +12,8 @@ import { AppModule } from './../src/app.module';
 import { Role } from './../src/auth/role.enum';
 import { UsersService } from './../src/auth/users.service';
 
+jest.setTimeout(60000);
+
 const DEMO_USERS = [
   {
     email: 'admin@connected-neighbours.local',
@@ -46,9 +48,12 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
   let aliceId: string;
   let bobId: string;
+  let draftServiceId: string;
   let serviceId: string;
   let applicationId: string;
   let contractId: string;
+  let cancellableServiceId: string;
+  let cancellableContractId: string;
   let incidentId: string;
   let alertId: string;
 
@@ -83,7 +88,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
   afterAll(async () => {
     await cleanE2eData(false);
-    await app.close();
+    await app?.close();
   });
 
   it('checks health', async () => {
@@ -112,6 +117,54 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(admin.user.role).toBe(Role.ADMIN);
     expect(alice.user.pointsBalance).toBeGreaterThanOrEqual(100);
     expect(bob.user.pointsBalance).toBeGreaterThanOrEqual(100);
+  });
+
+  it('covers service publishing, service cancellation and point balance', async () => {
+    const draftService = await request(app.getHttpServer())
+      .post('/api/services')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Service brouillon',
+        description: 'Service cree en brouillon pour verifier publish/cancel.',
+        type: 'request',
+        category: 'bricolage',
+        availability: 'Dimanche',
+        neighborhoodId: 'quartier-centre',
+        isPaid: false,
+        status: 'draft',
+      })
+      .expect(201);
+
+    draftServiceId = getId(draftService.body);
+    expect(draftService.body.status).toBe('draft');
+
+    const publishedService = await request(app.getHttpServer())
+      .post(`/api/services/${draftServiceId}/publish`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    expect(publishedService.body.status).toBe('published');
+
+    const cancelledService = await request(app.getHttpServer())
+      .post(`/api/services/${draftServiceId}/cancel`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    expect(cancelledService.body.status).toBe('cancelled');
+
+    await request(app.getHttpServer())
+      .get('/api/points/balance')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          userId: aliceId,
+          pointsBalance: 100,
+          reservedPoints: 0,
+          availablePoints: 100,
+        });
+        expect(body).not.toHaveProperty('passwordHash');
+      });
   });
 
   it('covers services, applications, contracts and points', async () => {
@@ -214,6 +267,83 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(aliceAfterTransfer.pointsBalance).toBe(75);
     expect(aliceAfterTransfer.reservedPoints).toBe(0);
     expect(bobAfterTransfer.pointsBalance).toBe(125);
+  });
+
+  it('covers contract cancellation with reserved point release', async () => {
+    const serviceResponse = await request(app.getHttpServer())
+      .post('/api/services')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Contrat annulation',
+        description: 'Alice cree un service pour tester annulation contrat.',
+        type: 'request',
+        category: 'bricolage',
+        availability: 'Lundi soir',
+        neighborhoodId: 'quartier-centre',
+        isPaid: true,
+        pricePoints: 20,
+        status: 'published',
+      })
+      .expect(201);
+
+    cancellableServiceId = getId(serviceResponse.body);
+
+    const applicationResponse = await request(app.getHttpServer())
+      .post(`/api/services/${cancellableServiceId}/applications`)
+      .set('Authorization', bearer(bobToken))
+      .send({
+        message: 'E2E candidature annulation contrat',
+        proposedPricePoints: 20,
+      })
+      .expect(201);
+
+    const cancellableApplicationId = getId(applicationResponse.body);
+
+    await request(app.getHttpServer())
+      .post(`/api/applications/${cancellableApplicationId}/accept`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    const contractResponse = await request(app.getHttpServer())
+      .post(`/api/contracts/from-application/${cancellableApplicationId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    cancellableContractId = getId(contractResponse.body.contract);
+
+    await request(app.getHttpServer())
+      .get('/api/points/balance')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.pointsBalance).toBe(55);
+        expect(body.reservedPoints).toBe(20);
+        expect(body.availablePoints).toBe(55);
+      });
+
+    const cancelledContract = await request(app.getHttpServer())
+      .post(`/api/contracts/${cancellableContractId}/cancel`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    expect(cancelledContract.body.status).toBe('cancelled');
+
+    const cancelledService = await request(app.getHttpServer())
+      .get(`/api/services/${cancellableServiceId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+
+    expect(cancelledService.body.status).toBe('cancelled');
+
+    await request(app.getHttpServer())
+      .get('/api/points/balance')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.pointsBalance).toBe(75);
+        expect(body.reservedPoints).toBe(0);
+        expect(body.availablePoints).toBe(75);
+      });
   });
 
   it('covers incidents and alerts', async () => {
@@ -445,6 +575,37 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
   });
 
+  it('covers enriched RGPD export sections', async () => {
+    await request(app.getHttpServer())
+      .get('/api/rgpd/export')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.services).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ title: 'E2E Aide bricolage' }),
+          ]),
+        );
+        expect(body.applicationsAsOwner).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: applicationId }),
+          ]),
+        );
+        expect(body.applicationsAsApplicant).toEqual(expect.any(Array));
+        expect(body.incidents).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: incidentId }),
+          ]),
+        );
+        expect(body.alerts).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: alertId }),
+          ]),
+        );
+        expect(body.syncOperations).toEqual(expect.any(Array));
+      });
+  });
+
   async function login(email: string, password: string) {
     const response = await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -479,16 +640,39 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   }
 
   async function cleanE2eData(includeUsers: boolean) {
+    if (!connection) {
+      return;
+    }
+
     const operations = [
       connection
         .collection('services')
-        .deleteMany({ title: { $in: ['E2E Aide bricolage'] } }),
+        .deleteMany({
+          title: {
+            $in: [
+              'E2E Aide bricolage',
+              'E2E Service brouillon',
+              'E2E Contrat annulation',
+            ],
+          },
+        }),
       connection
         .collection('serviceapplications')
-        .deleteMany({ message: 'E2E candidature Bob' }),
+        .deleteMany({
+          message: {
+            $in: [
+              'E2E candidature Bob',
+              'E2E candidature annulation contrat',
+            ],
+          },
+        }),
       connection
         .collection('contracts')
-        .deleteMany({ serviceId: serviceId ?? '__missing__' }),
+        .deleteMany({
+          serviceId: {
+            $in: [serviceId, cancellableServiceId].filter(Boolean),
+          },
+        }),
       connection
         .collection('incidents')
         .deleteMany({
@@ -505,7 +689,11 @@ describe('Connected Neighbours API P0 (e2e)', () => {
         .deleteMany({ clientId: 'e2e-javafx-client' }),
       connection
         .collection('pointtransactions')
-        .deleteMany({ serviceId: serviceId ?? '__missing__' }),
+        .deleteMany({
+          serviceId: {
+            $in: [serviceId, cancellableServiceId].filter(Boolean),
+          },
+        }),
     ];
 
     if (includeUsers) {
@@ -530,7 +718,7 @@ function configureTestEnvironment() {
     process.env.COOKIE_SECRET ?? 'test-cookie-secret';
   process.env.MONGODB_URI =
     process.env.MONGODB_URI ??
-    'mongodb://127.0.0.1:27017/connected-neighbours-e2e';
+    'mongodb://127.0.0.1:27017/connected-neighbours-e2e?serverSelectionTimeoutMS=5000';
   process.env.NEO4J_URI = process.env.NEO4J_URI ?? 'bolt://localhost:7687';
   process.env.NEO4J_USERNAME = process.env.NEO4J_USERNAME ?? 'neo4j';
   process.env.NEO4J_PASSWORD = process.env.NEO4J_PASSWORD ?? 'password';

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -208,6 +212,21 @@ export class PointsService {
       })
       .sort({ createdAt: -1 })
       .exec();
+  }
+
+  async getBalance(userId: string) {
+    const user = await this.userModel.findById(userId).exec();
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    return {
+      userId: user.id,
+      pointsBalance: user.pointsBalance,
+      reservedPoints: user.reservedPoints,
+      availablePoints: user.pointsBalance,
+    };
   }
 
   private assertPositiveAmount(amount: number) {

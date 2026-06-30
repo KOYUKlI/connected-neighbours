@@ -78,4 +78,12 @@ export class ContractsController {
   complete(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
     return this.contractsService.complete(id, user.sub);
   }
+
+  @Post(':id/cancel')
+  @ApiOperation({
+    summary: 'Annuler un contrat et libérer les points réservés',
+  })
+  cancel(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
+    return this.contractsService.cancel(id, user.sub);
+  }
 }

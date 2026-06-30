@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { CreateServiceDto } from './dto/create-service.dto';
-import { ServiceType } from './schemas/service.schema';
+import { ServiceStatus, ServiceType } from './schemas/service.schema';
 
 import { ServicesService } from './services.service';
 import { Service } from './schemas/service.schema';
@@ -150,4 +150,71 @@ describe('ServicesService', () => {
       id: 'abc123',
     });
   });
+
+  it('should publish a draft service', async () => {
+    const draftService = {
+      _id: 'svc_1',
+      status: ServiceStatus.DRAFT,
+    };
+    const publishedService = {
+      ...draftService,
+      status: ServiceStatus.PUBLISHED,
+    };
+
+    serviceModelMock.findById.mockReturnValue(execResult(draftService));
+    serviceModelMock.findByIdAndUpdate.mockReturnValue(
+      execResult(publishedService),
+    );
+
+    const result = await service.publish('svc_1');
+
+    expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+      'svc_1',
+      { status: ServiceStatus.PUBLISHED },
+      { returnDocument: 'after', runValidators: true },
+    );
+    expect(result).toEqual(publishedService);
+  });
+
+  it('should reject publishing a completed service', async () => {
+    serviceModelMock.findById.mockReturnValue(
+      execResult({
+        _id: 'svc_1',
+        status: ServiceStatus.COMPLETED,
+      }),
+    );
+
+    await expect(service.publish('svc_1')).rejects.toThrow(BadRequestException);
+  });
+
+  it('should cancel a service that is not completed', async () => {
+    const publishedService = {
+      _id: 'svc_1',
+      status: ServiceStatus.PUBLISHED,
+    };
+    const cancelledService = {
+      ...publishedService,
+      status: ServiceStatus.CANCELLED,
+    };
+
+    serviceModelMock.findById.mockReturnValue(execResult(publishedService));
+    serviceModelMock.findByIdAndUpdate.mockReturnValue(
+      execResult(cancelledService),
+    );
+
+    const result = await service.cancel('svc_1');
+
+    expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+      'svc_1',
+      { status: ServiceStatus.CANCELLED },
+      { returnDocument: 'after', runValidators: true },
+    );
+    expect(result).toEqual(cancelledService);
+  });
 });
+
+function execResult<T>(value: T) {
+  return {
+    exec: jest.fn().mockResolvedValue(value),
+  };
+}

@@ -281,6 +281,40 @@ export class ContractsService {
     return contract.save();
   }
 
+  async cancel(id: string, userId: string) {
+    const contract = await this.contractModel.findById(id).exec();
+
+    if (!contract) {
+      throw new NotFoundException(`Contrat ${id} introuvable`);
+    }
+
+    this.assertContractParty(contract, userId);
+
+    if (contract.status === ContractStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Un contrat termine ne peut pas etre annule',
+      );
+    }
+
+    if (contract.status === ContractStatus.CANCELLED) {
+      return contract;
+    }
+
+    if (contract.pricePoints > 0) {
+      await this.pointsService.releaseReservedPoints(
+        contract.payerId,
+        contract.pricePoints,
+        contract.id,
+        contract.serviceId,
+      );
+    }
+
+    contract.status = ContractStatus.CANCELLED;
+    await this.updateServiceStatus(contract.serviceId, ServiceStatus.CANCELLED);
+
+    return contract.save();
+  }
+
   private resolveParties(
     service: Pick<Service, 'ownerId' | 'type'>,
     actorId: string,

@@ -67,9 +67,16 @@ import { VotesModule } from './votes/votes.module';
     }),
 
     MongooseModule.forRootAsync({
-      useFactory: () => ({
-        uri: process.env.MONGODB_URI,
-      }),
+      useFactory: () => {
+        const isTest = process.env.NODE_ENV === 'test';
+
+        return {
+          uri: process.env.MONGODB_URI,
+          retryAttempts: isTest ? 1 : 9,
+          retryDelay: isTest ? 500 : 3000,
+          serverSelectionTimeoutMS: isTest ? 5000 : undefined,
+        };
+      },
     }),
 
     AdminModule,

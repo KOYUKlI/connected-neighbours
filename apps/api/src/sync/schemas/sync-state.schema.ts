@@ -14,7 +14,7 @@ export enum SyncStateStatus {
   versionKey: false,
 })
 export class SyncState {
-  @Prop({ required: true, unique: true, trim: true })
+  @Prop({ required: true, trim: true })
   clientId: string;
 
   @Prop({ type: Date, default: null })

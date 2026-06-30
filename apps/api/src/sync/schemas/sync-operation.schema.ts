@@ -23,7 +23,7 @@ export enum SyncOperationStatus {
   versionKey: false,
 })
 export class SyncOperation {
-  @Prop({ required: true, unique: true, trim: true })
+  @Prop({ required: true, trim: true })
   operationId: string;
 
   @Prop({ required: true, trim: true })

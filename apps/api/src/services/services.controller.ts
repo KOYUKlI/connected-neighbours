@@ -50,6 +50,18 @@ export class ServicesController {
     return this.servicesService.update(id, updateServiceDto);
   }
 
+  @Post(':id/publish')
+  @ApiOperation({ summary: 'Publier une annonce de service' })
+  publish(@Param('id') id: string) {
+    return this.servicesService.publish(id);
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Annuler une annonce de service' })
+  cancel(@Param('id') id: string) {
+    return this.servicesService.cancel(id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Supprimer une annonce de service' })
   remove(@Param('id') id: string) {
