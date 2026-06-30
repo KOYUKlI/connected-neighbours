@@ -1,0 +1,15 @@
+.git
+.agents
+.pnpm-store
+node_modules
+apps/**/node_modules
+apps/**/dist
+apps/**/coverage
+coverage
+*.log
+.env
+.env.*
+docs
+diagrams
+database
+README.md
