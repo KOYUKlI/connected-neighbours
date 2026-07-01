@@ -5,15 +5,21 @@ import * as Joi from 'joi';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AdminModule } from './admin/admin.module';
+import { AlertsModule } from './alerts/alerts.module';
+import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { DocumentsModule } from './documents/documents.module';
+import { DslModule } from './dsl/dsl.module';
 import { EventsModule } from './events/events.module';
+import { IncidentsModule } from './incidents/incidents.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
 import { RgpdModule } from './rgpd/rgpd.module';
 import { ServicesModule } from './services/services.module';
+import { SyncModule } from './sync/sync.module';
 import { VotesModule } from './votes/votes.module';
 
 @Module({
@@ -61,17 +67,30 @@ import { VotesModule } from './votes/votes.module';
     }),
 
     MongooseModule.forRootAsync({
-      useFactory: () => ({
-        uri: process.env.MONGODB_URI,
-      }),
+      useFactory: () => {
+        const isTest = process.env.NODE_ENV === 'test';
+
+        return {
+          uri: process.env.MONGODB_URI,
+          retryAttempts: isTest ? 1 : 9,
+          retryDelay: isTest ? 500 : 3000,
+          serverSelectionTimeoutMS: isTest ? 5000 : undefined,
+        };
+      },
     }),
 
+    AdminModule,
     ServicesModule,
+    ApplicationsModule,
     AuthModule,
     PointsModule,
     ContractsModule,
     NeighborhoodsModule,
     EventsModule,
+    DslModule,
+    IncidentsModule,
+    AlertsModule,
+    SyncModule,
     VotesModule,
     DocumentsModule,
     MessagingModule,

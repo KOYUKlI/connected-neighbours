@@ -1,0 +1,43 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", fontname="Arial", fontsize=12, splines=ortho, nodesep=0.55, ranksep=0.75];
+  node [shape=box, style="rounded,filled", fillcolor="#f8f8fb", color="#444444", fontname="Arial", fontsize=10, margin="0.12,0.08"];
+  edge [color="#555555", arrowsize=0.7, fontname="Arial", fontsize=9];
+
+  subgraph cluster_javafx { label="Application JavaFX"; color="#999999"; style="rounded"; UI; LocalDB; Outbox; SyncClient; SyncState; Conflicts; }
+  subgraph cluster_api { label="API centrale"; color="#999999"; style="rounded"; SyncAPI; IncidentsAPI; AlertsAPI; AuditAPI; MongoDB; }
+
+  UI [label="Interface incidents et alertes"];
+  LocalDB [label="Base locale H2 ou SQLite", shape=cylinder, fillcolor="#fff7ed"];
+  Outbox [label="Outbox locale", shape=cylinder, fillcolor="#fff7ed"];
+  SyncClient [label="Client de synchronisation"];
+  SyncState [label="État de synchronisation", shape=cylinder, fillcolor="#fff7ed"];
+  Conflicts [label="Conflits locaux", shape=cylinder, fillcolor="#fff7ed"];
+
+  SyncAPI [label="Module sync API", fillcolor="#eef2ff"];
+  IncidentsAPI [label="Module incidents"];
+  AlertsAPI [label="Module alertes"];
+  AuditAPI [label="Journal de synchronisation"];
+  MongoDB [label="MongoDB incidents", shape=cylinder, fillcolor="#f0fff4"];
+
+  UI -> LocalDB;
+  UI -> Outbox;
+  UI -> SyncClient;
+  SyncClient -> SyncState;
+  SyncClient -> Conflicts;
+
+  SyncClient -> SyncAPI [label="push"];
+  SyncClient -> SyncAPI [label="pull"];
+  SyncClient -> SyncAPI [label="resolve conflict"];
+
+  SyncAPI -> IncidentsAPI;
+  SyncAPI -> AlertsAPI;
+  SyncAPI -> AuditAPI;
+  IncidentsAPI -> MongoDB;
+  AlertsAPI -> MongoDB;
+  AuditAPI -> MongoDB;
+
+  SyncAPI -> SyncClient [label="changements serveur"];
+  SyncAPI -> Conflicts [label="conflits"];
+  SyncClient -> LocalDB [label="mise à jour locale"];
+  SyncClient -> SyncState [label="lastSyncAt"];
+}

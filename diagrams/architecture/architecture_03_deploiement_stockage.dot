@@ -1,0 +1,43 @@
+digraph G {
+  graph [rankdir=LR, bgcolor="white", fontname="Arial", fontsize=12, splines=ortho, nodesep=0.55, ranksep=0.8];
+  node [shape=box, style="rounded,filled", fillcolor="#f8f8fb", color="#444444", fontname="Arial", fontsize=10, margin="0.12,0.08"];
+  edge [color="#555555", arrowsize=0.7, fontname="Arial", fontsize=9];
+
+  Docker [label="Docker Compose", fillcolor="#eef2ff"];
+  ApiContainer [label="Container API"];
+  WebContainer [label="Container Web utilisateur"];
+  AdminContainer [label="Container Admin web"];
+  MongoContainer [label="Container MongoDB"];
+  Neo4jContainer [label="Container Neo4j"];
+  MinioContainer [label="Container MinIO"];
+  KeycloakContainer [label="Container Keycloak"];
+  JavaFX [label="JavaFX hors Docker"];
+  LocalDB [label="Base locale H2 ou SQLite", shape=cylinder, fillcolor="#fff7ed"];
+  MongoData [label="Volume MongoDB", shape=cylinder, fillcolor="#f0fff4"];
+  Neo4jData [label="Volume Neo4j", shape=cylinder, fillcolor="#f0fff4"];
+  MinioData [label="Volume MinIO", shape=cylinder, fillcolor="#f0fff4"];
+  KeycloakData [label="Volume Keycloak", shape=cylinder, fillcolor="#f0fff4"];
+
+  Docker -> ApiContainer;
+  Docker -> WebContainer;
+  Docker -> AdminContainer;
+  Docker -> MongoContainer;
+  Docker -> Neo4jContainer;
+  Docker -> MinioContainer;
+  Docker -> KeycloakContainer;
+
+  WebContainer -> ApiContainer;
+  AdminContainer -> ApiContainer;
+  JavaFX -> ApiContainer;
+  JavaFX -> LocalDB;
+
+  ApiContainer -> MongoContainer;
+  ApiContainer -> Neo4jContainer;
+  ApiContainer -> MinioContainer;
+  ApiContainer -> KeycloakContainer;
+
+  MongoContainer -> MongoData;
+  Neo4jContainer -> Neo4jData;
+  MinioContainer -> MinioData;
+  KeycloakContainer -> KeycloakData;
+}

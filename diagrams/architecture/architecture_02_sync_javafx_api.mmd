@@ -1,0 +1,32 @@
+flowchart TB
+    subgraph JavaFX["Application JavaFX"]
+        UI["Interface incidents et alertes"] --> LocalDB[("Base locale H2 ou SQLite")]
+        UI --> Outbox[("Outbox locale")]
+        UI --> SyncClient["Client de synchronisation"]
+        SyncClient --> SyncState[("État de synchronisation")]
+        SyncClient --> Conflicts[("Conflits locaux")]
+    end
+
+    subgraph API["API centrale"]
+        SyncAPI["Module sync API"]
+        IncidentsAPI["Module incidents"]
+        AlertsAPI["Module alertes"]
+        AuditAPI["Journal de synchronisation"]
+    end
+
+    SyncClient -->|"POST /api/sync/push"| SyncAPI
+    SyncClient -->|"GET /api/sync/pull"| SyncAPI
+    SyncClient -->|"POST /api/sync/conflicts/:id/resolve"| SyncAPI
+
+    SyncAPI --> IncidentsAPI
+    SyncAPI --> AlertsAPI
+    SyncAPI --> AuditAPI
+
+    IncidentsAPI --> MongoDB[("MongoDB incidents")]
+    AlertsAPI --> MongoDB
+    AuditAPI --> MongoDB
+
+    SyncAPI -->|"changements serveur"| SyncClient
+    SyncAPI -->|"conflits"| Conflicts
+    SyncClient -->|"mise à jour locale"| LocalDB
+    SyncClient -->|"lastSyncAt et erreurs"| SyncState

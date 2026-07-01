@@ -9,11 +9,18 @@ export enum ServiceType {
 }
 
 export enum ServiceStatus {
+  DRAFT = 'draft',
   PUBLISHED = 'published',
+  APPLICATION_RECEIVED = 'application_received',
+  CANDIDATE_SELECTED = 'candidate_selected',
+  CONTRACT_PENDING = 'contract_pending',
+  AWAITING_SIGNATURES = 'awaiting_signatures',
+  CONTRACT_ACTIVE = 'contract_active',
   ACCEPTED = 'accepted',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  DISPUTED = 'disputed',
 }
 
 @Schema({
@@ -57,10 +64,17 @@ export class Service {
 
   @Prop({
     required: true,
+    type: String,
     enum: ServiceStatus,
     default: ServiceStatus.PUBLISHED,
   })
   status: ServiceStatus;
+
+  @Prop({ type: String, trim: true, default: null })
+  selectedApplicationId: string | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  contractId: string | null;
 }
 
 export const ServiceSchema = SchemaFactory.createForClass(Service);

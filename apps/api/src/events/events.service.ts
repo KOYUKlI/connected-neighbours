@@ -56,7 +56,7 @@ export class EventsService {
       .findOneAndUpdate(
         { eventId: id, userId },
         { eventId: id, userId, interest: dto.interest },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
       )
       .exec();
   }

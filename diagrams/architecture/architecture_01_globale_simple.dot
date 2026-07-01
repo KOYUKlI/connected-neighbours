@@ -1,0 +1,64 @@
+digraph G {
+  graph [rankdir=LR, bgcolor="white", fontname="Arial", fontsize=12, splines=ortho, nodesep=0.55, ranksep=0.9];
+  node [shape=box, style="rounded,filled", fillcolor="#f8f8fb", color="#444444", fontname="Arial", fontsize=10, margin="0.12,0.08"];
+  edge [color="#555555", arrowsize=0.7, fontname="Arial", fontsize=9];
+
+  subgraph cluster_clients { label="Applications clientes"; color="#999999"; style="rounded"; Resident; Admin; WebUser; AdminWeb; JavaFX; }
+  subgraph cluster_api { label="API centrale"; color="#999999"; style="rounded"; Gateway; Auth; Core; Community; AdminModules; Documents; Sync; DSL; RGPD; }
+  subgraph cluster_data { label="Données et services"; color="#999999"; style="rounded"; MongoDB; Neo4j; MinIO; Keycloak; LocalDB; Outbox; }
+
+  Resident [label="Habitant"];
+  Admin [label="Administrateur"];
+  WebUser [label="Web utilisateur React"];
+  AdminWeb [label="Back-office React"];
+  JavaFX [label="Application JavaFX"];
+
+  Gateway [label="API NestJS Fastify", fillcolor="#eef2ff"];
+  Auth [label="Auth et rôles"];
+  Core [label="Services, contrats, points"];
+  Community [label="Événements, votes, messagerie"];
+  AdminModules [label="Incidents, alertes, modération"];
+  Documents [label="Documents et signatures"];
+  Sync [label="Synchronisation JavaFX"];
+  DSL [label="Micro-langage MongoDB"];
+  RGPD [label="RGPD"];
+
+  MongoDB [label="MongoDB", shape=cylinder, fillcolor="#f0fff4"];
+  Neo4j [label="Neo4j", shape=cylinder, fillcolor="#f0fff4"];
+  MinIO [label="MinIO", shape=cylinder, fillcolor="#f0fff4"];
+  Keycloak [label="Keycloak cible", shape=cylinder, fillcolor="#f0fff4"];
+  LocalDB [label="Base locale H2 ou SQLite", shape=cylinder, fillcolor="#fff7ed"];
+  Outbox [label="Outbox locale", shape=cylinder, fillcolor="#fff7ed"];
+
+  Resident -> WebUser;
+  Admin -> AdminWeb;
+  Admin -> JavaFX;
+  WebUser -> Gateway;
+  AdminWeb -> Gateway;
+  JavaFX -> Gateway;
+
+  Gateway -> Auth;
+  Gateway -> Core;
+  Gateway -> Community;
+  Gateway -> AdminModules;
+  Gateway -> Documents;
+  Gateway -> Sync;
+  Gateway -> DSL;
+  Gateway -> RGPD;
+
+  Auth -> Keycloak;
+  Core -> MongoDB;
+  Community -> MongoDB;
+  AdminModules -> MongoDB;
+  Documents -> MongoDB;
+  Documents -> MinIO;
+  Community -> MinIO;
+  Sync -> MongoDB;
+  DSL -> MongoDB;
+  RGPD -> MongoDB;
+  Community -> Neo4j;
+  Core -> Neo4j;
+  JavaFX -> LocalDB;
+  JavaFX -> Outbox;
+  Outbox -> Sync;
+}

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -24,21 +28,35 @@ export class PointsService {
     contractId: string;
     amount: number;
   }) {
-    this.assertPositiveAmount(input.amount);
+    return this.reservePoints(
+      input.payerId,
+      input.amount,
+      input.contractId,
+      input.serviceId,
+    );
+  }
+
+  async reservePoints(
+    payerId: string,
+    amount: number,
+    contractId: string,
+    serviceId: string,
+  ) {
+    this.assertPositiveAmount(amount);
 
     const payer = await this.userModel
       .findOneAndUpdate(
         {
-          _id: input.payerId,
-          pointsBalance: { $gte: input.amount },
+          _id: payerId,
+          pointsBalance: { $gte: amount },
         },
         {
           $inc: {
-            pointsBalance: -input.amount,
-            reservedPoints: input.amount,
+            pointsBalance: -amount,
+            reservedPoints: amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -48,10 +66,10 @@ export class PointsService {
 
     await this.transactionModel.create({
       type: PointTransactionType.RESERVATION,
-      amount: input.amount,
-      serviceId: input.serviceId,
-      contractId: input.contractId,
-      fromUserId: input.payerId,
+      amount,
+      serviceId,
+      contractId,
+      fromUserId: payerId,
       toUserId: null,
     });
 
@@ -65,20 +83,36 @@ export class PointsService {
     contractId: string;
     amount: number;
   }) {
-    this.assertPositiveAmount(input.amount);
+    return this.transferReservedPoints(
+      input.payerId,
+      input.receiverId,
+      input.amount,
+      input.contractId,
+      input.serviceId,
+    );
+  }
+
+  async transferReservedPoints(
+    payerId: string,
+    receiverId: string,
+    amount: number,
+    contractId: string,
+    serviceId: string,
+  ) {
+    this.assertPositiveAmount(amount);
 
     const payer = await this.userModel
       .findOneAndUpdate(
         {
-          _id: input.payerId,
-          reservedPoints: { $gte: input.amount },
+          _id: payerId,
+          reservedPoints: { $gte: amount },
         },
         {
           $inc: {
-            reservedPoints: -input.amount,
+            reservedPoints: -amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -88,13 +122,13 @@ export class PointsService {
 
     const receiver = await this.userModel
       .findByIdAndUpdate(
-        input.receiverId,
+        receiverId,
         {
           $inc: {
-            pointsBalance: input.amount,
+            pointsBalance: amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -104,11 +138,11 @@ export class PointsService {
 
     await this.transactionModel.create({
       type: PointTransactionType.TRANSFER,
-      amount: input.amount,
-      serviceId: input.serviceId,
-      contractId: input.contractId,
-      fromUserId: input.payerId,
-      toUserId: input.receiverId,
+      amount,
+      serviceId,
+      contractId,
+      fromUserId: payerId,
+      toUserId: receiverId,
     });
 
     return {
@@ -123,21 +157,35 @@ export class PointsService {
     contractId: string;
     amount: number;
   }) {
-    this.assertPositiveAmount(input.amount);
+    return this.releaseReservedPoints(
+      input.payerId,
+      input.amount,
+      input.contractId,
+      input.serviceId,
+    );
+  }
+
+  async releaseReservedPoints(
+    payerId: string,
+    amount: number,
+    contractId: string,
+    serviceId: string,
+  ) {
+    this.assertPositiveAmount(amount);
 
     const payer = await this.userModel
       .findOneAndUpdate(
         {
-          _id: input.payerId,
-          reservedPoints: { $gte: input.amount },
+          _id: payerId,
+          reservedPoints: { $gte: amount },
         },
         {
           $inc: {
-            pointsBalance: input.amount,
-            reservedPoints: -input.amount,
+            pointsBalance: amount,
+            reservedPoints: -amount,
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
 
@@ -147,10 +195,10 @@ export class PointsService {
 
     await this.transactionModel.create({
       type: PointTransactionType.RELEASE,
-      amount: input.amount,
-      serviceId: input.serviceId,
-      contractId: input.contractId,
-      fromUserId: input.payerId,
+      amount,
+      serviceId,
+      contractId,
+      fromUserId: payerId,
       toUserId: null,
     });
 
@@ -164,6 +212,21 @@ export class PointsService {
       })
       .sort({ createdAt: -1 })
       .exec();
+  }
+
+  async getBalance(userId: string) {
+    const user = await this.userModel.findById(userId).exec();
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    return {
+      userId: user.id,
+      pointsBalance: user.pointsBalance,
+      reservedPoints: user.reservedPoints,
+      availablePoints: user.pointsBalance,
+    };
   }
 
   private assertPositiveAmount(amount: number) {

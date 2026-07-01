@@ -44,6 +44,22 @@ export class UsersService implements OnModuleInit {
     });
 
     await this.ensureDevUser({
+      email: 'alice@connected-neighbours.local',
+      displayName: 'Alice Martin',
+      role: Role.RESIDENT,
+      neighborhoodId: 'quartier-centre',
+      password: 'alice123',
+    });
+
+    await this.ensureDevUser({
+      email: 'bob@connected-neighbours.local',
+      displayName: 'Bob Dupont',
+      role: Role.RESIDENT,
+      neighborhoodId: 'quartier-centre',
+      password: 'bob123',
+    });
+
+    await this.ensureDevUser({
       email: 'moderator@connected.local',
       displayName: 'Moderator Demo',
       role: Role.MODERATOR,
@@ -53,6 +69,14 @@ export class UsersService implements OnModuleInit {
 
     await this.ensureDevUser({
       email: 'admin@connected.local',
+      displayName: 'Admin Demo',
+      role: Role.ADMIN,
+      neighborhoodId: 'quartier-centre',
+      password: 'admin123',
+    });
+
+    await this.ensureDevUser({
+      email: 'admin@connected-neighbours.local',
       displayName: 'Admin Demo',
       role: Role.ADMIN,
       neighborhoodId: 'quartier-centre',
@@ -72,9 +96,38 @@ export class UsersService implements OnModuleInit {
       .exec();
 
     if (existing) {
-      const patch: Partial<Pick<User, 'pointsBalance' | 'reservedPoints'>> = {};
+      const patch: Partial<
+        Pick<
+          User,
+          | 'displayName'
+          | 'role'
+          | 'neighborhoodId'
+          | 'isActive'
+          | 'pointsBalance'
+          | 'reservedPoints'
+        >
+      > = {};
 
-      if (existing.pointsBalance === undefined) {
+      if (existing.displayName !== input.displayName) {
+        patch.displayName = input.displayName;
+      }
+
+      if (existing.role !== input.role) {
+        patch.role = input.role;
+      }
+
+      if (existing.neighborhoodId !== input.neighborhoodId) {
+        patch.neighborhoodId = input.neighborhoodId;
+      }
+
+      if (existing.isActive !== true) {
+        patch.isActive = true;
+      }
+
+      if (
+        existing.pointsBalance === undefined ||
+        existing.pointsBalance < 100
+      ) {
         patch.pointsBalance = 100;
       }
 
