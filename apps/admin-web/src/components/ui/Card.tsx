@@ -15,7 +15,7 @@ export function Card({
 }: CardProps) {
   return (
     <Component
-      className={cn('rounded-lg border border-slate-200 bg-white p-4 shadow-sm', className)}
+      className={cn('rounded-2xl border border-slate-200 bg-white p-5 shadow-sm', className)}
       {...props}
     >
       {children}

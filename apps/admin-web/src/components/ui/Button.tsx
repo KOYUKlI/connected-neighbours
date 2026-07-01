@@ -36,7 +36,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-lg border font-bold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-4 focus-visible:outline-blue-200 disabled:cursor-progress disabled:opacity-65 disabled:hover:translate-y-0',
+        'inline-flex items-center justify-center rounded-lg border font-bold transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-blue-200 disabled:cursor-progress disabled:opacity-65',
         variants[variant],
         sizes[size],
         className,

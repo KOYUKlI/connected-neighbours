@@ -8,7 +8,7 @@ export function AppShell({
   sidebar: ReactNode;
 }) {
   return (
-    <div className="grid min-h-screen grid-cols-[280px_minmax(0,1fr)] max-[980px]:grid-cols-1">
+    <div className="grid min-h-screen grid-cols-[280px_minmax(0,1fr)] bg-slate-100 text-slate-600 max-[980px]:grid-cols-1">
       {sidebar}
       <main className="flex min-w-0 flex-col p-7 max-[980px]:p-5">{children}</main>
     </div>

@@ -57,7 +57,11 @@ import type {
 import { Badge as UiBadge } from './components/ui/Badge';
 import { Card } from './components/ui/Card';
 import { EmptyState as UiEmptyState } from './components/ui/EmptyState';
+import { SectionHeader } from './components/ui/SectionHeader';
+import { StatCard } from './components/ui/StatCard';
 import { Table as UiTable } from './components/ui/Table';
+import { Tabs } from './components/ui/Tabs';
+import { Toolbar } from './components/ui/Toolbar';
 import { AppShell } from './components/layout/AppShell';
 import { PageHeader } from './components/layout/PageHeader';
 import { Sidebar } from './components/layout/Sidebar';
@@ -70,7 +74,6 @@ import { LoginPage } from './pages/LoginPage';
 import { PointsPage } from './pages/PointsPage';
 import { RgpdPage } from './pages/RgpdPage';
 import { ServicesPage } from './pages/ServicesPage';
-import './App.css';
 
 const demoAccounts = [
   {
@@ -114,6 +117,36 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'short',
   timeStyle: 'short',
 });
+
+const brandClass =
+  'flex items-center gap-3 [&_strong]:block [&_strong]:text-sm [&_strong]:font-bold [&_strong]:leading-tight [&_strong]:text-slate-950 [&_span]:block [&_span]:text-sm [&_span]:text-slate-500';
+const brandMarkClass =
+  'inline-flex h-10 w-10 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-sm font-extrabold text-blue-700';
+const navListClass = 'grid gap-1.5 max-[1100px]:grid-cols-4 max-[760px]:grid-cols-1';
+const navItemClass =
+  'rounded-lg border border-transparent px-3 py-2 text-left text-slate-600 transition hover:bg-slate-50 hover:text-slate-950 max-[1100px]:text-center';
+const activeNavItemClass = `${navItemClass} border-blue-200 bg-blue-50 font-extrabold text-blue-700`;
+const sessionCardClass =
+  'grid gap-0.5 border-r border-slate-200 pr-4 text-right text-xs leading-tight text-slate-500 max-[760px]:order-3 max-[760px]:w-full max-[760px]:border-r-0 max-[760px]:pr-0 max-[760px]:text-left [&_strong]:text-sm [&_strong]:font-bold [&_strong]:text-slate-950';
+const buttonClasses = {
+  primary:
+    'inline-flex min-h-10 items-center justify-center rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-extrabold text-white transition hover:-translate-y-0.5 disabled:cursor-progress disabled:opacity-65 disabled:hover:translate-y-0',
+  secondary:
+    'inline-flex min-h-10 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-extrabold text-blue-700 transition hover:-translate-y-0.5 hover:bg-blue-100 disabled:cursor-progress disabled:opacity-65 disabled:hover:translate-y-0',
+  ghost:
+    'inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-50 disabled:cursor-progress disabled:opacity-65 disabled:hover:translate-y-0',
+  danger:
+    'inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-extrabold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-50 disabled:cursor-progress disabled:opacity-65 disabled:hover:translate-y-0',
+};
+const formGridClass =
+  'grid gap-3.5 [&_input]:min-h-10 [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-slate-200 [&_input]:bg-white [&_input]:px-3 [&_input]:py-2 [&_input]:text-slate-950 [&_label]:grid [&_label]:gap-2 [&_label]:text-sm [&_label]:font-extrabold [&_label]:text-slate-950 [&_select]:min-h-10 [&_select]:w-full [&_select]:rounded-lg [&_select]:border [&_select]:border-slate-200 [&_select]:bg-white [&_select]:px-3 [&_select]:py-2 [&_select]:text-slate-950 [&_textarea]:w-full [&_textarea]:rounded-lg [&_textarea]:border [&_textarea]:border-slate-200 [&_textarea]:bg-white [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-slate-950';
+const formRowClass = 'grid grid-cols-2 gap-3 max-[760px]:grid-cols-1';
+const stackClass = 'grid gap-3.5';
+const compactStackClass = 'grid gap-2.5';
+const dashboardGridClass = 'grid grid-cols-3 gap-3.5 max-[760px]:grid-cols-1';
+const actionRowClass = 'flex flex-wrap gap-2';
+const mutedClass = 'text-slate-500';
+const monoClass = 'inline-block max-w-56 break-words font-mono text-xs text-slate-600';
 
 const rgpdSectionLabels: Record<string, string> = {
   exportedAt: 'Date d’export',
@@ -307,7 +340,7 @@ export default function App() {
 
     try {
       setRgpdExport(await exportRgpdData());
-      setNotice('Export RGPD charge.');
+      setNotice('Export RGPD chargé.');
     } catch (exportError) {
       if (isUnauthorized(exportError)) {
         clearSession('Session expiree. Merci de vous reconnecter.');
@@ -336,18 +369,18 @@ export default function App() {
     <AppShell
       sidebar={
         <Sidebar>
-        <div className="brand">
-          <span className="brand-mark">CN</span>
+        <div className={brandClass}>
+          <span className={brandMarkClass}>CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Espace habitant P0</span>
           </div>
         </div>
 
-        <nav className="nav-list" aria-label="Navigation utilisateur">
+        <nav className={navListClass} aria-label="Navigation utilisateur">
           {navigationItems.map((item) => (
             <button
-              className={item.id === activeSection ? 'nav-item active' : 'nav-item'}
+              className={item.id === activeSection ? activeNavItemClass : navItemClass}
               key={item.id}
               onClick={() => setActiveSection(item.id)}
               type="button"
@@ -363,12 +396,12 @@ export default function App() {
         <Topbar
           actions={
             <>
-            <div className="session-card">
+            <div className={sessionCardClass}>
               <span>{currentUser?.displayName ?? 'Session habitant'}</span>
               <strong>{currentUser?.email ?? 'Profil en cours'}</strong>
             </div>
             <button
-              className="secondary-button"
+              className={buttonClasses.secondary}
               disabled={isLoading}
               onClick={() => void loadWorkflow()}
               type="button"
@@ -376,7 +409,7 @@ export default function App() {
               Actualiser
             </button>
             <button
-              className="ghost-button"
+              className={buttonClasses.ghost}
               onClick={() => clearSession()}
               type="button"
             >
@@ -388,11 +421,23 @@ export default function App() {
           <PageHeader eyebrow="Parcours P0" title={getSectionLabel(activeSection)} />
         </Topbar>
 
-        {isLoading ? <div className="info-banner">Chargement des donnees...</div> : null}
-        {notice ? <div className="success-banner">{notice}</div> : null}
-        {error ? <div className="error-banner">{error}</div> : null}
+        {isLoading ? (
+          <div className="mb-3.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-600 shadow-sm">
+            Chargement des données...
+          </div>
+        ) : null}
+        {notice ? (
+          <div className="mb-3.5 rounded-lg border border-emerald-200 bg-emerald-100 px-4 py-3 font-extrabold text-emerald-700">
+            {notice}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="mb-3.5 rounded-lg border border-red-200 bg-red-100 px-4 py-3 font-extrabold text-red-700">
+            {error}
+          </div>
+        ) : null}
 
-        <section className="content-section">
+        <section className="min-w-0">
           {renderSection({
             activeSection,
             actionPending,
@@ -422,6 +467,7 @@ export default function App() {
               runAction('generate-contract', () =>
                 createContractFromApplication(id),
               ),
+            onNavigate: setActiveSection,
             onPublishService: (id) =>
               runAction('publish-service', () => publishService(id)),
             onRejectApplication: (id) =>
@@ -462,6 +508,7 @@ type RenderSectionProps = {
   onCreateService: (input: CreateServiceInput) => Promise<boolean>;
   onExportRgpd: () => Promise<void>;
   onGenerateContract: (id: string) => Promise<boolean>;
+  onNavigate: (section: SectionId) => void;
   onPublishService: (id: string) => Promise<boolean>;
   onRejectApplication: (id: string) => Promise<boolean>;
   onSignContract: (id: string) => Promise<boolean>;
@@ -511,10 +558,13 @@ function LoginScreen({
   }
 
   return (
-    <main className="login-page">
-      <section className="login-panel" aria-labelledby="login-title">
-        <div className="brand">
-          <span className="brand-mark">CN</span>
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6 text-slate-600">
+      <section
+        className="grid w-full max-w-xl gap-5 rounded-lg border border-slate-200 bg-white p-7 shadow-xl"
+        aria-labelledby="login-title"
+      >
+        <div className={brandClass}>
+          <span className={brandMarkClass}>CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Espace habitant</span>
@@ -522,16 +572,19 @@ function LoginScreen({
         </div>
 
         <div>
-          <p className="eyebrow">Demo P0</p>
-          <h1 id="login-title">Connexion</h1>
-          <p className="login-copy">
+          <p className="mb-1.5 text-xs font-extrabold uppercase text-blue-600">Démo P0</p>
+          <h1 className="m-0 text-3xl font-extrabold leading-tight text-slate-950" id="login-title">
+            Connexion
+          </h1>
+          <p className="mt-2 text-slate-500">
             Connectez-vous avec Alice ou Bob pour jouer le parcours complet.
           </p>
         </div>
 
-        <div className="demo-grid">
+        <div className="grid grid-cols-3 gap-2 max-[760px]:grid-cols-1">
           {demoAccounts.map((account) => (
             <button
+              className="grid min-w-0 gap-1 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-left text-sm text-slate-600 focus-visible:outline focus-visible:outline-4 focus-visible:outline-blue-200 [&_strong]:text-slate-950 [&_span]:break-words [&_span]:text-xs"
               key={account.email}
               onClick={() => {
                 setEmail(account.email);
@@ -545,7 +598,7 @@ function LoginScreen({
           ))}
         </div>
 
-        <form className="form-grid" onSubmit={handleSubmit}>
+        <form className={formGridClass} onSubmit={handleSubmit}>
           <label>
             Email
             <input
@@ -568,9 +621,13 @@ function LoginScreen({
             />
           </label>
 
-          {error ? <div className="error-banner compact">{error}</div> : null}
+          {error ? (
+            <div className="rounded-lg border border-red-200 bg-red-100 px-4 py-3 font-extrabold text-red-700">
+              {error}
+            </div>
+          ) : null}
 
-          <button className="primary-button" disabled={isPending} type="submit">
+          <button className={buttonClasses.primary} disabled={isPending} type="submit">
             {isPending ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
@@ -584,6 +641,7 @@ function DashboardView({
   currentUser,
   incidents,
   myApplications,
+  onNavigate,
   pointBalance,
   services,
 }: RenderSectionProps) {
@@ -607,42 +665,143 @@ function DashboardView({
     {
       label: 'Services visibles',
       value: services.length,
-      detail: `${formatNumber(publishedServices.length)} publies`,
+      detail: `${formatNumber(publishedServices.length)} publiés`,
+      accent: 'blue' as const,
     },
     {
       label: 'Mes services',
       value: ownServices.length,
       detail: 'Annonces que je pilote',
+      accent: 'slate' as const,
     },
     {
       label: 'Mes candidatures',
       value: myApplications.length,
-      detail: 'Reponses envoyees',
+      detail: 'Réponses envoyées',
+      accent: 'amber' as const,
     },
     {
       label: 'Contrats',
       value: contracts.length,
       detail: `${formatNumber(activeContracts.length)} actifs, ${formatNumber(
         completedContracts.length,
-      )} termines`,
+      )} terminés`,
+      accent: 'emerald' as const,
     },
     {
       label: 'Points disponibles',
       value: pointBalance?.availablePoints ?? 0,
-      detail: `${formatNumber(pointBalance?.reservedPoints ?? 0)} reserves`,
+      detail: `${formatNumber(pointBalance?.reservedPoints ?? 0)} réservés`,
+      accent: 'blue' as const,
     },
     {
       label: 'Incidents ouverts',
       value: openIncidents.length,
       detail: `${formatNumber(incidents.length)} incidents visibles`,
+      accent: 'red' as const,
     },
   ];
 
   return (
-    <div className="dashboard-grid">
-      {metrics.map((metric) => (
-        <MetricCard key={metric.label} {...metric} />
-      ))}
+    <div className={stackClass}>
+      <SectionHeader
+        title="Vue d’ensemble"
+        description={`Bonjour ${currentUser?.displayName ?? 'voisin'}, retrouvez les actions importantes du parcours Connected Neighbours.`}
+      />
+
+      <div className={dashboardGridClass}>
+        {metrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
+      </div>
+
+      <Card className="grid gap-3">
+        <SectionHeader
+          title="Actions rapides"
+          description="Accédez directement aux étapes à montrer pendant la démonstration."
+        />
+        <div className="grid grid-cols-4 gap-3 max-[980px]:grid-cols-2 max-[620px]:grid-cols-1">
+          <button className={buttonClasses.primary} onClick={() => onNavigate('services')} type="button">
+            Créer un service
+          </button>
+          <button className={buttonClasses.secondary} onClick={() => onNavigate('contracts')} type="button">
+            Voir mes contrats
+          </button>
+          <button className={buttonClasses.secondary} onClick={() => onNavigate('incidents')} type="button">
+            Signaler un incident
+          </button>
+          <button className={buttonClasses.ghost} onClick={() => onNavigate('rgpd')} type="button">
+            Exporter mes données
+          </button>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
+        <Card className="grid gap-3">
+          <SectionHeader title="Services récents" description="Les dernières annonces visibles." />
+          {services.length > 0 ? (
+            <div className="grid gap-2">
+              {services.slice(0, 4).map((service) => (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={getEntityId(service)}>
+                  <div className="flex items-start justify-between gap-3">
+                    <strong className="text-slate-950">{service.title}</strong>
+                    <StatusBadge value={service.status} />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {service.category} · {service.isPaid ? `${service.pricePoints ?? 0} points` : 'Gratuit'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Aucun service visible." />
+          )}
+        </Card>
+
+        <Card className="grid gap-3">
+          <SectionHeader title="Contrats récents" description="Contrats à signer ou suivre." />
+          {contracts.length > 0 ? (
+            <div className="grid gap-2">
+              {contracts.slice(0, 4).map((contract) => (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={getEntityId(contract)}>
+                  <div className="flex items-start justify-between gap-3">
+                    <strong className="text-slate-950">
+                      {serviceByTitle(services, contract.serviceId)}
+                    </strong>
+                    <StatusBadge value={contract.status} />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {formatNumber(contract.pricePoints)} points · {contract.signedByIds.length}/2 signature(s)
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Aucun contrat pour le moment." />
+          )}
+        </Card>
+
+        <Card className="grid gap-3">
+          <SectionHeader title="Incidents récents" description="Signalements du quartier." />
+          {incidents.length > 0 ? (
+            <div className="grid gap-2">
+              {incidents.slice(0, 4).map((incident) => (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={getEntityId(incident)}>
+                  <div className="flex items-start justify-between gap-3">
+                    <strong className="text-slate-950">{incident.title}</strong>
+                    <SeverityBadge value={incident.severity} />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {incident.type} · <StatusBadge value={incident.status} />
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Aucun incident visible." />
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
@@ -663,6 +822,7 @@ function ServicesView({
   serviceById,
   services,
 }: RenderSectionProps) {
+  const [activeServicesTab, setActiveServicesTab] = useState<'list' | 'new'>('list');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState('all');
   const neighborhoodOptions = neighborhoods.filter(
     (neighborhood) => (neighborhood.status ?? 'active') === 'active',
@@ -670,69 +830,110 @@ function ServicesView({
   const visibleServices =
     selectedNeighborhood === 'all'
       ? services
-      : services.filter((service) => service.neighborhoodId === selectedNeighborhood);
+      : services.filter((service) =>
+          matchesNeighborhoodReference(
+            neighborhoods,
+            service.neighborhoodId,
+            selectedNeighborhood,
+          ),
+        );
 
   return (
-    <div className="two-column-layout">
-      <CreateServicePanel
-        currentUser={currentUser}
-        isPending={actionPending === 'create-service'}
-        neighborhoods={neighborhoodOptions}
-        onCreate={onCreateService}
+    <div className={stackClass}>
+      <SectionHeader
+        title="Parcours services"
+        description="Créez une demande, publiez-la, recevez des candidatures et déclenchez le contrat depuis une candidature acceptée."
+        actions={
+          <button className={buttonClasses.primary} onClick={() => setActiveServicesTab('new')} type="button">
+            Nouveau service
+          </button>
+        }
       />
 
-      <div className="stack">
-        <section className="panel services-filter-panel">
-          <label>
-            Filtrer par quartier
-            <select
-              onChange={(event) => setSelectedNeighborhood(event.target.value)}
-              value={selectedNeighborhood}
-            >
-              <option value="all">Tous les quartiers</option>
-              {neighborhoodOptions.map((neighborhood) => (
-                <option key={getNeighborhoodKey(neighborhood)} value={neighborhood.slug}>
-                  {getNeighborhoodLabel(neighborhood)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
+      <Tabs
+        items={[
+          { id: 'list', label: 'Services disponibles', count: visibleServices.length },
+          { id: 'new', label: 'Nouveau service' },
+        ]}
+        onChange={setActiveServicesTab}
+        value={activeServicesTab}
+      />
 
-        {visibleServices.length === 0 ? (
-          <EmptyState message="Aucun service disponible." />
-        ) : (
-          visibleServices.map((service) => {
-            const serviceId = getEntityId(service);
-            const myApplication = myApplications.find(
-              (application) => application.serviceId === serviceId,
-            );
-            const neighborhoodLabel = getNeighborhoodLabelById(
-              neighborhoods,
-              service.neighborhoodId,
-            );
+      {activeServicesTab === 'new' ? (
+        <CreateServicePanel
+          currentUser={currentUser}
+          isPending={actionPending === 'create-service'}
+          neighborhoods={neighborhoodOptions}
+          onCreate={async (input) => {
+            const success = await onCreateService(input);
 
-            return (
-              <ServiceCard
-                actionPending={actionPending}
-                currentUser={currentUser}
-                key={serviceId}
-                myApplication={myApplication}
-                onAcceptApplication={onAcceptApplication}
-                onApply={onCreateApplication}
-                onCancelService={onCancelService}
-                onGenerateContract={onGenerateContract}
-                onPublishService={onPublishService}
-                onRejectApplication={onRejectApplication}
-                receivedApplications={receivedApplications[serviceId] ?? []}
-                service={service}
-                serviceById={serviceById}
-                neighborhoodLabel={neighborhoodLabel}
-              />
-            );
-          })
-        )}
-      </div>
+            if (success) {
+              setActiveServicesTab('list');
+            }
+
+            return success;
+          }}
+        />
+      ) : (
+        <div className={stackClass}>
+          <Toolbar>
+            <label className="grid min-w-[240px] flex-1 gap-1.5 text-sm font-bold text-slate-700">
+              Filtrer par quartier
+              <select
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                onChange={(event) => setSelectedNeighborhood(event.target.value)}
+                value={selectedNeighborhood}
+              >
+                <option value="all">Tous les quartiers</option>
+                {neighborhoodOptions.map((neighborhood) => (
+                  <option key={getNeighborhoodKey(neighborhood)} value={neighborhood.slug}>
+                    {getNeighborhoodLabel(neighborhood)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="text-sm font-bold text-slate-500">
+              {formatNumber(visibleServices.length)} service(s)
+            </span>
+          </Toolbar>
+
+          {visibleServices.length === 0 ? (
+            <EmptyState message="Aucun service disponible pour ce filtre." />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 max-xl:grid-cols-1">
+              {visibleServices.map((service) => {
+                const serviceId = getEntityId(service);
+                const myApplication = myApplications.find(
+                  (application) => application.serviceId === serviceId,
+                );
+                const neighborhoodLabel = getNeighborhoodLabelById(
+                  neighborhoods,
+                  service.neighborhoodId,
+                );
+
+                return (
+                  <ServiceCard
+                    actionPending={actionPending}
+                    currentUser={currentUser}
+                    key={serviceId}
+                    myApplication={myApplication}
+                    onAcceptApplication={onAcceptApplication}
+                    onApply={onCreateApplication}
+                    onCancelService={onCancelService}
+                    onGenerateContract={onGenerateContract}
+                    onPublishService={onPublishService}
+                    onRejectApplication={onRejectApplication}
+                    receivedApplications={receivedApplications[serviceId] ?? []}
+                    service={service}
+                    serviceById={serviceById}
+                    neighborhoodLabel={neighborhoodLabel}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -783,9 +984,12 @@ function CreateServicePanel({
   }
 
   return (
-    <section className="panel">
-      <h2>Creer un service</h2>
-      <form className="form-grid" onSubmit={handleSubmit}>
+    <Card className="grid gap-4">
+      <SectionHeader
+        title="Créer un service"
+        description="Décrivez la demande ou l’offre, choisissez le quartier, puis publiez quand elle est prête."
+      />
+      <form className={formGridClass} onSubmit={handleSubmit}>
         <label>
           Titre
           <input
@@ -805,7 +1009,7 @@ function CreateServicePanel({
           />
         </label>
 
-        <div className="form-row">
+        <div className={formRowClass}>
           <label>
             Type
             <select
@@ -826,13 +1030,13 @@ function CreateServicePanel({
               value={status}
             >
               <option value="draft">Brouillon</option>
-              <option value="published">Publie</option>
+              <option value="published">Publié</option>
             </select>
           </label>
         </div>
 
         <label>
-          Categorie
+          Catégorie
           <input
             onChange={(event) => setCategory(event.target.value)}
             required
@@ -841,7 +1045,7 @@ function CreateServicePanel({
         </label>
 
         <label>
-          Disponibilite
+          Disponibilité
           <input
             onChange={(event) => setAvailability(event.target.value)}
             required
@@ -864,21 +1068,26 @@ function CreateServicePanel({
               ))}
             </select>
           ) : (
-            <input
-              onChange={(event) => setNeighborhoodId(event.target.value)}
-              required
-              value={neighborhoodId}
-            />
+            <>
+              <input
+                onChange={(event) => setNeighborhoodId(event.target.value)}
+                required
+                value={neighborhoodId}
+              />
+              <span className="text-sm font-medium text-amber-700">
+                Aucun quartier actif n’est disponible. Renseignez l’identifiant fourni pour la démo.
+              </span>
+            </>
           )}
         </label>
 
-        <label className="checkbox-line">
+        <label className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
           <input
             checked={isPaid}
             onChange={(event) => setIsPaid(event.target.checked)}
             type="checkbox"
           />
-          Service remunere en points
+          Service rémunéré en points
         </label>
 
         {isPaid ? (
@@ -894,11 +1103,11 @@ function CreateServicePanel({
           </label>
         ) : null}
 
-        <button className="primary-button" disabled={isPending} type="submit">
-          {isPending ? 'Creation...' : 'Creer le service'}
+        <button className={buttonClasses.primary} disabled={isPending} type="submit">
+          {isPending ? 'Création...' : 'Créer le service'}
         </button>
       </form>
-    </section>
+    </Card>
   );
 }
 
@@ -944,8 +1153,8 @@ function ServiceCard({
     isOwner && !['completed', 'cancelled'].includes(service.status);
 
   return (
-    <article className="service-card">
-      <div className="card-heading">
+    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h3>{service.title}</h3>
           <p>{service.description}</p>
@@ -953,9 +1162,9 @@ function ServiceCard({
         <StatusBadge value={service.status} />
       </div>
 
-      <dl className="details-grid">
+      <dl className="my-4 grid grid-cols-3 gap-2.5 max-[760px]:grid-cols-1 [&_dd]:m-0 [&_dd]:break-words [&_dd]:text-slate-950 [&_div]:rounded-lg [&_div]:bg-slate-50 [&_div]:p-2.5 [&_dt]:mb-1 [&_dt]:text-xs [&_dt]:font-extrabold [&_dt]:uppercase [&_dt]:text-slate-500">
         <div>
-          <dt>Categorie</dt>
+          <dt>Catégorie</dt>
           <dd>{service.category}</dd>
         </div>
         <div>
@@ -967,25 +1176,23 @@ function ServiceCard({
           <dd>{service.isPaid ? `${service.pricePoints ?? 0} points` : 'Gratuit'}</dd>
         </div>
         <div>
-          <dt>Proprietaire</dt>
-          <dd>
-            <MonoValue value={service.ownerId} />
-          </dd>
+          <dt>Propriétaire</dt>
+          <dd>{isOwner ? 'Moi' : <UserReference value={service.ownerId} />}</dd>
         </div>
         <div>
           <dt>Quartier</dt>
           <dd>{neighborhoodLabel}</dd>
         </div>
         <div>
-          <dt>Creation</dt>
+          <dt>Création</dt>
           <dd>{formatDate(service.createdAt)}</dd>
         </div>
       </dl>
 
-      <div className="action-row">
+      <div className={actionRowClass}>
         {canPublish ? (
           <button
-            className="secondary-button"
+            className={buttonClasses.secondary}
             disabled={actionPending === 'publish-service'}
             onClick={() => void onPublishService(serviceId)}
             type="button"
@@ -995,7 +1202,7 @@ function ServiceCard({
         ) : null}
         {canCancel ? (
           <button
-            className="ghost-button danger"
+            className={buttonClasses.danger}
             disabled={actionPending === 'cancel-service'}
             onClick={() => void onCancelService(serviceId)}
             type="button"
@@ -1014,8 +1221,8 @@ function ServiceCard({
       ) : null}
 
       {!isOwner && myApplication ? (
-        <p className="inline-note">
-          Candidature envoyee : <StatusBadge value={myApplication.status} />
+        <p className="mt-3 flex items-center gap-2 text-slate-500">
+          Candidature envoyée : <StatusBadge value={myApplication.status} />
         </p>
       ) : null}
 
@@ -1066,7 +1273,10 @@ function ApplicationForm({
   }
 
   return (
-    <form className="application-form" onSubmit={handleSubmit}>
+    <form
+      className={`${formGridClass} mt-4 border-t border-slate-200 pt-4`}
+      onSubmit={handleSubmit}
+    >
       <label>
         Message de candidature
         <textarea
@@ -1076,9 +1286,9 @@ function ApplicationForm({
           value={message}
         />
       </label>
-      <div className="form-row">
+      <div className={formRowClass}>
         <label>
-          Date proposee
+          Date proposée
           <input
             onChange={(event) => setProposedDate(event.target.value)}
             type="datetime-local"
@@ -1086,7 +1296,7 @@ function ApplicationForm({
           />
         </label>
         <label>
-          Points proposes
+          Points proposés
           <input
             min={0}
             onChange={(event) =>
@@ -1097,7 +1307,7 @@ function ApplicationForm({
           />
         </label>
       </div>
-      <button className="secondary-button" disabled={isPending} type="submit">
+      <button className={buttonClasses.secondary} disabled={isPending} type="submit">
         {isPending ? 'Envoi...' : 'Candidater'}
       </button>
     </form>
@@ -1120,13 +1330,13 @@ function ReceivedApplicationsList({
   service: ServiceItem;
 }) {
   if (applications.length === 0) {
-    return <p className="inline-note">Aucune candidature recue pour ce service.</p>;
+    return <p className="mt-3 flex items-center gap-2 text-slate-500">Aucune candidature reçue pour ce service.</p>;
   }
 
   return (
-    <div className="nested-panel">
-      <h4>Candidatures recues</h4>
-      <div className="stack compact">
+    <div className="mt-4 border-t border-slate-200 pt-4">
+      <h4>Candidatures reçues</h4>
+      <div className={compactStackClass}>
         {applications.map((application) => {
           const applicationId = getEntityId(application);
           const canAccept = application.status === 'submitted';
@@ -1135,23 +1345,26 @@ function ReceivedApplicationsList({
             application.status === 'accepted' && !service.contractId;
 
           return (
-            <article className="application-row" key={applicationId}>
+            <article
+              className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 p-3 max-[760px]:flex-col"
+              key={applicationId}
+            >
               <div>
                 <p>
                   <strong>Candidat</strong>{' '}
-                  <MonoValue value={application.applicantId} />
+                  <UserReference value={application.applicantId} />
                 </p>
                 <p>{application.message}</p>
-                <p className="muted">
+                <p className={mutedClass}>
                   {application.proposedPricePoints ?? service.pricePoints ?? 0}{' '}
-                  points proposes
+                  points proposés
                 </p>
               </div>
-              <div className="application-actions">
+              <div className="flex flex-wrap items-end justify-end gap-2 max-[760px]:justify-start">
                 <StatusBadge value={application.status} />
                 {canAccept ? (
                   <button
-                    className="secondary-button"
+                    className={buttonClasses.secondary}
                     disabled={actionPending === 'accept-application'}
                     onClick={() => void onAccept(applicationId)}
                     type="button"
@@ -1161,7 +1374,7 @@ function ReceivedApplicationsList({
                 ) : null}
                 {canReject ? (
                   <button
-                    className="ghost-button"
+                    className={buttonClasses.ghost}
                     disabled={actionPending === 'reject-application'}
                     onClick={() => void onReject(applicationId)}
                     type="button"
@@ -1171,12 +1384,12 @@ function ReceivedApplicationsList({
                 ) : null}
                 {canGenerateContract ? (
                   <button
-                    className="primary-button"
+                    className={buttonClasses.primary}
                     disabled={actionPending === 'generate-contract'}
                     onClick={() => void onGenerateContract(applicationId)}
                     type="button"
                   >
-                    Generer contrat
+                    Générer contrat
                   </button>
                 ) : null}
               </div>
@@ -1206,10 +1419,10 @@ function ApplicationsView({
       header: 'Points',
       render: (application) =>
         valueOrDash(application.proposedPricePoints ?? null),
-      className: 'numeric-cell',
+      className: 'text-right',
     },
     {
-      header: 'Creation',
+      header: 'Création',
       render: (application) => formatDate(application.createdAt),
     },
     {
@@ -1220,7 +1433,7 @@ function ApplicationsView({
 
         return canWithdraw ? (
           <button
-            className="ghost-button"
+            className={buttonClasses.ghost}
             disabled={actionPending === 'withdraw-application'}
             onClick={() => void onWithdrawApplication(applicationId)}
             type="button"
@@ -1228,18 +1441,24 @@ function ApplicationsView({
             Retirer
           </button>
         ) : (
-          <span className="muted">-</span>
+          <span className={mutedClass}>-</span>
         );
       },
     },
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      emptyMessage="Aucune candidature envoyee."
-      rows={myApplications}
-    />
+    <div className={stackClass}>
+      <SectionHeader
+        title="Suivi des candidatures"
+        description="Retrouvez les candidatures envoyées sur les services des autres habitants et retirez celles encore en attente."
+      />
+      <DataTable
+        columns={columns}
+        emptyMessage="Aucune candidature envoyée."
+        rows={myApplications}
+      />
+    </div>
   );
 }
 
@@ -1264,12 +1483,12 @@ function ContractsView({
     {
       header: 'Prix',
       render: (contract) => `${formatNumber(contract.pricePoints)} points`,
-      className: 'numeric-cell',
+      className: 'text-right',
     },
     {
       header: 'Signatures',
       render: (contract) => `${contract.signedByIds.length}/2`,
-      className: 'numeric-cell',
+      className: 'text-right',
     },
     {
       header: 'Parties',
@@ -1296,11 +1515,17 @@ function ContractsView({
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      emptyMessage="Aucun contrat pour le moment."
-      rows={contracts}
-    />
+    <div className={stackClass}>
+      <SectionHeader
+        title="Suivi des contrats"
+        description="Signez, terminez ou annulez les contrats liés aux services acceptés."
+      />
+      <DataTable
+        columns={columns}
+        emptyMessage="Aucun contrat pour le moment."
+        rows={contracts}
+      />
+    </div>
   );
 }
 
@@ -1331,10 +1556,10 @@ function ContractActions({
     isParty && !['completed', 'cancelled'].includes(contract.status);
 
   return (
-    <div className="action-row table-actions">
+    <div className="flex min-w-56 flex-wrap gap-2">
       {canSign ? (
         <button
-          className="secondary-button"
+          className={buttonClasses.secondary}
           disabled={actionPending === 'sign-contract'}
           onClick={() => void onSign(contractId)}
           type="button"
@@ -1344,17 +1569,17 @@ function ContractActions({
       ) : null}
       {canComplete ? (
         <button
-          className="primary-button"
+          className={buttonClasses.primary}
           disabled={actionPending === 'complete-contract'}
           onClick={() => void onComplete(contractId)}
           type="button"
         >
-          Completer
+          Compléter
         </button>
       ) : null}
       {canCancel ? (
         <button
-          className="ghost-button danger"
+          className={buttonClasses.danger}
           disabled={actionPending === 'cancel-contract'}
           onClick={() => void onCancel(contractId)}
           type="button"
@@ -1363,7 +1588,7 @@ function ContractActions({
         </button>
       ) : null}
       {!canSign && !canComplete && !canCancel ? (
-        <span className="muted">-</span>
+        <span className={mutedClass}>-</span>
       ) : null}
     </div>
   );
@@ -1375,7 +1600,7 @@ function PointsView({ pointBalance, pointTransactions }: RenderSectionProps) {
     {
       header: 'Montant',
       render: (transaction) => `${formatNumber(transaction.amount)} points`,
-      className: 'numeric-cell',
+      className: 'text-right',
     },
     { header: 'Service', render: (transaction) => <MonoValue value={transaction.serviceId} /> },
     { header: 'Contrat', render: (transaction) => <MonoValue value={transaction.contractId} /> },
@@ -1386,8 +1611,12 @@ function PointsView({ pointBalance, pointTransactions }: RenderSectionProps) {
   ];
 
   return (
-    <div className="stack">
-      <div className="dashboard-grid">
+    <div className={stackClass}>
+      <SectionHeader
+        title="Solde et mouvements"
+        description="Suivez votre solde disponible, les points réservés et l’historique des mouvements."
+      />
+      <div className={dashboardGridClass}>
         <MetricCard
           detail="Solde utilisable"
           label="Disponible"
@@ -1395,7 +1624,7 @@ function PointsView({ pointBalance, pointTransactions }: RenderSectionProps) {
         />
         <MetricCard
           detail="En attente de contrat"
-          label="Reserve"
+          label="Réservé"
           value={pointBalance?.reservedPoints ?? 0}
         />
         <MetricCard
@@ -1422,24 +1651,30 @@ function IncidentsView({
   const columns: TableColumn<IncidentItem>[] = [
     { header: 'Titre', render: (incident) => incident.title },
     { header: 'Type', render: (incident) => incident.type },
-    { header: 'Severite', render: (incident) => <SeverityBadge value={incident.severity} /> },
+    { header: 'Sévérité', render: (incident) => <SeverityBadge value={incident.severity} /> },
     { header: 'Statut', render: (incident) => <StatusBadge value={incident.status} /> },
     { header: 'Source', render: (incident) => incident.source },
-    { header: 'Creation', render: (incident) => formatDate(incident.createdAt) },
+    { header: 'Création', render: (incident) => formatDate(incident.createdAt) },
   ];
 
   return (
-    <div className="two-column-layout">
-      <IncidentForm
-        currentUser={currentUser}
-        isPending={actionPending === 'create-incident'}
-        onCreate={onCreateIncident}
+    <div className={stackClass}>
+      <SectionHeader
+        title="Signalement et suivi"
+        description="Signalez un problème de quartier et consultez les incidents déjà visibles."
       />
-      <DataTable
-        columns={columns}
-        emptyMessage="Aucun incident visible."
-        rows={incidents}
-      />
+      <div className="grid grid-cols-[minmax(300px,390px)_minmax(0,1fr)] items-start gap-4 max-[1100px]:grid-cols-1">
+        <IncidentForm
+          currentUser={currentUser}
+          isPending={actionPending === 'create-incident'}
+          onCreate={onCreateIncident}
+        />
+        <DataTable
+          columns={columns}
+          emptyMessage="Aucun incident visible."
+          rows={incidents}
+        />
+      </div>
     </div>
   );
 }
@@ -1479,9 +1714,12 @@ function IncidentForm({
   }
 
   return (
-    <section className="panel">
-      <h2>Signaler un incident</h2>
-      <form className="form-grid" onSubmit={handleSubmit}>
+    <Card className="grid gap-4">
+      <SectionHeader
+        title="Signaler un incident"
+        description="Décrivez le problème, choisissez sa catégorie et son niveau de sévérité."
+      />
+      <form className={formGridClass} onSubmit={handleSubmit}>
         <label>
           Titre
           <input
@@ -1499,23 +1737,23 @@ function IncidentForm({
             value={description}
           />
         </label>
-        <div className="form-row">
+        <div className={formRowClass}>
           <label>
             Type
             <select
               onChange={(event) => setType(event.target.value as IncidentType)}
               value={type}
             >
-              <option value="security">Securite</option>
+              <option value="security">Sécurité</option>
               <option value="maintenance">Maintenance</option>
               <option value="nuisance">Nuisance</option>
-              <option value="cleanliness">Proprete</option>
+              <option value="cleanliness">Propreté</option>
               <option value="traffic">Circulation</option>
               <option value="other">Autre</option>
             </select>
           </label>
           <label>
-            Severite
+            Sévérité
             <select
               onChange={(event) =>
                 setSeverity(event.target.value as IncidentSeverity)
@@ -1537,11 +1775,11 @@ function IncidentForm({
             value={neighborhoodId}
           />
         </label>
-        <button className="primary-button" disabled={isPending} type="submit">
+        <button className={buttonClasses.primary} disabled={isPending} type="submit">
           {isPending ? 'Signalement...' : 'Signaler'}
         </button>
       </form>
-    </section>
+    </Card>
   );
 }
 
@@ -1553,29 +1791,27 @@ function RgpdView({
   const sections = rgpdExport ? getRgpdSummarySections(rgpdExport) : [];
 
   return (
-    <div className="stack">
-      <section className="panel rgpd-panel">
-        <div>
-          <h2>Exporter mes données</h2>
-          <p>
-            Cet écran affiche les données personnelles récupérées depuis l’API
-            RGPD. Les identifiants techniques sont normalisés et les mots de
-            passe ne sont jamais exportés.
-          </p>
-        </div>
-        <button
-          className="primary-button"
-          disabled={actionPending === 'rgpd-export'}
-          onClick={() => void onExportRgpd()}
-          type="button"
-        >
-          {actionPending === 'rgpd-export' ? 'Export...' : 'Exporter'}
-        </button>
-      </section>
+    <div className={stackClass}>
+      <Card>
+        <SectionHeader
+          title="Transparence des données"
+          description="Cet écran affiche les données personnelles récupérées depuis l’API RGPD. Les identifiants techniques sont normalisés et les mots de passe ne sont jamais exportés."
+          actions={
+            <button
+              className={buttonClasses.primary}
+              disabled={actionPending === 'rgpd-export'}
+              onClick={() => void onExportRgpd()}
+              type="button"
+            >
+              {actionPending === 'rgpd-export' ? 'Export...' : 'Exporter mes données'}
+            </button>
+          }
+        />
+      </Card>
 
       {rgpdExport ? (
         <>
-          <div className="dashboard-grid">
+          <div className={dashboardGridClass}>
             {sections.map(([key, value]) => (
               <RgpdSummaryCard
                 detail={formatRgpdSectionDetail(key, value)}
@@ -1585,13 +1821,13 @@ function RgpdView({
               />
             ))}
           </div>
-          <details className="json-panel" open>
+          <details className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm [&_pre]:mt-3.5 [&_pre]:max-h-[520px] [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-slate-950 [&_pre]:p-3.5 [&_pre]:font-mono [&_pre]:text-xs [&_pre]:leading-relaxed [&_pre]:text-slate-200 [&_summary]:cursor-pointer [&_summary]:font-extrabold [&_summary]:text-slate-950" open>
             <summary>JSON exporté complet</summary>
             <pre>{JSON.stringify(rgpdExport, null, 2)}</pre>
           </details>
         </>
       ) : (
-        <EmptyState message="Aucun export RGPD charge." />
+        <EmptyState message="Aucun export RGPD chargé." />
       )}
     </div>
   );
@@ -1607,29 +1843,23 @@ function RgpdSummaryCard({
   value: string;
 }) {
   return (
-    <Card as="article" className="metric-card rgpd-summary-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{detail}</p>
-    </Card>
+    <StatCard accent="slate" helper={detail} label={label} value={value} />
   );
 }
 
 function MetricCard({
+  accent = 'blue',
   detail,
   label,
   value,
 }: {
+  accent?: 'blue' | 'emerald' | 'amber' | 'red' | 'slate';
   detail: string;
   label: string;
   value: number;
 }) {
   return (
-    <Card as="article" className="metric-card">
-      <span>{label}</span>
-      <strong>{formatNumber(value)}</strong>
-      <p>{detail}</p>
-    </Card>
+    <StatCard accent={accent} helper={detail} label={label} value={formatNumber(value)} />
   );
 }
 
@@ -1671,14 +1901,38 @@ function SeverityBadge({ value }: { value?: string | null }) {
 
 function MonoValue({ value }: { value?: string | null }) {
   if (!value) {
-    return <span className="muted">-</span>;
+    return <span className={mutedClass}>-</span>;
   }
 
-  return <span className="mono-value">{value}</span>;
+  return <span className={monoClass} title={value}>{formatShortId(value)}</span>;
+}
+
+function UserReference({ value }: { value?: string | null }) {
+  if (!value) {
+    return <span className={mutedClass}>Utilisateur inconnu</span>;
+  }
+
+  return (
+    <span className="text-sm font-semibold text-slate-700" title={value}>
+      Utilisateur {formatShortId(value)}
+    </span>
+  );
 }
 
 function getEntityId(entity: { _id?: string; id?: string | null }) {
   return entity.id ?? entity._id ?? '';
+}
+
+function formatShortId(value: string) {
+  if (value.length <= 12) {
+    return value;
+  }
+
+  return `${value.slice(0, 6)}…${value.slice(-4)}`;
+}
+
+function serviceByTitle(services: ServiceItem[], serviceId: string) {
+  return services.find((service) => getEntityId(service) === serviceId)?.title ?? `Service ${formatShortId(serviceId)}`;
 }
 
 function getNeighborhoodKey(neighborhood: NeighborhoodItem) {
@@ -1704,7 +1958,34 @@ function getNeighborhoodLabelById(
       item._id === neighborhoodId,
   );
 
-  return neighborhood ? getNeighborhoodLabel(neighborhood) : neighborhoodId;
+  return neighborhood ? getNeighborhoodLabel(neighborhood) : `Quartier ${formatShortId(neighborhoodId)}`;
+}
+
+function matchesNeighborhoodReference(
+  neighborhoods: NeighborhoodItem[],
+  serviceNeighborhoodId: string,
+  selectedNeighborhoodId: string,
+) {
+  if (serviceNeighborhoodId === selectedNeighborhoodId) {
+    return true;
+  }
+
+  const neighborhood = neighborhoods.find(
+    (item) =>
+      item.slug === selectedNeighborhoodId ||
+      item.id === selectedNeighborhoodId ||
+      item._id === selectedNeighborhoodId,
+  );
+
+  if (!neighborhood) {
+    return false;
+  }
+
+  return [
+    neighborhood.slug,
+    neighborhood.id,
+    neighborhood._id,
+  ].includes(serviceNeighborhoodId);
 }
 
 function getSectionLabel(section: SectionId) {
@@ -1731,7 +2012,7 @@ function formatDate(value?: string | Date | null) {
 
 function valueOrDash(value?: string | number | null) {
   if (value === undefined || value === null || value === '') {
-    return <span className="muted">-</span>;
+    return <span className={mutedClass}>-</span>;
   }
 
   return String(value);

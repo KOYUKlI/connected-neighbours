@@ -16,13 +16,13 @@ export function Table<T>({
   rows: T[];
 }) {
   return (
-    <div className="overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
       <table className="w-full min-w-[880px] border-collapse">
         <thead>
           <tr>
             {columns.map((column) => (
               <th
-                className={`border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-extrabold uppercase text-slate-500 ${column.className ?? ''}`}
+                className={`border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500 ${column.className ?? ''}`}
                 key={column.header}
               >
                 {column.header}
@@ -35,7 +35,7 @@ export function Table<T>({
             <tr key={getRowKey(row, index)}>
               {columns.map((column) => (
                 <td
-                  className={`border-b border-slate-100 px-4 py-3 align-middle text-sm text-slate-900 last:border-b-0 ${column.className ?? ''}`}
+                  className={`border-b border-slate-100 px-4 py-3.5 align-middle text-sm text-slate-700 last:border-b-0 ${column.className ?? ''}`}
                   key={column.header}
                 >
                   {column.render(row)}
