@@ -138,6 +138,40 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     draftServiceId = getId(draftService.body);
     expect(draftService.body.status).toBe('draft');
 
+    await request(app.getHttpServer())
+      .patch(`/api/services/${draftServiceId}`)
+      .send({ title: 'Tentative sans session' })
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .patch(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(bobToken))
+      .send({ title: 'Tentative Bob' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/api/services/${draftServiceId}/publish`)
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/api/services/${draftServiceId}/cancel`)
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+
+    const updatedService = await request(app.getHttpServer())
+      .patch(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ availability: 'Dimanche apres-midi' })
+      .expect(200);
+
+    expect(updatedService.body.availability).toBe('Dimanche apres-midi');
+
     const publishedService = await request(app.getHttpServer())
       .post(`/api/services/${draftServiceId}/publish`)
       .set('Authorization', bearer(aliceToken))
@@ -362,9 +396,14 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     incidentId = getId(incidentResponse.body);
     expect(incidentResponse.body.status).toBe('reported');
 
-    const resolvedIncident = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post(`/api/incidents/${incidentId}/resolve`)
       .set('Authorization', bearer(aliceToken))
+      .expect(403);
+
+    const resolvedIncident = await request(app.getHttpServer())
+      .post(`/api/incidents/${incidentId}/resolve`)
+      .set('Authorization', bearer(adminToken))
       .expect(201);
 
     expect(resolvedIncident.body.status).toBe('resolved');
@@ -382,9 +421,14 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     alertId = getId(alertResponse.body);
     expect(alertResponse.body.status).toBe('created');
 
+    await request(app.getHttpServer())
+      .post(`/api/alerts/${alertId}/resolve`)
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+
     const resolvedAlert = await request(app.getHttpServer())
       .post(`/api/alerts/${alertId}/resolve`)
-      .set('Authorization', bearer(aliceToken))
+      .set('Authorization', bearer(adminToken))
       .expect(201);
 
     expect(resolvedAlert.body.status).toBe('resolved');

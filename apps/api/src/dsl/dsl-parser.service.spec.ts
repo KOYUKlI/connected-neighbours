@@ -18,6 +18,25 @@ describe('DslParserService', () => {
     });
   });
 
+  it('should load the Jison grammar independently from the current working directory', () => {
+    const cwdSpy = jest
+      .spyOn(process, 'cwd')
+      .mockReturnValue('Z:\\missing-connected-neighbours-path');
+
+    try {
+      const runtimeService = new DslParserService();
+
+      expect(runtimeService.parse({ query: 'FIND services' })).toEqual({
+        type: 'find',
+        collection: 'services',
+        conditions: [],
+        limit: 20,
+      });
+    } finally {
+      cwdSpy.mockRestore();
+    }
+  });
+
   it('should parse a query with WHERE', () => {
     expect(
       service.parse({

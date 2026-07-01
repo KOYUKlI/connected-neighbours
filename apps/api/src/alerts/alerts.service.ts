@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { Role } from '../auth/role.enum';
 import {
   Incident,
   IncidentDocument,
@@ -15,6 +17,8 @@ import {
   AlertStatus,
 } from './schemas/alert.schema';
 
+type AlertActor = Pick<AuthenticatedUser, 'sub' | 'role'>;
+
 @Injectable()
 export class AlertsService {
   constructor(
@@ -24,8 +28,9 @@ export class AlertsService {
     private readonly incidentModel: Model<IncidentDocument>,
   ) {}
 
-  async create(incidentId: string, dto: CreateAlertDto) {
-    await this.assertIncidentExists(incidentId);
+  async create(incidentId: string, dto: CreateAlertDto, currentUser: AlertActor) {
+    const incident = await this.assertIncidentExists(incidentId);
+    this.assertCanCreateForIncident(incident, currentUser);
 
     return this.alertModel.create({
       incidentId,
@@ -58,7 +63,9 @@ export class AlertsService {
     return alert;
   }
 
-  async update(id: string, dto: UpdateAlertDto) {
+  async update(id: string, dto: UpdateAlertDto, currentUser: AlertActor) {
+    this.assertModeratorOrAdmin(currentUser);
+
     const alert = await this.alertModel
       .findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true })
       .exec();
@@ -70,7 +77,9 @@ export class AlertsService {
     return alert;
   }
 
-  async resolve(id: string) {
+  async resolve(id: string, currentUser: AlertActor) {
+    this.assertModeratorOrAdmin(currentUser);
+
     const alert = await this.alertModel
       .findByIdAndUpdate(
         id,
@@ -95,5 +104,35 @@ export class AlertsService {
     if (!incident) {
       throw new NotFoundException(`Incident ${incidentId} introuvable`);
     }
+
+    return incident;
+  }
+
+  private assertCanCreateForIncident(
+    incident: Pick<Incident, 'reportedById'>,
+    currentUser: AlertActor,
+  ) {
+    if (
+      this.canModerate(currentUser) ||
+      incident.reportedById === currentUser.sub
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Seul le reporter ou un moderateur peut creer une alerte',
+    );
+  }
+
+  private assertModeratorOrAdmin(currentUser: AlertActor) {
+    if (this.canModerate(currentUser)) {
+      return;
+    }
+
+    throw new ForbiddenException('Action reservee aux moderateurs');
+  }
+
+  private canModerate(currentUser: AlertActor) {
+    return [Role.ADMIN, Role.MODERATOR].includes(currentUser.role);
   }
 }

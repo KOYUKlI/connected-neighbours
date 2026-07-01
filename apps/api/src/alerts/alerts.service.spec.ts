@@ -1,5 +1,6 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
+import { Role } from '../auth/role.enum';
 import {
   IncidentSeverity,
   IncidentStatus,
@@ -42,14 +43,20 @@ describe('AlertsService', () => {
       status: AlertStatus.CREATED,
     };
 
-    incidentModelMock.findById.mockReturnValue(execResult(incidentDocument()));
+    incidentModelMock.findById.mockReturnValue(
+      execResult(incidentDocument({ reportedById: 'reporter' })),
+    );
     alertModelMock.create.mockResolvedValue(alert);
 
-    const result = await service.create('incident_1', {
-      title: 'Porte forcee',
-      details: 'La serrure est abimee.',
-      severity: AlertSeverity.HIGH,
-    });
+    const result = await service.create(
+      'incident_1',
+      {
+        title: 'Porte forcee',
+        details: 'La serrure est abimee.',
+        severity: AlertSeverity.HIGH,
+      },
+      user('reporter'),
+    );
 
     expect(alertModelMock.create).toHaveBeenCalledWith({
       incidentId: 'incident_1',
@@ -68,15 +75,37 @@ describe('AlertsService', () => {
     incidentModelMock.findById.mockReturnValue(execResult(null));
 
     await expect(
-      service.create('missing_incident', {
-        title: 'Porte forcee',
-        details: 'La serrure est abimee.',
-        severity: AlertSeverity.HIGH,
-      }),
+      service.create(
+        'missing_incident',
+        {
+          title: 'Porte forcee',
+          details: 'La serrure est abimee.',
+          severity: AlertSeverity.HIGH,
+        },
+        user('reporter'),
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('should resolve an alert and set resolvedAt', async () => {
+  it('should reject alert creation from an unrelated resident', async () => {
+    incidentModelMock.findById.mockReturnValue(
+      execResult(incidentDocument({ reportedById: 'reporter' })),
+    );
+
+    await expect(
+      service.create(
+        'incident_1',
+        {
+          title: 'Porte forcee',
+          details: 'La serrure est abimee.',
+          severity: AlertSeverity.HIGH,
+        },
+        user('other_resident'),
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should allow an admin to resolve an alert and set resolvedAt', async () => {
     const alert = {
       id: 'alert_1',
       status: AlertStatus.RESOLVED,
@@ -85,7 +114,7 @@ describe('AlertsService', () => {
 
     alertModelMock.findByIdAndUpdate.mockReturnValue(execResult(alert));
 
-    const result = await service.resolve('alert_1');
+    const result = await service.resolve('alert_1', user('admin', Role.ADMIN));
 
     expect(alertModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'alert_1',
@@ -96,6 +125,12 @@ describe('AlertsService', () => {
       { returnDocument: 'after', runValidators: true },
     );
     expect(result).toEqual(alert);
+  });
+
+  it('should reject resolving an alert as a resident', async () => {
+    await expect(service.resolve('alert_1', user('resident'))).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('should throw when the alert does not exist', async () => {
@@ -113,7 +148,7 @@ function execResult<T>(value: T) {
   };
 }
 
-function incidentDocument() {
+function incidentDocument(input: { reportedById?: string } = {}) {
   return {
     id: 'incident_1',
     title: 'Local velo force',
@@ -122,5 +157,13 @@ function incidentDocument() {
     status: IncidentStatus.REPORTED,
     severity: IncidentSeverity.HIGH,
     neighborhoodId: 'quartier-centre',
+    reportedById: input.reportedById ?? null,
+  };
+}
+
+function user(sub: string, role = Role.RESIDENT) {
+  return {
+    sub,
+    role,
   };
 }

@@ -243,6 +243,7 @@ export class DslParserService {
 
   private loadGrammar() {
     const candidates = [
+      join(__dirname, 'grammar', 'dsl.jison'),
       join(process.cwd(), 'src', 'dsl', 'grammar', 'dsl.jison'),
       join(
         process.cwd(),

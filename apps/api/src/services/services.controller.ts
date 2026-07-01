@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -46,25 +47,29 @@ export class ServicesController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Mettre à jour une annonce de service' })
-  update(@Param('id') id: string, @Body() updateServiceDto: UpdateServiceDto) {
-    return this.servicesService.update(id, updateServiceDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateServiceDto: UpdateServiceDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.servicesService.update(id, updateServiceDto, user);
   }
 
   @Post(':id/publish')
   @ApiOperation({ summary: 'Publier une annonce de service' })
-  publish(@Param('id') id: string) {
-    return this.servicesService.publish(id);
+  publish(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.servicesService.publish(id, user);
   }
 
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Annuler une annonce de service' })
-  cancel(@Param('id') id: string) {
-    return this.servicesService.cancel(id);
+  cancel(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.servicesService.cancel(id, user);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Supprimer une annonce de service' })
-  remove(@Param('id') id: string) {
-    return this.servicesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.servicesService.remove(id, user);
   }
 }

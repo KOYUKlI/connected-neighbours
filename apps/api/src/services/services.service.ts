@@ -1,7 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { Role } from '../auth/role.enum';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { Service, ServiceDocument, ServiceStatus } from './schemas/service.schema';
@@ -11,6 +18,8 @@ const SERVICE_UNPUBLISHABLE_STATUSES = new Set<ServiceStatus>([
   ServiceStatus.CANCELLED,
   ServiceStatus.DISPUTED,
 ]);
+
+type ServiceActor = Pick<AuthenticatedUser, 'sub' | 'role'>;
 
 @Injectable()
 export class ServicesService {
@@ -44,7 +53,14 @@ export class ServicesService {
     return service;
   }
 
-  async update(id: string, updateServiceDto: UpdateServiceDto) {
+  async update(
+    id: string,
+    updateServiceDto: UpdateServiceDto,
+    actor: ServiceActor,
+  ) {
+    const service = await this.findOne(id);
+    this.assertCanManage(service, actor);
+
     const payload = { ...updateServiceDto };
 
     if (payload.isPaid === false) {
@@ -62,8 +78,9 @@ export class ServicesService {
     return updated;
   }
 
-  async publish(id: string) {
+  async publish(id: string, actor: ServiceActor) {
     const service = await this.findOne(id);
+    this.assertCanManage(service, actor);
 
     if (SERVICE_UNPUBLISHABLE_STATUSES.has(service.status)) {
       throw new BadRequestException('Ce service ne peut pas etre publie');
@@ -76,8 +93,9 @@ export class ServicesService {
     return this.updateStatus(id, ServiceStatus.PUBLISHED);
   }
 
-  async cancel(id: string) {
+  async cancel(id: string, actor: ServiceActor) {
     const service = await this.findOne(id);
+    this.assertCanManage(service, actor);
 
     if (service.status === ServiceStatus.COMPLETED) {
       throw new BadRequestException('Un service termine ne peut pas etre annule');
@@ -90,7 +108,10 @@ export class ServicesService {
     return this.updateStatus(id, ServiceStatus.CANCELLED);
   }
 
-  async remove(id: string) {
+  async remove(id: string, actor: ServiceActor) {
+    const service = await this.findOne(id);
+    this.assertCanManage(service, actor);
+
     const deleted = await this.serviceModel.findByIdAndDelete(id).exec();
 
     if (!deleted) {
@@ -117,5 +138,16 @@ export class ServicesService {
     }
 
     return updated;
+  }
+
+  private assertCanManage(
+    service: Pick<Service, 'ownerId'>,
+    actor: ServiceActor,
+  ) {
+    if (actor.role === Role.ADMIN || service.ownerId === actor.sub) {
+      return;
+    }
+
+    throw new ForbiddenException('Seul le proprietaire du service peut agir');
   }
 }
