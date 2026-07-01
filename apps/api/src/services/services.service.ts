@@ -5,10 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
+import {
+  Neighborhood,
+  NeighborhoodDocument,
+  NeighborhoodStatus,
+} from '../neighborhoods/schemas/neighborhood.schema';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { Service, ServiceDocument, ServiceStatus } from './schemas/service.schema';
@@ -26,9 +31,13 @@ export class ServicesService {
   constructor(
     @InjectModel(Service.name)
     private readonly serviceModel: Model<ServiceDocument>,
+    @InjectModel(Neighborhood.name)
+    private readonly neighborhoodModel: Model<NeighborhoodDocument>,
   ) {}
 
   async create(createServiceDto: CreateServiceDto, ownerId: string) {
+    await this.assertNeighborhoodCanBeUsed(createServiceDto.neighborhoodId);
+
     return this.serviceModel.create({
       ...createServiceDto,
       ownerId,
@@ -62,6 +71,10 @@ export class ServicesService {
     this.assertCanManage(service, actor);
 
     const payload = { ...updateServiceDto };
+
+    if (payload.neighborhoodId) {
+      await this.assertNeighborhoodCanBeUsed(payload.neighborhoodId);
+    }
 
     if (payload.isPaid === false) {
       payload.pricePoints = null;
@@ -149,5 +162,32 @@ export class ServicesService {
     }
 
     throw new ForbiddenException('Seul le proprietaire du service peut agir');
+  }
+
+  private async assertNeighborhoodCanBeUsed(neighborhoodId: string) {
+    const neighborhood = await this.neighborhoodModel
+      .findOne(this.neighborhoodIdentifierFilter(neighborhoodId))
+      .exec();
+
+    if (!neighborhood) {
+      throw new BadRequestException('Le quartier indique est introuvable');
+    }
+
+    if (
+      neighborhood.status === NeighborhoodStatus.ARCHIVED ||
+      neighborhood.isActive === false
+    ) {
+      throw new BadRequestException('Un quartier archive ne peut plus etre utilise');
+    }
+  }
+
+  private neighborhoodIdentifierFilter(neighborhoodId: string) {
+    const filters: Array<Record<string, unknown>> = [{ slug: neighborhoodId }];
+
+    if (Types.ObjectId.isValid(neighborhoodId)) {
+      filters.push({ _id: neighborhoodId });
+    }
+
+    return { $or: filters };
   }
 }

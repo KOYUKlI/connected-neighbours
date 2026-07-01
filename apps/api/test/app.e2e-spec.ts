@@ -48,6 +48,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
   let aliceId: string;
   let bobId: string;
+  let e2eNeighborhoodId: string;
   let draftServiceId: string;
   let serviceId: string;
   let applicationId: string;
@@ -119,7 +120,129 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(bob.user.pointsBalance).toBeGreaterThanOrEqual(100);
   });
 
+  it('covers geographic neighborhoods', async () => {
+    const invalidNeighborhood = neighborhoodPayload('e2e-quartier-invalide');
+    invalidNeighborhood.boundary.coordinates[0][4] = [2.36, 48.861];
+
+    await request(app.getHttpServer())
+      .post('/api/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .send(invalidNeighborhood)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/neighborhoods')
+      .set('Authorization', bearer(aliceToken))
+      .send(neighborhoodPayload('e2e-quartier'))
+      .expect(403);
+
+    const createdNeighborhood = await request(app.getHttpServer())
+      .post('/api/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .send(neighborhoodPayload('e2e-quartier'))
+      .expect(201);
+
+    e2eNeighborhoodId = getId(createdNeighborhood.body);
+    expect(createdNeighborhood.body.status).toBe('active');
+
+    await request(app.getHttpServer())
+      .get('/api/neighborhoods')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-quartier' }),
+          ]),
+        );
+      });
+
+    const updatedNeighborhood = await request(app.getHttpServer())
+      .patch(`/api/neighborhoods/${e2eNeighborhoodId}`)
+      .set('Authorization', bearer(adminToken))
+      .send({ description: 'Quartier E2E mis a jour' })
+      .expect(200);
+
+    expect(updatedNeighborhood.body.description).toBe('Quartier E2E mis a jour');
+
+    await request(app.getHttpServer())
+      .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ point: [2.3509, 48.8569] })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.contains).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ point: [2.5, 48.8569] })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.contains).toBe(false);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/neighborhoods/quartier-centre/members')
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              email: 'alice@connected-neighbours.local',
+            }),
+          ]),
+        );
+        for (const member of body as Array<Record<string, unknown>>) {
+          expect(member).not.toHaveProperty('passwordHash');
+        }
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/neighborhoods/quartier-centre/stats')
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            slug: 'quartier-centre',
+            users: expect.any(Number),
+            services: expect.any(Number),
+            incidents: expect.any(Number),
+            events: expect.any(Number),
+            votes: expect.any(Number),
+          }),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .delete(`/api/neighborhoods/${e2eNeighborhoodId}`)
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.archived).toBe(true);
+        expect(body.neighborhood.status).toBe('archived');
+      });
+  });
+
   it('covers service publishing, service cancellation and point balance', async () => {
+    await request(app.getHttpServer())
+      .post('/api/services')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Quartier introuvable',
+        description: 'Ce service doit etre refuse.',
+        type: 'request',
+        category: 'bricolage',
+        availability: 'Dimanche',
+        neighborhoodId: 'quartier-inexistant',
+        isPaid: false,
+        status: 'draft',
+      })
+      .expect(400);
+
     const draftService = await request(app.getHttpServer())
       .post('/api/services')
       .set('Authorization', bearer(aliceToken))
@@ -697,9 +820,13 @@ describe('Connected Neighbours API P0 (e2e)', () => {
               'E2E Aide bricolage',
               'E2E Service brouillon',
               'E2E Contrat annulation',
+              'E2E Quartier introuvable',
             ],
           },
         }),
+      connection.collection('neighborhoods').deleteMany({
+        slug: { $in: ['e2e-quartier', 'e2e-quartier-invalide'] },
+      }),
       connection
         .collection('serviceapplications')
         .deleteMany({
@@ -803,4 +930,26 @@ function getId(document: { id?: string; _id?: string }) {
   }
 
   return String(id);
+}
+
+function neighborhoodPayload(slug: string) {
+  return {
+    name: 'Quartier E2E',
+    slug,
+    description: 'Quartier geographique utilise par les tests E2E.',
+    city: 'Paris',
+    postalCode: '75001',
+    boundary: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [2.3508, 48.8567],
+          [2.3518, 48.8567],
+          [2.3518, 48.8577],
+          [2.3508, 48.8577],
+          [2.3508, 48.8567],
+        ],
+      ],
+    },
+  };
 }

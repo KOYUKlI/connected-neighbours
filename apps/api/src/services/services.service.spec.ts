@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { CreateServiceDto } from './dto/create-service.dto';
+import { Neighborhood } from '../neighborhoods/schemas/neighborhood.schema';
 import { Role } from '../auth/role.enum';
 import { ServiceStatus, ServiceType } from './schemas/service.schema';
 
@@ -24,8 +25,20 @@ describe('ServicesService', () => {
     findByIdAndDelete: jest.fn(),
   };
 
+  const neighborhoodModelMock = {
+    findOne: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    neighborhoodModelMock.findOne.mockReturnValue(
+      execResult({
+        _id: 'neighborhood_1',
+        slug: 'quartier-centre',
+        isActive: true,
+        status: 'active',
+      }),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -33,6 +46,10 @@ describe('ServicesService', () => {
         {
           provide: getModelToken(Service.name),
           useValue: serviceModelMock,
+        },
+        {
+          provide: getModelToken(Neighborhood.name),
+          useValue: neighborhoodModelMock,
         },
       ],
     }).compile();
@@ -63,6 +80,9 @@ describe('ServicesService', () => {
 
     const result = await service.create(dto, 'user_123');
 
+    expect(neighborhoodModelMock.findOne).toHaveBeenCalledWith({
+      $or: [{ slug: 'quartier-centre' }],
+    });
     expect(serviceModelMock.create).toHaveBeenCalledWith({
       ...dto,
       ownerId: 'user_123',
@@ -70,6 +90,51 @@ describe('ServicesService', () => {
       pricePoints: 50,
     });
     expect(result).toEqual(createdDoc);
+  });
+
+  it('should reject creating a service in a missing neighborhood', async () => {
+    neighborhoodModelMock.findOne.mockReturnValue(execResult(null));
+
+    const dto: CreateServiceDto = {
+      title: 'Babysitting samedi soir',
+      description: 'Je propose 3 heures de babysitting.',
+      type: ServiceType.OFFER,
+      category: 'Entraide',
+      availability: 'Samedi 19h-22h',
+      neighborhoodId: 'quartier-inconnu',
+      isPaid: false,
+    };
+
+    await expect(service.create(dto, 'user_123')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(serviceModelMock.create).not.toHaveBeenCalled();
+  });
+
+  it('should reject creating a service in an archived neighborhood', async () => {
+    neighborhoodModelMock.findOne.mockReturnValue(
+      execResult({
+        _id: 'neighborhood_1',
+        slug: 'quartier-centre',
+        isActive: false,
+        status: 'archived',
+      }),
+    );
+
+    const dto: CreateServiceDto = {
+      title: 'Babysitting samedi soir',
+      description: 'Je propose 3 heures de babysitting.',
+      type: ServiceType.OFFER,
+      category: 'Entraide',
+      availability: 'Samedi 19h-22h',
+      neighborhoodId: 'quartier-centre',
+      isPaid: false,
+    };
+
+    await expect(service.create(dto, 'user_123')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(serviceModelMock.create).not.toHaveBeenCalled();
   });
 
   it('should list services sorted by newest first', async () => {

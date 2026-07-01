@@ -36,6 +36,8 @@ import type {
   IncidentSeverity,
   IncidentType,
 } from './api/incidents';
+import { getNeighborhoods } from './api/neighborhoods';
+import type { NeighborhoodItem } from './api/neighborhoods';
 import { getPointBalance, getPointTransactions } from './api/points';
 import type { PointBalance, PointTransaction } from './api/points';
 import { exportRgpdData } from './api/rgpd';
@@ -129,6 +131,7 @@ export default function App() {
   const [token, setToken] = useState(() => getAuthToken());
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [activeSection, setActiveSection] = useState<SectionId>('dashboard');
+  const [neighborhoods, setNeighborhoods] = useState<NeighborhoodItem[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [myApplications, setMyApplications] = useState<ServiceApplication[]>([]);
   const [receivedApplications, setReceivedApplications] =
@@ -156,6 +159,7 @@ export default function App() {
     clearAuthToken();
     setToken(null);
     setCurrentUser(null);
+    setNeighborhoods([]);
     setServices([]);
     setMyApplications([]);
     setReceivedApplications({});
@@ -180,6 +184,7 @@ export default function App() {
       const profile = await getMe();
       const [
         nextServices,
+        nextNeighborhoods,
         nextMyApplications,
         nextContracts,
         nextBalance,
@@ -187,6 +192,7 @@ export default function App() {
         nextIncidents,
       ] = await Promise.all([
         getServices(),
+        getNeighborhoods(),
         getMyApplications(),
         getContracts(),
         getPointBalance(),
@@ -209,6 +215,7 @@ export default function App() {
       );
 
       setCurrentUser(profile);
+      setNeighborhoods(nextNeighborhoods);
       setServices(nextServices);
       setMyApplications(nextMyApplications);
       setContracts(nextContracts);
@@ -374,6 +381,7 @@ export default function App() {
             currentUser,
             incidents,
             myApplications,
+            neighborhoods,
             onAcceptApplication: (id) =>
               runAction('accept-application', () => acceptApplication(id)),
             onCancelContract: (id) =>
@@ -423,6 +431,7 @@ type RenderSectionProps = {
   currentUser: AuthUser | null;
   incidents: IncidentItem[];
   myApplications: ServiceApplication[];
+  neighborhoods: NeighborhoodItem[];
   onAcceptApplication: (id: string) => Promise<boolean>;
   onCancelContract: (id: string) => Promise<boolean>;
   onCancelService: (id: string) => Promise<boolean>;
@@ -624,6 +633,7 @@ function ServicesView({
   actionPending,
   currentUser,
   myApplications,
+  neighborhoods,
   onAcceptApplication,
   onCancelService,
   onCreateApplication,
@@ -635,22 +645,53 @@ function ServicesView({
   serviceById,
   services,
 }: RenderSectionProps) {
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState('all');
+  const neighborhoodOptions = neighborhoods.filter(
+    (neighborhood) => (neighborhood.status ?? 'active') === 'active',
+  );
+  const visibleServices =
+    selectedNeighborhood === 'all'
+      ? services
+      : services.filter((service) => service.neighborhoodId === selectedNeighborhood);
+
   return (
     <div className="two-column-layout">
       <CreateServicePanel
         currentUser={currentUser}
         isPending={actionPending === 'create-service'}
+        neighborhoods={neighborhoodOptions}
         onCreate={onCreateService}
       />
 
       <div className="stack">
-        {services.length === 0 ? (
+        <section className="panel services-filter-panel">
+          <label>
+            Filtrer par quartier
+            <select
+              onChange={(event) => setSelectedNeighborhood(event.target.value)}
+              value={selectedNeighborhood}
+            >
+              <option value="all">Tous les quartiers</option>
+              {neighborhoodOptions.map((neighborhood) => (
+                <option key={getNeighborhoodKey(neighborhood)} value={neighborhood.slug}>
+                  {getNeighborhoodLabel(neighborhood)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </section>
+
+        {visibleServices.length === 0 ? (
           <EmptyState message="Aucun service disponible." />
         ) : (
-          services.map((service) => {
+          visibleServices.map((service) => {
             const serviceId = getEntityId(service);
             const myApplication = myApplications.find(
               (application) => application.serviceId === serviceId,
+            );
+            const neighborhoodLabel = getNeighborhoodLabelById(
+              neighborhoods,
+              service.neighborhoodId,
             );
 
             return (
@@ -668,6 +709,7 @@ function ServicesView({
                 receivedApplications={receivedApplications[serviceId] ?? []}
                 service={service}
                 serviceById={serviceById}
+                neighborhoodLabel={neighborhoodLabel}
               />
             );
           })
@@ -680,10 +722,12 @@ function ServicesView({
 function CreateServicePanel({
   currentUser,
   isPending,
+  neighborhoods,
   onCreate,
 }: {
   currentUser: AuthUser | null;
   isPending: boolean;
+  neighborhoods: NeighborhoodItem[];
   onCreate: (input: CreateServiceInput) => Promise<boolean>;
 }) {
   const [title, setTitle] = useState('');
@@ -789,11 +833,25 @@ function CreateServicePanel({
 
         <label>
           Quartier
-          <input
-            onChange={(event) => setNeighborhoodId(event.target.value)}
-            required
-            value={neighborhoodId}
-          />
+          {neighborhoods.length > 0 ? (
+            <select
+              onChange={(event) => setNeighborhoodId(event.target.value)}
+              required
+              value={neighborhoodId}
+            >
+              {neighborhoods.map((neighborhood) => (
+                <option key={getNeighborhoodKey(neighborhood)} value={neighborhood.slug}>
+                  {getNeighborhoodLabel(neighborhood)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              onChange={(event) => setNeighborhoodId(event.target.value)}
+              required
+              value={neighborhoodId}
+            />
+          )}
         </label>
 
         <label className="checkbox-line">
@@ -838,10 +896,12 @@ function ServiceCard({
   onRejectApplication,
   receivedApplications,
   service,
+  neighborhoodLabel,
 }: {
   actionPending: string | null;
   currentUser: AuthUser | null;
   myApplication?: ServiceApplication;
+  neighborhoodLabel: string;
   onAcceptApplication: (id: string) => Promise<boolean>;
   onApply: (
     serviceId: string,
@@ -896,7 +956,7 @@ function ServiceCard({
         </div>
         <div>
           <dt>Quartier</dt>
-          <dd>{service.neighborhoodId}</dd>
+          <dd>{neighborhoodLabel}</dd>
         </div>
         <div>
           <dt>Creation</dt>
@@ -1620,6 +1680,32 @@ function MonoValue({ value }: { value?: string | null }) {
 
 function getEntityId(entity: { _id?: string; id?: string | null }) {
   return entity.id ?? entity._id ?? '';
+}
+
+function getNeighborhoodKey(neighborhood: NeighborhoodItem) {
+  return neighborhood.id ?? neighborhood._id ?? neighborhood.slug;
+}
+
+function getNeighborhoodLabel(neighborhood: NeighborhoodItem) {
+  const location = [neighborhood.city, neighborhood.postalCode]
+    .filter(Boolean)
+    .join(' ');
+
+  return location ? `${neighborhood.name} - ${location}` : neighborhood.name;
+}
+
+function getNeighborhoodLabelById(
+  neighborhoods: NeighborhoodItem[],
+  neighborhoodId: string,
+) {
+  const neighborhood = neighborhoods.find(
+    (item) =>
+      item.slug === neighborhoodId ||
+      item.id === neighborhoodId ||
+      item._id === neighborhoodId,
+  );
+
+  return neighborhood ? getNeighborhoodLabel(neighborhood) : neighborhoodId;
 }
 
 function getSectionLabel(section: SectionId) {
