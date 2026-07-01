@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Entity(name = "incident")
 public class Incident {
@@ -51,6 +52,9 @@ public class Incident {
 
     @Column
     private LocalDateTime resolvedAt;
+
+    @Transient
+    private static AtomicLong counter = new AtomicLong(1);
 
     public Incident() {
     }
@@ -176,7 +180,8 @@ public class Incident {
 
     private String generateDisplayId() {
         long number = System.currentTimeMillis() % 100000;
-        return "INC-" + String.format("%05d", number);
+        long inc = counter.getAndIncrement();
+        return "INC-" + String.format("%05d", number) + "-" + String.format("%04d",inc);
     }
 
 }
