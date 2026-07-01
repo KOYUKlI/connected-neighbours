@@ -1,41 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@600;700&display=swap');
+@import "tailwindcss";
 
 :root {
-  --accent: #e2672e;
-  --accent-dark: #c04f1c;
-  --accent-border: rgba(226, 103, 46, 0.3);
-  --accent-soft: rgba(226, 103, 46, 0.12);
-  --secondary: #3f7d5c;
-  --secondary-dark: #2e6147;
-  --secondary-border: rgba(63, 125, 92, 0.3);
-  --secondary-soft: rgba(63, 125, 92, 0.12);
-  --background: #fbf3e7;
-  --border: #e9dcc6;
-  --danger: #c4432e;
-  --danger-soft: rgba(196, 67, 46, 0.12);
-  --focus: rgba(226, 103, 46, 0.35);
-  --neutral: #6b5e4e;
-  --neutral-soft: #efe6d6;
-  --shadow: 0 18px 45px rgba(74, 48, 20, 0.12);
-  --success: #3f7d5c;
-  --success-soft: rgba(63, 125, 92, 0.12);
-  --surface: #fffdfa;
-  --surface-muted: #f6ecdc;
-  --text: #5b4c3c;
-  --text-muted: #8a7a63;
-  --text-strong: #2e2620;
-  --warning: #b5810a;
-  --warning-soft: rgba(181, 129, 10, 0.14);
+  --accent: #2563eb;
+  --accent-border: rgba(37, 99, 235, 0.28);
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --background: #f4f7fb;
+  --border: #dbe3ec;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --focus: rgba(37, 99, 235, 0.24);
+  --neutral: #475569;
+  --neutral-soft: #e2e8f0;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --text: #475569;
+  --text-muted: #64748b;
+  --text-strong: #111827;
+  --warning: #a16207;
+  --warning-soft: #fef3c7;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: 'Nunito', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --heading-font: 'Quicksand', var(--sans);
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  --sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
 
   background: var(--background);
   color: var(--text);
-  font: 16px/1.6 var(--sans);
+  font: 16px/1.5 var(--sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -49,6 +42,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  background: var(--background);
 }
 
 button,
@@ -56,17 +50,6 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-a {
-  color: inherit;
-}
-
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--heading-font);
 }
 
 #root {
