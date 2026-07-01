@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { NeighborhoodItem, NeighborhoodStats } from '../api/neighborhoods';
 
 type NeighborhoodStatus = 'active' | 'archived';
+type DateFilter = 'all' | '7d' | '30d';
 
-type MockNeighborhood = {
+type NeighborhoodRow = {
   id: string;
   name: string;
   city: string;
@@ -12,179 +14,98 @@ type MockNeighborhood = {
   services: number;
   status: NeighborhoodStatus;
   updatedAt: string;
+  updatedAtValue: number | null;
 };
 
-const neighborhoods: MockNeighborhood[] = [
-  {
-    id: 'centre-ville',
-    name: 'Centre-ville',
-    city: 'Centre-ville',
-    postalCode: '1000',
-    residents: 8450,
-    services: 6,
-    status: 'active',
-    updatedAt: '27 mai 2024, 10:30',
-  },
-  {
-    id: 'les-jardins',
-    name: 'Les Jardins',
-    city: 'Les Jardins',
-    postalCode: '1001',
-    residents: 5230,
-    services: 5,
-    status: 'active',
-    updatedAt: '24 mai 2024, 14:22',
-  },
-  {
-    id: 'beau-soleil',
-    name: 'Beau Soleil',
-    city: 'Beau Soleil',
-    postalCode: '1002',
-    residents: 3980,
-    services: 4,
-    status: 'active',
-    updatedAt: '23 mai 2024, 09:15',
-  },
-  {
-    id: 'le-parc',
-    name: 'Le Parc',
-    city: 'Le Parc',
-    postalCode: '1003',
-    residents: 2750,
-    services: 3,
-    status: 'active',
-    updatedAt: '21 mai 2024, 16:45',
-  },
-  {
-    id: 'riviera',
-    name: 'Riviera',
-    city: 'Riviera',
-    postalCode: '1004',
-    residents: 4120,
-    services: 4,
-    status: 'active',
-    updatedAt: '20 mai 2024, 11:05',
-  },
-  {
-    id: 'montagne-verte',
-    name: 'Montagne Verte',
-    city: 'Montagne Verte',
-    postalCode: '1005',
-    residents: 2980,
-    services: 3,
-    status: 'active',
-    updatedAt: '18 mai 2024, 13:50',
-  },
-  {
-    id: 'saint-michel',
-    name: 'Saint-Michel',
-    city: 'Saint-Michel',
-    postalCode: '1006',
-    residents: 6210,
-    services: 6,
-    status: 'active',
-    updatedAt: '17 mai 2024, 08:40',
-  },
-  {
-    id: 'les-acacias',
-    name: 'Les Acacias',
-    city: 'Les Acacias',
-    postalCode: '1007',
-    residents: 1950,
-    services: 2,
-    status: 'active',
-    updatedAt: '15 mai 2024, 15:30',
-  },
-  {
-    id: 'la-plaine',
-    name: 'La Plaine',
-    city: 'La Plaine',
-    postalCode: '1008',
-    residents: 3410,
-    services: 3,
-    status: 'active',
-    updatedAt: '14 mai 2024, 10:12',
-  },
-  {
-    id: 'bellevue',
-    name: 'Bellevue',
-    city: 'Bellevue',
-    postalCode: '1009',
-    residents: 4870,
-    services: 5,
-    status: 'archived',
-    updatedAt: '10 mai 2024, 17:25',
-  },
-  {
-    id: 'nord',
-    name: 'Nord',
-    city: 'Nord',
-    postalCode: '1010',
-    residents: 2140,
-    services: 2,
-    status: 'archived',
-    updatedAt: '7 mai 2024, 12:11',
-  },
-  {
-    id: 'port-neuf',
-    name: 'Port Neuf',
-    city: 'Port Neuf',
-    postalCode: '1011',
-    residents: 3670,
-    services: 4,
-    status: 'active',
-    updatedAt: '4 mai 2024, 09:45',
-  },
-];
-
 const numberFormatter = new Intl.NumberFormat('fr-FR');
+const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
 
 type NeighborhoodsListPageProps = {
-  children?: ReactNode;
+  archivingId?: string | null;
+  isArchiving?: boolean;
+  neighborhoods: NeighborhoodItem[];
   onAdd?: () => void;
   onArchive?: (id: string) => void;
   onEdit?: (id: string) => void;
   onView?: (id: string) => void;
+  statsByNeighborhoodId?: Record<string, NeighborhoodStats>;
 };
 
 export function NeighborhoodsListPage({
+  archivingId = null,
+  isArchiving = false,
+  neighborhoods,
   onAdd,
   onArchive,
   onEdit,
   onView,
+  statsByNeighborhoodId = {},
 }: NeighborhoodsListPageProps) {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | NeighborhoodStatus>('all');
   const [cityFilter, setCityFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [activeTab, setActiveTab] = useState<'all' | NeighborhoodStatus>('all');
   const [page, setPage] = useState(1);
 
-  const cities = useMemo(
-    () => Array.from(new Set(neighborhoods.map((neighborhood) => neighborhood.city))).sort(),
-    [],
+  const rows = useMemo(
+    () =>
+      neighborhoods.map((neighborhood) =>
+        toNeighborhoodRow(neighborhood, statsByNeighborhoodId),
+      ),
+    [neighborhoods, statsByNeighborhoodId],
   );
-  const filteredRows = neighborhoods.filter((neighborhood) => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const matchesQuery =
-      normalizedQuery.length === 0 ||
-      [neighborhood.name, neighborhood.city, neighborhood.postalCode]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedQuery);
-    const matchesTab = activeTab === 'all' || neighborhood.status === activeTab;
-    const matchesStatus = statusFilter === 'all' || neighborhood.status === statusFilter;
-    const matchesCity = cityFilter === 'all' || neighborhood.city === cityFilter;
+  const cities = useMemo(
+    () =>
+      Array.from(
+        new Set(rows.map((neighborhood) => neighborhood.city).filter((city) => city !== '—')),
+      ).sort((left, right) => left.localeCompare(right, 'fr')),
+    [rows],
+  );
+  const filteredRows = useMemo(() => {
+    const threshold = getDateThreshold(dateFilter);
 
-    return matchesQuery && matchesTab && matchesStatus && matchesCity;
-  });
+    return rows.filter((neighborhood) => {
+      const normalizedQuery = query.trim().toLowerCase();
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        [neighborhood.name, neighborhood.city, neighborhood.postalCode]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery);
+      const matchesTab = activeTab === 'all' || neighborhood.status === activeTab;
+      const matchesStatus = statusFilter === 'all' || neighborhood.status === statusFilter;
+      const matchesCity = cityFilter === 'all' || neighborhood.city === cityFilter;
+      const matchesDate =
+        threshold === null ||
+        (neighborhood.updatedAtValue !== null && neighborhood.updatedAtValue >= threshold);
+
+      return matchesQuery && matchesTab && matchesStatus && matchesCity && matchesDate;
+    });
+  }, [activeTab, cityFilter, dateFilter, query, rows, statusFilter]);
   const pageSize = 10;
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const paginatedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
+  const activeCount = rows.filter((neighborhood) => neighborhood.status === 'active').length;
+  const archivedCount = rows.filter((neighborhood) => neighborhood.status === 'archived').length;
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   function resetFilters() {
     setQuery('');
     setStatusFilter('all');
     setCityFilter('all');
+    setDateFilter('all');
     setActiveTab('all');
     setPage(1);
   }
@@ -193,6 +114,11 @@ export function NeighborhoodsListPage({
     setActiveTab(nextTab);
     setPage(1);
   }
+
+  const emptyMessage =
+    rows.length === 0
+      ? 'Aucun quartier disponible pour le moment.'
+      : 'Aucun quartier ne correspond aux filtres.';
 
   return (
     <section className="grid gap-4">
@@ -218,19 +144,19 @@ export function NeighborhoodsListPage({
       <div className="flex h-10 flex-wrap items-center gap-7 border-b border-slate-200">
         <TabButton
           active={activeTab === 'all'}
-          count={neighborhoods.length}
+          count={rows.length}
           label="Tous"
           onClick={() => updateTab('all')}
         />
         <TabButton
           active={activeTab === 'active'}
-          count={neighborhoods.filter((neighborhood) => neighborhood.status === 'active').length}
+          count={activeCount}
           label="Actifs"
           onClick={() => updateTab('active')}
         />
         <TabButton
           active={activeTab === 'archived'}
-          count={neighborhoods.filter((neighborhood) => neighborhood.status === 'archived').length}
+          count={archivedCount}
           label="Archivés"
           onClick={() => updateTab('archived')}
         />
@@ -253,16 +179,18 @@ export function NeighborhoodsListPage({
             />
           </div>
         </label>
-        <label className="min-w-0">
-          <span className="sr-only">Date</span>
-          <button
-            className="flex h-10 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-left text-sm font-medium text-slate-600"
-            type="button"
-          >
-            Toutes les dates
-            <span className="text-slate-400">⌄</span>
-          </button>
-        </label>
+        <FilterSelect
+          label="Date"
+          onChange={(value) => {
+            setDateFilter(value as DateFilter);
+            setPage(1);
+          }}
+          value={dateFilter}
+        >
+          <option value="all">Toutes les dates</option>
+          <option value="7d">7 derniers jours</option>
+          <option value="30d">30 derniers jours</option>
+        </FilterSelect>
         <FilterSelect
           label="Ville et statut"
           onChange={(value) => {
@@ -302,9 +230,9 @@ export function NeighborhoodsListPage({
             </span>
           </div>
           <button
+            aria-label="Menu table"
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-50"
             type="button"
-            aria-label="Menu table"
           >
             ⋮
           </button>
@@ -328,35 +256,51 @@ export function NeighborhoodsListPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedRows.map((neighborhood) => (
-                <tr className="h-[54px] text-slate-700 hover:bg-slate-50/80" key={neighborhood.id}>
-                  <td className="px-4 py-2">
-                    <Checkbox />
-                  </td>
-                  <td className="px-4 py-2 font-semibold text-slate-950">{neighborhood.name}</td>
-                  <td className="px-4 py-2">{neighborhood.city}</td>
-                  <td className="px-4 py-2">{neighborhood.postalCode}</td>
-                  <td className="px-4 py-2">{numberFormatter.format(neighborhood.residents)}</td>
-                  <td className="px-4 py-2">{neighborhood.services}</td>
-                  <td className="px-4 py-2">
-                    <StatusBadge status={neighborhood.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2">{neighborhood.updatedAt}</td>
-                  <td className="px-4 py-2">
-                    <div className="flex min-w-max items-center gap-2">
-                      <ActionButton onClick={() => onView?.(neighborhood.id)} tone="neutral">
-                        Voir
-                      </ActionButton>
-                      <ActionButton onClick={() => onEdit?.(neighborhood.id)} tone="blue">
-                        Modifier
-                      </ActionButton>
-                      <ActionButton onClick={() => onArchive?.(neighborhood.id)} tone="red">
-                        Archiver
-                      </ActionButton>
-                    </div>
+              {paginatedRows.length > 0 ? (
+                paginatedRows.map((neighborhood) => (
+                  <tr className="h-[54px] text-slate-700 hover:bg-slate-50/80" key={neighborhood.id}>
+                    <td className="px-4 py-2">
+                      <Checkbox />
+                    </td>
+                    <td className="px-4 py-2 font-semibold text-slate-950">{neighborhood.name}</td>
+                    <td className="px-4 py-2">{neighborhood.city}</td>
+                    <td className="px-4 py-2">{neighborhood.postalCode}</td>
+                    <td className="px-4 py-2">{numberFormatter.format(neighborhood.residents)}</td>
+                    <td className="px-4 py-2">{neighborhood.services}</td>
+                    <td className="px-4 py-2">
+                      <StatusBadge status={neighborhood.status} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2">{neighborhood.updatedAt}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex min-w-max items-center gap-2">
+                        <ActionButton onClick={() => onView?.(neighborhood.id)} tone="neutral">
+                          Voir
+                        </ActionButton>
+                        <ActionButton onClick={() => onEdit?.(neighborhood.id)} tone="blue">
+                          Modifier
+                        </ActionButton>
+                        <ActionButton
+                          disabled={
+                            neighborhood.status === 'archived' ||
+                            isArchiving ||
+                            archivingId === neighborhood.id
+                          }
+                          onClick={() => onArchive?.(neighborhood.id)}
+                          tone="red"
+                        >
+                          Archiver
+                        </ActionButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-4 py-10 text-center text-sm font-medium text-slate-500" colSpan={9}>
+                    {emptyMessage}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -478,10 +422,12 @@ function StatusBadge({ status }: { status: NeighborhoodStatus }) {
 
 function ActionButton({
   children,
+  disabled = false,
   onClick,
   tone,
 }: {
   children: ReactNode;
+  disabled?: boolean;
   onClick?: () => void;
   tone: 'blue' | 'neutral' | 'red';
 }) {
@@ -494,7 +440,8 @@ function ActionButton({
 
   return (
     <button
-      className={`inline-flex h-7 items-center whitespace-nowrap rounded-md border bg-white px-2 text-xs font-medium transition ${className}`}
+      className={`inline-flex h-7 items-center whitespace-nowrap rounded-md border bg-white px-2 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
+      disabled={disabled}
       onClick={onClick}
       type="button"
     >
@@ -510,7 +457,7 @@ function PaginationButton({
   onClick,
 }: {
   active?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
   disabled?: boolean;
   onClick: () => void;
 }) {
@@ -546,4 +493,63 @@ function SearchIcon() {
       <circle cx="11" cy="11" r="7" />
     </svg>
   );
+}
+
+function toNeighborhoodRow(
+  neighborhood: NeighborhoodItem,
+  statsByNeighborhoodId: Record<string, NeighborhoodStats>,
+): NeighborhoodRow {
+  const id = getNeighborhoodId(neighborhood);
+  const stats = statsByNeighborhoodId[id] ?? statsByNeighborhoodId[neighborhood.slug];
+  const updatedAtSource = neighborhood.updatedAt ?? neighborhood.createdAt;
+
+  return {
+    city: neighborhood.city || '—',
+    id,
+    name: neighborhood.name || 'Quartier sans nom',
+    postalCode: neighborhood.postalCode || '—',
+    residents: stats?.users ?? 0,
+    services: stats?.services ?? 0,
+    status: getNeighborhoodStatus(neighborhood),
+    updatedAt: formatDate(updatedAtSource),
+    updatedAtValue: parseDateValue(updatedAtSource),
+  };
+}
+
+function getNeighborhoodId(neighborhood: NeighborhoodItem) {
+  return neighborhood.id ?? neighborhood._id ?? neighborhood.slug;
+}
+
+function getNeighborhoodStatus(neighborhood: NeighborhoodItem): NeighborhoodStatus {
+  return neighborhood.status ?? (neighborhood.isActive === false ? 'archived' : 'active');
+}
+
+function parseDateValue(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function formatDate(value?: string) {
+  const timestamp = parseDateValue(value);
+
+  if (timestamp === null) {
+    return '—';
+  }
+
+  return dateFormatter.format(timestamp);
+}
+
+function getDateThreshold(filter: DateFilter) {
+  if (filter === 'all') {
+    return null;
+  }
+
+  const days = filter === '7d' ? 7 : 30;
+
+  return Date.now() - days * 24 * 60 * 60 * 1000;
 }

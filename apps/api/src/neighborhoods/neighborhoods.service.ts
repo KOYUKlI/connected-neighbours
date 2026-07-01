@@ -242,6 +242,14 @@ export class NeighborhoodsService implements OnModuleInit {
         : NeighborhoodStatus.ARCHIVED;
     }
 
+    if (existing.status !== NeighborhoodStatus.ACTIVE) {
+      patch.status = NeighborhoodStatus.ACTIVE;
+    }
+
+    if (existing.isActive !== true) {
+      patch.isActive = true;
+    }
+
     if (Object.keys(patch).length > 0) {
       Object.assign(existing, patch);
       await existing.save();

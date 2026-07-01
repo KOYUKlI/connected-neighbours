@@ -37,6 +37,7 @@ import type {
 import {
   archiveNeighborhood,
   createNeighborhood,
+  fetchNeighborhoods,
   fetchNeighborhoodMembers,
   fetchNeighborhoodStats,
   updateNeighborhood,
@@ -190,8 +191,9 @@ function App() {
             break
           }
           case 'neighborhoods': {
+            const nextNeighborhoods = await fetchNeighborhoods()
             if (!ignore) {
-              setNeighborhoods([])
+              setNeighborhoods(nextNeighborhoods)
             }
             break
           }
@@ -666,43 +668,13 @@ function NeighborhoodsView({
   >({})
   const [detailError, setDetailError] = useState<string | null>(null)
   const [isArchiving, setIsArchiving] = useState(false)
+  const [archivingId, setArchivingId] = useState<string | null>(null)
   const [formVersion, setFormVersion] = useState(0)
-  const [neighborhoodQuery, setNeighborhoodQuery] = useState('')
-  const [neighborhoodStatusFilter, setNeighborhoodStatusFilter] = useState<
-    'active' | 'archived' | 'all'
-  >('active')
-  const [cityFilter, setCityFilter] = useState('all')
-  const [updatedAfter, setUpdatedAfter] = useState('')
-  const [listPage, setListPage] = useState(1)
 
   const selectedNeighborhood = selectedId
     ? neighborhoods.find((neighborhood) => getNeighborhoodId(neighborhood) === selectedId) ??
     null
     : null
-  const filteredNeighborhoods = neighborhoods.filter((neighborhood) => {
-    const status = neighborhoodStatus(neighborhood)
-    const matchesStatus =
-      neighborhoodStatusFilter === 'all' || status === neighborhoodStatusFilter
-    const matchesCity = cityFilter === 'all' || neighborhood.city === cityFilter
-    const matchesUpdatedAfter =
-      updatedAfter.length === 0 ||
-      (neighborhood.updatedAt
-        ? new Date(neighborhood.updatedAt) >= new Date(updatedAfter)
-        : false)
-    const matchesQuery = matchesSearch(
-      neighborhoodQuery,
-      neighborhood.name,
-      neighborhood.city,
-      neighborhood.postalCode,
-      neighborhood.slug,
-      neighborhood.description,
-    )
-
-    return matchesStatus && matchesCity && matchesUpdatedAfter && matchesQuery
-  })
-  const pageSize = 8
-  const paginatedNeighborhoods = paginateRows(filteredNeighborhoods, listPage, pageSize)
-  const cityOptions = Array.from(new Set(neighborhoods.map((item) => item.city).filter(Boolean))).sort()
   const effectiveSelectedId = selectedNeighborhood
     ? getNeighborhoodId(selectedNeighborhood)
     : null
@@ -805,15 +777,23 @@ function NeighborhoodsView({
   }, [effectiveSelectedId])
 
   async function handleArchive(neighborhood: NeighborhoodItem) {
+    const neighborhoodId = getNeighborhoodId(neighborhood)
+    const confirmed = window.confirm(`Archiver le quartier "${neighborhood.name}" ?`)
+
+    if (!confirmed) {
+      return
+    }
+
     setIsArchiving(true)
+    setArchivingId(neighborhoodId)
     setDetailError(null)
 
     try {
-      await archiveNeighborhood(getNeighborhoodId(neighborhood))
-      if (selectedId === getNeighborhoodId(neighborhood)) {
+      await archiveNeighborhood(neighborhoodId)
+      if (selectedId === neighborhoodId) {
         setSelectedId(null)
       }
-      if (editingNeighborhood && getNeighborhoodId(editingNeighborhood) === getNeighborhoodId(neighborhood)) {
+      if (editingNeighborhood && getNeighborhoodId(editingNeighborhood) === neighborhoodId) {
         setEditingNeighborhood(null)
       }
       setPageMode('list')
@@ -823,6 +803,7 @@ function NeighborhoodsView({
       setDetailError(getErrorMessage(error))
     } finally {
       setIsArchiving(false)
+      setArchivingId(null)
     }
   }
 
@@ -864,49 +845,6 @@ function NeighborhoodsView({
     { id: 'stats', label: 'Statistiques' },
     { id: 'history', label: 'Historique' },
   ] satisfies Array<{ id: NeighborhoodTab; label: string; count?: ReactNode }>
-  const neighborhoodColumns: TableColumn<NeighborhoodItem>[] = [
-    { header: 'Nom', render: (row) => <strong className="text-slate-950">{row.name}</strong> },
-    { header: 'Ville', render: (row) => valueOrDash(row.city) },
-    { header: 'Code postal', render: (row) => valueOrDash(row.postalCode) },
-    {
-      header: 'Habitants',
-      render: (row) => formatNumber(statsByNeighborhoodId[getNeighborhoodId(row)]?.users ?? 0),
-      className: 'text-right',
-    },
-    {
-      header: 'Services',
-      render: (row) => formatNumber(statsByNeighborhoodId[getNeighborhoodId(row)]?.services ?? 0),
-      className: 'text-right',
-    },
-    { header: 'Statut', render: (row) => <StatusBadge value={neighborhoodStatus(row)} /> },
-    { header: 'Dernière mise à jour', render: (row) => formatDate(row.updatedAt) },
-    {
-      header: 'Actions',
-      render: (row) => (
-        <div className="flex min-w-56 flex-wrap gap-2">
-          <button className={buttonClasses.compact} onClick={() => showNeighborhood(row)} type="button">
-            Voir détail
-          </button>
-          <button className={buttonClasses.compactSecondary} onClick={() => startEditNeighborhood(row)} type="button">
-            Modifier
-          </button>
-          <button
-            className={buttonClasses.compactDanger}
-            disabled={isArchiving || neighborhoodStatus(row) === 'archived'}
-            onClick={() => void handleArchive(row)}
-            type="button"
-          >
-            Archiver
-          </button>
-        </div>
-      ),
-    },
-  ]
-
-  useEffect(() => {
-    setListPage(1)
-  }, [cityFilter, neighborhoodQuery, neighborhoodStatusFilter, updatedAfter])
-
   if (pageMode === 'create') {
     return (
       <NeighborhoodCreatePage>
@@ -1126,74 +1064,34 @@ function NeighborhoodsView({
   }
 
   return (
-    <NeighborhoodsListPage>
-      <AdminPageHeader
-        eyebrow="Administration / Quartiers"
-        title="Quartiers"
-        description="Gérez les zones géographiques utilisées par les habitants, services et incidents."
-        actions={
-          <button className={buttonClasses.primary} onClick={startNewNeighborhood} type="button">
-            Ajouter un quartier
-          </button>
+    <NeighborhoodsListPage
+      archivingId={archivingId}
+      isArchiving={isArchiving}
+      neighborhoods={neighborhoods}
+      onAdd={startNewNeighborhood}
+      onArchive={(id) => {
+        const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
+
+        if (neighborhood) {
+          void handleArchive(neighborhood)
         }
-      />
-      <Tabs
-        items={[
-          { id: 'all', label: 'Tous', count: neighborhoods.length },
-          { id: 'active', label: 'Actifs', count: neighborhoods.filter((item) => neighborhoodStatus(item) === 'active').length },
-          { id: 'archived', label: 'Archivés', count: neighborhoods.filter((item) => neighborhoodStatus(item) === 'archived').length },
-        ]}
-        onChange={setNeighborhoodStatusFilter}
-        value={neighborhoodStatusFilter}
-      />
-      <Toolbar className="items-end">
-        <SearchField
-          onChange={setNeighborhoodQuery}
-          placeholder="Rechercher une ville, un quartier ou un code postal"
-          value={neighborhoodQuery}
-        />
-        <label className="grid min-w-44 gap-1.5 text-sm font-bold text-slate-700">
-          Ville
-          <select
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-            onChange={(event) => setCityFilter(event.target.value)}
-            value={cityFilter}
-          >
-            <option value="all">Toutes les villes</option>
-            {cityOptions.map((city) => (
-              <option key={city} value={city}>{city}</option>
-            ))}
-          </select>
-        </label>
-        <label className="grid min-w-44 gap-1.5 text-sm font-bold text-slate-700">
-          Mis à jour depuis
-          <input
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-            onChange={(event) => setUpdatedAfter(event.target.value)}
-            type="date"
-            value={updatedAfter}
-          />
-        </label>
-      </Toolbar>
-      {filteredNeighborhoods.length === 0 ? (
-        <EmptyState message="Aucun quartier ne correspond aux filtres." />
-      ) : (
-        <>
-          <TableSummary title={`${formatNumber(filteredNeighborhoods.length)} quartiers`} />
-          <UiTable
-            columns={neighborhoodColumns}
-            getRowKey={(row) => getNeighborhoodId(row)}
-            rows={paginatedNeighborhoods}
-          />
-          <Pagination
-            onPageChange={setListPage}
-            page={listPage}
-            pageSize={pageSize}
-            total={filteredNeighborhoods.length}
-          />
-        </>
-      )}
-    </NeighborhoodsListPage>
+      }}
+      onEdit={(id) => {
+        const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
+
+        if (neighborhood) {
+          startEditNeighborhood(neighborhood)
+        }
+      }}
+      onView={(id) => {
+        const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
+
+        if (neighborhood) {
+          showNeighborhood(neighborhood)
+        }
+      }}
+      statsByNeighborhoodId={statsByNeighborhoodId}
+    />
   )
 }
 
