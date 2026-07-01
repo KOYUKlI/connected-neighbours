@@ -175,7 +175,7 @@ public class Incident {
     }
 
     private String generateDisplayId() {
-        long number = System.currentTimeMillis() % 100000; // simple, unique
+        long number = System.currentTimeMillis() % 100000;
         return "INC-" + String.format("%05d", number);
     }
 
