@@ -17,28 +17,28 @@ export function AdminSidebar<T extends string>({
   onNavigate: (item: T) => void;
 }) {
   return (
-    <aside className="sticky top-0 h-screen border-r border-slate-200 bg-white px-3 py-5 max-[1100px]:static max-[1100px]:h-auto max-[1100px]:border-b max-[1100px]:border-r-0">
+    <aside className="sticky top-0 h-screen border-r border-slate-200 bg-white px-4 py-6 max-[1100px]:static max-[1100px]:h-auto max-[1100px]:border-b max-[1100px]:border-r-0">
       <div className="grid h-full content-between gap-5">
-        <div className="grid gap-6">
-          <div className="flex items-center gap-3 px-1">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-sm">
+        <div className="grid gap-7">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-blue-600 text-2xl font-semibold text-white shadow-sm">
               CN
             </span>
             <div>
-              <strong className="block text-[15px] font-bold leading-tight text-slate-950">
-                Connected Neighbours
+              <strong className="block text-[17px] font-bold leading-[1.15] text-slate-950">
+                Connected<br />Neighbours
               </strong>
             </div>
           </div>
 
-          <nav className="grid gap-1.5 max-[1100px]:grid-cols-4 max-[760px]:grid-cols-2" aria-label="Navigation admin">
+          <nav className="grid gap-2 max-[1100px]:grid-cols-4 max-[760px]:grid-cols-2" aria-label="Navigation admin">
             {items.map((item) => {
               const isActive = item.id === activeItem;
 
               return (
                 <button
                   className={cn(
-                    'relative flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-left transition',
+                    'relative flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-100',
                     isActive
                       ? 'bg-blue-50 text-blue-700 before:absolute before:left-0 before:top-2 before:h-7 before:w-1 before:rounded-full before:bg-blue-600'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950',
@@ -48,7 +48,7 @@ export function AdminSidebar<T extends string>({
                   type="button"
                 >
                   <NavigationIcon id={item.icon ?? String(item.id)} />
-                  <span className="text-sm font-medium">{item.label}</span>
+                  <span className="text-[15px] font-medium">{item.label}</span>
                 </button>
               );
             })}

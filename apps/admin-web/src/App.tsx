@@ -56,10 +56,8 @@ import { Badge as UiBadge } from './components/ui/Badge'
 import { Card } from './components/ui/Card'
 import { EmptyState as UiEmptyState } from './components/ui/EmptyState'
 import { PageHeader as AdminPageHeader } from './components/ui/PageHeader'
-import { Pagination } from './components/ui/Pagination'
 import { SectionHeader } from './components/ui/SectionHeader'
 import { StatCard } from './components/ui/StatCard'
-import { Table as UiTable } from './components/ui/Table'
 import { Tabs } from './components/ui/Tabs'
 import { Toolbar } from './components/ui/Toolbar'
 import { AdminShell } from './components/layout/AdminShell'
@@ -89,12 +87,6 @@ const navigationItems = [
 ] as const
 
 type SectionId = (typeof navigationItems)[number]['id']
-
-type TableColumn<T> = {
-  header: string
-  render: (row: T) => ReactNode
-  className?: string
-}
 
 const demoEmail = 'admin@connected-neighbours.local'
 const numberFormatter = new Intl.NumberFormat('fr-FR')
@@ -130,7 +122,6 @@ const metricsGridClass = 'grid grid-cols-4 gap-5 max-xl:grid-cols-2 max-[620px]:
 const formGridClass =
   'grid gap-3 [&_input]:min-h-10 [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-slate-200 [&_input]:bg-white [&_input]:px-3 [&_input]:py-2 [&_input]:text-slate-950 [&_label]:grid [&_label]:gap-2 [&_label]:text-sm [&_label]:font-extrabold [&_label]:text-slate-950 [&_textarea]:w-full [&_textarea]:rounded-lg [&_textarea]:border [&_textarea]:border-slate-200 [&_textarea]:bg-white [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-slate-950';
 const mutedClass = 'text-slate-500';
-const monoClass = 'inline-block max-w-56 break-words font-mono text-xs text-slate-600';
 
 function App() {
   const [token, setToken] = useState(() => getAuthToken())
@@ -198,23 +189,39 @@ function App() {
             break
           }
           case 'services': {
-            const nextServices = await fetchServices()
+            const [nextServices, nextUsers, nextNeighborhoods] = await Promise.all([
+              fetchServices(),
+              fetchUsers(),
+              fetchNeighborhoods(),
+            ])
             if (!ignore) {
               setServices(nextServices)
+              setUsers(nextUsers)
+              setNeighborhoods(nextNeighborhoods)
             }
             break
           }
           case 'contracts': {
-            const nextContracts = await fetchContracts()
+            const [nextContracts, nextServices, nextUsers] = await Promise.all([
+              fetchContracts(),
+              fetchServices(),
+              fetchUsers(),
+            ])
             if (!ignore) {
               setContracts(nextContracts)
+              setServices(nextServices)
+              setUsers(nextUsers)
             }
             break
           }
           case 'incidents': {
-            const nextIncidents = await fetchIncidents()
+            const [nextIncidents, nextNeighborhoods] = await Promise.all([
+              fetchIncidents(),
+              fetchNeighborhoods(),
+            ])
             if (!ignore) {
               setIncidents(nextIncidents)
+              setNeighborhoods(nextNeighborhoods)
             }
             break
           }
@@ -226,9 +233,13 @@ function App() {
             break
           }
           case 'users': {
-            const nextUsers = await fetchUsers()
+            const [nextUsers, nextNeighborhoods] = await Promise.all([
+              fetchUsers(),
+              fetchNeighborhoods(),
+            ])
             if (!ignore) {
               setUsers(nextUsers)
+              setNeighborhoods(nextNeighborhoods)
             }
             break
           }
@@ -472,15 +483,32 @@ function renderSection(props: RenderSectionProps) {
         />
       )
     case 'services':
-      return <ServicesListPage><ServicesView services={props.services} /></ServicesListPage>
+      return (
+        <ServicesListPage
+          neighborhoods={props.neighborhoods}
+          services={props.services}
+          users={props.users}
+        />
+      )
     case 'contracts':
-      return <ContractsListPage><ContractsView contracts={props.contracts} /></ContractsListPage>
+      return (
+        <ContractsListPage
+          contracts={props.contracts}
+          services={props.services}
+          users={props.users}
+        />
+      )
     case 'incidents':
-      return <IncidentsListPage><IncidentsView incidents={props.incidents} /></IncidentsListPage>
+      return (
+        <IncidentsListPage
+          incidents={props.incidents}
+          neighborhoods={props.neighborhoods}
+        />
+      )
     case 'sync':
-      return <SyncPage><SyncView syncStates={props.syncStates} /></SyncPage>
+      return <SyncPage syncStates={props.syncStates} />
     case 'users':
-      return <UsersListPage><UsersView users={props.users} /></UsersListPage>
+      return <UsersListPage neighborhoods={props.neighborhoods} users={props.users} />
   }
 }
 
@@ -1577,498 +1605,6 @@ function MapClickHandler({
   return null
 }
 
-type ServiceListTab = 'all' | 'draft' | 'active' | 'completed'
-type ContractListTab = 'all' | 'pending' | 'active' | 'completed'
-type IncidentListTab = 'all' | 'open' | 'in_progress' | 'resolved'
-type UserListTab = 'all' | 'resident' | 'moderator' | 'admin'
-
-function ServicesView({ services }: { services: AdminServiceRow[] }) {
-  const [query, setQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<ServiceListTab>('all')
-  const [page, setPage] = useState(1)
-  const columns: TableColumn<AdminServiceRow>[] = [
-    { header: 'Titre', render: (row) => <strong className="text-slate-950">{valueOrDash(row.title)}</strong> },
-    { header: 'Catégorie', render: (row) => valueOrDash(row.category) },
-    { header: 'Type', render: () => '-' },
-    { header: 'Quartier', render: (row) => <MonoValue value={row.neighborhoodId} /> },
-    { header: 'Propriétaire', render: (row) => <UserReference value={row.ownerId} /> },
-    {
-      header: 'Points',
-      render: (row) => formatNumber(row.pricePoints ?? 0),
-      className: 'text-right',
-    },
-    { header: 'Statut', render: (row) => <StatusBadge value={row.status} /> },
-    { header: 'Date de création', render: (row) => formatDate(row.createdAt) },
-    { header: 'Actions', render: (row) => <button className={buttonClasses.compact} title={row.id ?? undefined} type="button">Voir</button> },
-  ]
-  const filteredServices = services.filter((service) => {
-    const matchesTab =
-      activeTab === 'all' ||
-      (activeTab === 'active' && ['published', 'candidate_selected', 'awaiting_signatures', 'contract_active'].includes(service.status ?? '')) ||
-      (activeTab === 'draft' && service.status === 'draft') ||
-      (activeTab === 'completed' && service.status === 'completed')
-
-    return (
-      matchesTab &&
-      matchesSearch(query, service.title, service.category, service.status, service.ownerId, service.neighborhoodId)
-    )
-  })
-  const pageSize = 10
-  const paginatedServices = paginateRows(filteredServices, page, pageSize)
-
-  useEffect(() => {
-    setPage(1)
-  }, [activeTab, query])
-
-  return (
-    <div className="grid gap-5">
-      <AdminPageHeader
-        eyebrow="Administration / Services"
-        title="Services"
-        description="Consultez les services créés par les habitants et leur avancement."
-        actions={<button className={buttonClasses.ghost} type="button">Exporter</button>}
-      />
-      <Tabs
-        items={[
-          { id: 'all', label: 'Tous', count: services.length },
-          { id: 'draft', label: 'Brouillon', count: services.filter((service) => service.status === 'draft').length },
-          { id: 'active', label: 'Actifs', count: services.filter((service) => ['published', 'candidate_selected', 'awaiting_signatures', 'contract_active'].includes(service.status ?? '')).length },
-          { id: 'completed', label: 'Terminés', count: services.filter((service) => service.status === 'completed').length },
-        ]}
-        onChange={setActiveTab}
-        value={activeTab}
-      />
-      <Toolbar>
-        <SearchField
-          onChange={setQuery}
-          placeholder="Rechercher un titre, une catégorie ou un statut"
-          value={query}
-        />
-        <button className={buttonClasses.ghost} onClick={() => setQuery('')} type="button">
-          Réinitialiser
-        </button>
-      </Toolbar>
-      <TableSummary title={`${formatNumber(filteredServices.length)} services`} />
-      <DataTable
-        columns={columns}
-        emptyMessage={query ? 'Aucun service ne correspond à la recherche.' : 'Aucun service récent.'}
-        rows={paginatedServices}
-      />
-      <Pagination
-        onPageChange={setPage}
-        page={page}
-        pageSize={pageSize}
-        total={filteredServices.length}
-      />
-    </div>
-  )
-}
-
-function ContractsView({ contracts }: { contracts: AdminContractRow[] }) {
-  const [query, setQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<ContractListTab>('all')
-  const [page, setPage] = useState(1)
-  const columns: TableColumn<AdminContractRow>[] = [
-    { header: 'Référence', render: (row) => <MonoValue value={row.id} /> },
-    { header: 'Service', render: (row) => <MonoValue value={row.serviceId} /> },
-    {
-      header: 'Demandeur',
-      render: (row) => <UserReference value={row.requesterId} />,
-    },
-    {
-      header: 'Prestataire',
-      render: (row) => <UserReference value={row.providerId} />,
-    },
-    { header: 'Quartier', render: () => '-' },
-    {
-      header: 'Points',
-      render: (row) => formatNumber(row.pricePoints ?? 0),
-      className: 'text-right',
-    },
-    {
-      header: 'Signatures',
-      render: (row) => `${row.signedByIds?.length ?? 0} / 2`,
-      className: 'text-right',
-    },
-    { header: 'Statut', render: (row) => <StatusBadge value={row.status} /> },
-    { header: 'Date', render: (row) => formatDate(row.createdAt) },
-    { header: 'Actions', render: (row) => <button className={buttonClasses.compact} title={row.id ?? undefined} type="button">Voir</button> },
-  ]
-  const filteredContracts = contracts.filter((contract) => {
-    const matchesTab =
-      activeTab === 'all' ||
-      (activeTab === 'pending' && ['draft', 'sent'].includes(contract.status ?? '')) ||
-      (activeTab === 'active' && contract.status === 'active') ||
-      (activeTab === 'completed' && contract.status === 'completed')
-
-    return (
-      matchesTab &&
-      matchesSearch(
-        query,
-        contract.id,
-        contract.serviceId,
-        contract.applicationId,
-        contract.requesterId,
-        contract.providerId,
-        contract.status,
-      )
-    )
-  })
-  const pageSize = 10
-  const paginatedContracts = paginateRows(filteredContracts, page, pageSize)
-
-  useEffect(() => {
-    setPage(1)
-  }, [activeTab, query])
-
-  return (
-    <div className="grid gap-5">
-      <AdminPageHeader
-        eyebrow="Administration / Contrats"
-        title="Contrats"
-        description="Consultez et gérez l’ensemble des contrats de services."
-      />
-      <Tabs
-        items={[
-          { id: 'all', label: 'Tous', count: contracts.length },
-          { id: 'pending', label: 'En attente', count: contracts.filter((contract) => ['draft', 'sent'].includes(contract.status ?? '')).length },
-          { id: 'active', label: 'En cours', count: contracts.filter((contract) => contract.status === 'active').length },
-          { id: 'completed', label: 'Terminés', count: contracts.filter((contract) => contract.status === 'completed').length },
-        ]}
-        onChange={setActiveTab}
-        value={activeTab}
-      />
-      <Toolbar>
-        <SearchField
-          onChange={setQuery}
-          placeholder="Rechercher par référence, service, demandeur..."
-          value={query}
-        />
-        <button className={buttonClasses.ghost} onClick={() => setQuery('')} type="button">
-          Réinitialiser
-        </button>
-      </Toolbar>
-      <TableSummary title={`${formatNumber(filteredContracts.length)} contrats`} />
-      <DataTable
-        columns={columns}
-        emptyMessage={query ? 'Aucun contrat ne correspond à la recherche.' : 'Aucun contrat récent.'}
-        rows={paginatedContracts}
-      />
-      <Pagination
-        onPageChange={setPage}
-        page={page}
-        pageSize={pageSize}
-        total={filteredContracts.length}
-      />
-    </div>
-  )
-}
-
-function IncidentsView({ incidents }: { incidents: AdminIncidentRow[] }) {
-  const [query, setQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<IncidentListTab>('all')
-  const [page, setPage] = useState(1)
-  const columns: TableColumn<AdminIncidentRow>[] = [
-    { header: 'Référence', render: (row) => <MonoValue value={row.id} /> },
-    { header: 'Titre', render: (row) => <strong className="text-slate-950">{valueOrDash(row.title)}</strong> },
-    { header: 'Quartier', render: (row) => <MonoValue value={row.neighborhoodId} /> },
-    { header: 'Catégorie', render: (row) => valueOrDash(row.type) },
-    { header: 'Priorité', render: (row) => <SeverityBadge value={row.severity} /> },
-    { header: 'Reporter', render: () => '-' },
-    { header: 'Statut', render: (row) => <StatusBadge value={row.status} /> },
-    { header: 'Date', render: (row) => formatDate(row.createdAt) },
-    { header: 'Actions', render: (row) => <button className={buttonClasses.compact} title={row.id ?? undefined} type="button">Voir</button> },
-  ]
-  const filteredIncidents = incidents.filter((incident) => {
-    const matchesTab =
-      activeTab === 'all' ||
-      (activeTab === 'open' && ['reported', 'open'].includes(incident.status ?? '')) ||
-      (activeTab === 'in_progress' && incident.status === 'in_progress') ||
-      (activeTab === 'resolved' && incident.status === 'resolved')
-
-    return (
-      matchesTab &&
-      matchesSearch(query, incident.id, incident.title, incident.type, incident.severity, incident.status, incident.source, incident.externalId)
-    )
-  })
-  const pageSize = 10
-  const paginatedIncidents = paginateRows(filteredIncidents, page, pageSize)
-
-  useEffect(() => {
-    setPage(1)
-  }, [activeTab, query])
-
-  return (
-    <div className="grid gap-5">
-      <AdminPageHeader
-        eyebrow="Administration / Incidents"
-        title="Incidents"
-        description="Suivez et gérez les incidents signalés sur la plateforme."
-        actions={<button className={buttonClasses.primary} type="button">Nouvel incident</button>}
-      />
-      <Tabs
-        items={[
-          { id: 'all', label: 'Tous', count: incidents.length },
-          { id: 'open', label: 'Ouverts', count: incidents.filter((incident) => ['reported', 'open'].includes(incident.status ?? '')).length },
-          { id: 'in_progress', label: 'En cours', count: incidents.filter((incident) => incident.status === 'in_progress').length },
-          { id: 'resolved', label: 'Résolus', count: incidents.filter((incident) => incident.status === 'resolved').length },
-        ]}
-        onChange={setActiveTab}
-        value={activeTab}
-      />
-      <Toolbar>
-        <SearchField
-          onChange={setQuery}
-          placeholder="Rechercher un incident..."
-          value={query}
-        />
-        <button className={buttonClasses.ghost} onClick={() => setQuery('')} type="button">
-          Réinitialiser
-        </button>
-      </Toolbar>
-      <TableSummary title={`${formatNumber(filteredIncidents.length)} incidents`} />
-      <DataTable
-        columns={columns}
-        emptyMessage={query ? 'Aucun incident ne correspond à la recherche.' : 'Aucun incident récent.'}
-        rows={paginatedIncidents}
-      />
-      <Pagination
-        onPageChange={setPage}
-        page={page}
-        pageSize={pageSize}
-        total={filteredIncidents.length}
-      />
-    </div>
-  )
-}
-
-function SyncView({ syncStates }: { syncStates: AdminSyncStateRow[] }) {
-  const [query, setQuery] = useState('')
-  const [activeSyncTab, setActiveSyncTab] = useState<'clients' | 'history' | 'errors'>('clients')
-  const [page, setPage] = useState(1)
-  const columns: TableColumn<AdminSyncStateRow>[] = [
-    { header: 'Poste client', render: (row) => <MonoValue value={row.clientId} /> },
-    { header: 'Utilisateur', render: () => '-' },
-    { header: 'Quartier', render: () => '-' },
-    { header: 'Dernière synchro', render: (row) => formatDate(row.lastSuccessfulSyncAt ?? row.lastPullAt ?? row.lastPushAt) },
-    { header: 'Statut', render: (row) => <StatusBadge value={row.status} /> },
-    { header: 'Données en attente', render: () => '0', className: 'text-right' },
-    { header: 'Version', render: () => '1.0.0' },
-    { header: 'Actions', render: (row) => <button className={buttonClasses.compact} title={row.id ?? undefined} type="button">Voir</button> },
-  ]
-  const filteredSyncStates = syncStates.filter((syncState) =>
-    matchesSearch(query, syncState.clientId, syncState.status, syncState.lastError),
-  )
-  const tabRows = filteredSyncStates.filter((syncState) => {
-    if (activeSyncTab === 'errors') {
-      return syncState.status === 'error' || Boolean(syncState.lastError)
-    }
-
-    return true
-  })
-  const pageSize = 10
-  const paginatedSyncStates = paginateRows(tabRows, page, pageSize)
-  const successClients = syncStates.filter((syncState) => syncState.status === 'success').length
-  const errorClients = syncStates.filter((syncState) => syncState.status === 'error' || syncState.lastError).length
-
-  useEffect(() => {
-    setPage(1)
-  }, [activeSyncTab, query])
-
-  return (
-    <div className="grid gap-5">
-      <AdminPageHeader
-        eyebrow="Administration / Synchronisation"
-        title="Synchronisation"
-        description="Surveillez et gérez la synchronisation des clients JavaFX en mode hors ligne."
-        actions={<button className={buttonClasses.primary} type="button">Lancer une synchronisation</button>}
-      />
-      <div className={metricsGridClass}>
-        <MetricCard accent="emerald" detail="Clients JavaFX connus" label="Clients connectés" value={syncStates.length} />
-        <MetricCard accent="blue" detail="Dernier état déclaré en succès" label="Dernière synchro" value={successClients} />
-        <MetricCard accent="red" detail="Clients avec erreur ou dernier échec" label="Échecs" value={errorClients} />
-        <MetricCard accent="amber" detail="Opérations à surveiller" label="Files en attente" value={syncStates.length - successClients} />
-      </div>
-      <Tabs
-        items={[
-          { id: 'clients', label: 'Clients', count: syncStates.length },
-          { id: 'history', label: 'Historique', count: syncStates.length },
-          { id: 'errors', label: 'Erreurs', count: errorClients },
-        ]}
-        onChange={setActiveSyncTab}
-        value={activeSyncTab}
-      />
-      <Toolbar>
-        <SearchField
-          onChange={setQuery}
-          placeholder="Rechercher un client..."
-          value={query}
-        />
-        <button className={buttonClasses.ghost} onClick={() => setQuery('')} type="button">
-          Filtres
-        </button>
-      </Toolbar>
-      <TableSummary title={activeSyncTab === 'clients' ? 'Clients JavaFX / hors ligne' : activeSyncTab === 'history' ? 'Journal récent' : 'Erreurs de synchronisation'} />
-      <DataTable
-        columns={columns}
-        emptyMessage={query ? 'Aucun client ne correspond à la recherche.' : 'Aucun client de synchronisation connu.'}
-        rows={paginatedSyncStates}
-      />
-      <Pagination
-        onPageChange={setPage}
-        page={page}
-        pageSize={pageSize}
-        total={tabRows.length}
-      />
-      <div className="grid grid-cols-2 gap-5 max-xl:grid-cols-1">
-        <Card className="grid gap-3">
-          <SectionHeader title="Journal récent" description="Derniers états connus depuis l’API de synchronisation." />
-          {syncStates.slice(0, 4).map((syncState) => (
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3" key={`journal-${syncState.id}`}>
-              <div>
-                <strong className="text-slate-950">Synchronisation {syncState.status ?? 'inconnue'}</strong>
-                <p className="mt-1 text-sm text-slate-500">{syncState.clientId ?? 'Client inconnu'} · {formatDate(syncState.updatedAt)}</p>
-              </div>
-              <StatusBadge value={syncState.status} />
-            </div>
-          ))}
-          {syncStates.length === 0 ? <EmptyState message="Aucun journal disponible." /> : null}
-        </Card>
-        <Card className="grid gap-3">
-          <SectionHeader title="Résumé des files d’attente" description="Vue synthétique basée sur les clients connus." />
-          <MetricCard accent="amber" detail="Entrées à inspecter" label="Total estimé" value={syncStates.length - successClients} />
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-function UsersView({ users }: { users: AdminUserRow[] }) {
-  const [query, setQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<UserListTab>('all')
-  const [page, setPage] = useState(1)
-  const columns: TableColumn<AdminUserRow>[] = [
-    {
-      header: 'Nom',
-      render: (row) => (
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-xs font-extrabold text-blue-700">
-            {getInitials(row.displayName ?? row.email)}
-          </span>
-          <strong className="text-slate-950">{row.displayName ?? row.email ?? 'Utilisateur'}</strong>
-        </div>
-      ),
-    },
-    { header: 'Email', render: (row) => valueOrDash(row.email) },
-    { header: 'Rôle', render: (row) => <StatusBadge value={row.role} /> },
-    {
-      header: 'Quartier',
-      render: (row) => <MonoValue value={row.neighborhoodId} />,
-    },
-    {
-      header: 'Solde de points',
-      render: (row) => formatNumber(row.pointsBalance ?? 0),
-      className: 'text-right',
-    },
-    {
-      header: 'Réservé',
-      render: (row) => formatNumber(row.reservedPoints ?? 0),
-      className: 'text-right',
-    },
-    { header: 'Statut', render: () => <StatusBadge value="active" /> },
-    { header: 'Date d’inscription', render: (row) => formatDate(row.createdAt) },
-    { header: 'Actions', render: (row) => <button className={buttonClasses.compact} title={row.id ?? undefined} type="button">Voir</button> },
-  ]
-  const filteredUsers = users.filter((user) => {
-    const matchesTab = activeTab === 'all' || user.role === activeTab
-
-    return matchesTab && matchesSearch(query, user.email, user.displayName, user.role, user.neighborhoodId)
-  })
-  const pageSize = 10
-  const paginatedUsers = paginateRows(filteredUsers, page, pageSize)
-
-  useEffect(() => {
-    setPage(1)
-  }, [activeTab, query])
-
-  return (
-    <div className="grid gap-5">
-      <AdminPageHeader
-        eyebrow="Administration / Utilisateurs"
-        title="Utilisateurs"
-        description="Gérez les comptes et les accès des utilisateurs de la plateforme."
-        actions={<button className={buttonClasses.primary} type="button">Ajouter un utilisateur</button>}
-      />
-      <Tabs
-        items={[
-          { id: 'all', label: 'Tous', count: users.length },
-          { id: 'resident', label: 'Habitants', count: users.filter((user) => user.role === 'resident').length },
-          { id: 'moderator', label: 'Modérateurs', count: users.filter((user) => user.role === 'moderator').length },
-          { id: 'admin', label: 'Administrateurs', count: users.filter((user) => user.role === 'admin').length },
-        ]}
-        onChange={setActiveTab}
-        value={activeTab}
-      />
-      <Toolbar>
-        <SearchField
-          onChange={setQuery}
-          placeholder="Rechercher un utilisateur..."
-          value={query}
-        />
-        <button className={buttonClasses.ghost} onClick={() => setQuery('')} type="button">
-          Réinitialiser
-        </button>
-      </Toolbar>
-      <TableSummary title={`${formatNumber(filteredUsers.length)} utilisateurs`} />
-      <DataTable
-        columns={columns}
-        emptyMessage={query ? 'Aucun utilisateur ne correspond à la recherche.' : 'Aucun utilisateur récent.'}
-        rows={paginatedUsers}
-      />
-      <Pagination
-        onPageChange={setPage}
-        page={page}
-        pageSize={pageSize}
-        total={filteredUsers.length}
-      />
-    </div>
-  )
-}
-
-function SearchField({
-  onChange,
-  placeholder,
-  value,
-}: {
-  onChange: (value: string) => void
-  placeholder: string
-  value: string
-}) {
-  return (
-    <label className="grid min-w-[260px] flex-1 gap-1.5 text-sm font-bold text-slate-700">
-      Recherche
-      <input
-        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 font-medium text-slate-950 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        type="search"
-        value={value}
-      />
-    </label>
-  )
-}
-
-function TableSummary({ title }: { title: string }) {
-  return (
-    <div className="-mb-5 flex items-center justify-between rounded-t-2xl border border-b-0 border-slate-200 bg-white px-5 py-4 shadow-sm">
-      <strong className="text-base font-extrabold text-slate-950">{title}</strong>
-      <button className={buttonClasses.compact} type="button">
-        Exporter
-      </button>
-    </div>
-  )
-}
-
 function SummaryItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-xl bg-slate-50 p-3">
@@ -2094,28 +1630,6 @@ function MetricCard({
   )
 }
 
-function DataTable<T extends { id: string | null }>({
-  columns,
-  rows,
-  emptyMessage,
-}: {
-  columns: TableColumn<T>[]
-  rows: T[]
-  emptyMessage: string
-}) {
-  if (rows.length === 0) {
-    return <EmptyState message={emptyMessage} />
-  }
-
-  return (
-    <UiTable
-      columns={columns}
-      getRowKey={(row, index) => row.id ?? `row-${index}`}
-      rows={rows}
-    />
-  )
-}
-
 function EmptyState({ message }: { message: string }) {
   return <UiEmptyState message={message} />
 }
@@ -2130,26 +1644,6 @@ function SeverityBadge({ value }: { value?: string | null }) {
   const severity = value ?? 'unknown'
 
   return <UiBadge tone={getSeverityTone(severity)}>{severity}</UiBadge>
-}
-
-function MonoValue({ value }: { value?: string | null }) {
-  if (!value) {
-    return <span className={mutedClass}>-</span>
-  }
-
-  return <span className={monoClass} title={value}>{formatShortId(value)}</span>
-}
-
-function UserReference({ value }: { value?: string | null }) {
-  if (!value) {
-    return <span className={mutedClass}>Utilisateur inconnu</span>
-  }
-
-  return (
-    <span className="text-sm font-semibold text-slate-700" title={value}>
-      Utilisateur {formatShortId(value)}
-    </span>
-  )
 }
 
 function valueOrDash(value?: string | number | null) {
@@ -2170,32 +1664,6 @@ function formatShortId(value: string) {
   }
 
   return `${value.slice(0, 6)}…${value.slice(-4)}`
-}
-
-function getInitials(value?: string | null) {
-  if (!value) {
-    return 'U'
-  }
-
-  const parts = value
-    .replace(/@.*/, '')
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-
-  if (parts.length === 0) {
-    return 'U'
-  }
-
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
-function paginateRows<T>(rows: T[], page: number, pageSize: number) {
-  const start = (page - 1) * pageSize
-
-  return rows.slice(start, start + pageSize)
 }
 
 function formatDate(value?: string | Date | null) {
@@ -2330,20 +1798,6 @@ function shortenText(value: string, maxLength: number) {
   }
 
   return `${value.slice(0, maxLength - 1)}…`
-}
-
-function matchesSearch(query: string, ...values: Array<string | number | null | undefined>) {
-  const normalizedQuery = query.trim().toLowerCase()
-
-  if (!normalizedQuery) {
-    return true
-  }
-
-  return values.some((value) =>
-    String(value ?? '')
-      .toLowerCase()
-      .includes(normalizedQuery),
-  )
 }
 
 function getSectionLabel(section: SectionId) {

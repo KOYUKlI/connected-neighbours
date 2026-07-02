@@ -17,7 +17,7 @@ export function Table<T>({
 }) {
   return (
     <div className="overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[880px] border-collapse">
+      <table className="w-full table-fixed border-collapse">
         <thead>
           <tr>
             {columns.map((column) => (
