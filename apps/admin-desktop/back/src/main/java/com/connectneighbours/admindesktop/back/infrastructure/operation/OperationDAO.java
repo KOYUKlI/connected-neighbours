@@ -14,9 +14,9 @@ public interface OperationDAO extends JpaRepository<Operation, UUID> {
 
     List<Operation> findByEntityId(UUID entityId);
 
-    List<Operation> findByOperationEntityType(OperationEntityType entityType);
+    List<Operation> findByEntityType(OperationEntityType entityType);
 
-    List<Operation> findByOperationType(OperationType type);
+    List<Operation> findByType(OperationType type);
 
     List<Operation> findByStatus(OperationStatus status);
 }

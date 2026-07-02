@@ -42,12 +42,12 @@ public class OperationRepositoryImpl implements OperationRepository {
 
     @Override
     public List<Operation> findByOperationEntityType(OperationEntityType entityType) {
-        return dao.findByOperationEntityType(entityType);
+        return dao.findByEntityType(entityType);
     }
 
     @Override
     public List<Operation> findByOperationType(OperationType type) {
-        return dao.findByOperationType(type);
+        return dao.findByType(type);
     }
 
     @Override

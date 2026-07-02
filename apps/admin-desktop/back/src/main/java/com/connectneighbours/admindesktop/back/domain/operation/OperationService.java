@@ -1,6 +1,5 @@
-package com.connectneighbours.admindesktop.back.infrastructure.operation;
+package com.connectneighbours.admindesktop.back.domain.operation;
 
-import com.connectneighbours.admindesktop.back.domain.operation.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
