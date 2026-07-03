@@ -3,7 +3,7 @@ package com.connectneighbours.admindesktop.back.application.incident.alert;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 
@@ -36,7 +36,7 @@ public class AlertRepositoryInMemory implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findBySeverity(Severity severity) {
+    public List<Alert> findBySeverity(AlertSeverity severity) {
         return data.values().stream()
                 .filter(a -> a.getSeverity() == severity)
                 .toList();
@@ -57,7 +57,7 @@ public class AlertRepositoryInMemory implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findByIncidentAndSeverity(Incident incident, Severity severity) {
+    public List<Alert> findByIncidentAndSeverity(Incident incident, AlertSeverity severity) {
         return List.of();
     }
 

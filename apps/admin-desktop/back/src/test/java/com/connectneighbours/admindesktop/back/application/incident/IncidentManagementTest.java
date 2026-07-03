@@ -5,7 +5,7 @@ import com.connectneighbours.admindesktop.back.application.incident.alert.Creati
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.*;
@@ -204,7 +204,7 @@ class IncidentManagementTest {
 
         var alert = management.addAlertToIncident(
                 incident.id(),
-                new CreationAlertDTO("Pipe broken", Severity.CRITICAL)
+                new CreationAlertDTO("Pipe broken", AlertSeverity.CRITICAL)
         );
 
         assertEquals("Pipe broken", alert.details());
@@ -213,7 +213,7 @@ class IncidentManagementTest {
 
     @Test
     void addAlertToIncident_shouldThrow_whenIncidentIdIsNull() {
-        var dto = new CreationAlertDTO("msg", Severity.CRITICAL);
+        var dto = new CreationAlertDTO("msg", AlertSeverity.CRITICAL);
 
         assertThrows(IllegalArgumentException.class,
                 () -> management.addAlertToIncident(null, dto));
@@ -235,7 +235,7 @@ class IncidentManagementTest {
                 new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
         );
 
-        var dto = new CreationAlertDTO(null, Severity.CRITICAL);
+        var dto = new CreationAlertDTO(null, AlertSeverity.CRITICAL);
 
         assertThrows(IllegalArgumentException.class,
                 () -> management.addAlertToIncident(incident.id(), dto));
@@ -247,7 +247,7 @@ class IncidentManagementTest {
                 new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
         );
 
-        var dto = new CreationAlertDTO("", Severity.CRITICAL);
+        var dto = new CreationAlertDTO("", AlertSeverity.CRITICAL);
 
         assertThrows(IllegalArgumentException.class,
                 () -> management.addAlertToIncident(incident.id(), dto));
@@ -275,7 +275,7 @@ class IncidentManagementTest {
 
         var alert = management.addAlertToIncident(
                 incident.id(),
-                new CreationAlertDTO("Pipe broken", Severity.CRITICAL)
+                new CreationAlertDTO("Pipe broken", AlertSeverity.CRITICAL)
         );
 
         Alert alertEntity = alertRepo.findById(alert.id()).get();

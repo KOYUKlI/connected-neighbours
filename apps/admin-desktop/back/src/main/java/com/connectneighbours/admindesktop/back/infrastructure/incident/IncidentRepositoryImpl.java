@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +56,11 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     @Override
     public List<Incident> findByReporter(Reporter reporter) {
         return incidentDAO.findByReporter(reporter);
+    }
+
+    @Override
+    public List<Incident> findByUpdatedAtAfter(Instant since) {
+        return incidentDAO.findByUpdatedAtAfter(since);
     }
 
     @Override

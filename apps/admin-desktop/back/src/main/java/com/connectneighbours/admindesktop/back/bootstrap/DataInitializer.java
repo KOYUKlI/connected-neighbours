@@ -2,9 +2,10 @@ package com.connectneighbours.admindesktop.back.bootstrap;
 
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
@@ -41,7 +42,8 @@ public class DataInitializer {
                             julie,
                             "Effraction local vélo",
                             "Cadenas coupé retrouvé au sol",
-                            IncidentType.SECURITY
+                            IncidentType.SECURITY,
+                            IncidentSeverity.HIGH
                     )
             );
 
@@ -50,7 +52,8 @@ public class DataInitializer {
                             thomas,
                             "Vélo abandonné",
                             "Un vélo sans cadenas retrouvé dans le local",
-                            IncidentType.NUISANCE
+                            IncidentType.NUISANCE,
+                            IncidentSeverity.LOW
                     )
             );
 
@@ -59,16 +62,18 @@ public class DataInitializer {
                             sarah,
                             "Tentative d'effraction",
                             "Poignée de porte forcée, traces suspectes",
-                            IncidentType.SECURITY
+                            IncidentType.SECURITY,
+                            IncidentSeverity.MEDIUM
                     )
             );
+
 
             alertRepo.save(new Alert(
                     incident1,
                     julie,
                     "Cadenas coupé retrouvé au sol",
                     "Le cadenas a été retrouvé au sol, probablement coupé.",
-                    Severity.CRITICAL
+                    AlertSeverity.CRITICAL
             ));
 
             alertRepo.save(new Alert(
@@ -76,7 +81,7 @@ public class DataInitializer {
                     thomas,
                     "Présence de traces suspectes",
                     "Des marques de frottement sur la porte du local.",
-                    Severity.HIGH
+                    AlertSeverity.HIGH
             ));
 
             alertRepo.save(new Alert(
@@ -84,7 +89,7 @@ public class DataInitializer {
                     sarah,
                     "Suspicion de repérage",
                     "Un individu inconnu observé près du local à plusieurs reprises.",
-                    Severity.MEDIUM
+                    AlertSeverity.MEDIUM
             ));
 
             alertRepo.save(new Alert(
@@ -92,7 +97,7 @@ public class DataInitializer {
                     julie,
                     "Bruit métallique entendu",
                     "Un bruit de métal a été entendu dans le local vers 23h.",
-                    Severity.LOW
+                    AlertSeverity.LOW
             ));
 
             alertRepo.save(new Alert(
@@ -100,7 +105,7 @@ public class DataInitializer {
                     thomas,
                     "Poignée légèrement tordue",
                     "La poignée du local semble avoir été forcée récemment.",
-                    Severity.HIGH
+                    AlertSeverity.HIGH
             ));
 
 
@@ -109,7 +114,7 @@ public class DataInitializer {
                     thomas,
                     "Vélo abandonné dans le local",
                     "Un vélo sans cadenas retrouvé dans le local.",
-                    Severity.MEDIUM
+                    AlertSeverity.MEDIUM
             ));
 
             alertRepo.save(new Alert(
@@ -117,7 +122,7 @@ public class DataInitializer {
                     sarah,
                     "Suspicion de tentative d'effraction",
                     "Poignée de porte forcée, traces suspectes.",
-                    Severity.HIGH
+                    AlertSeverity.HIGH
             ));
 
         };

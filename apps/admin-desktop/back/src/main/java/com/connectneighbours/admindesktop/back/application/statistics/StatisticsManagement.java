@@ -1,6 +1,6 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.statistics.StatisticsService;
 import org.springframework.stereotype.Service;
@@ -43,7 +43,7 @@ public class StatisticsManagement {
                 .toList();
     }
 
-    public AlertDistributionBySeverityDTO alertDistributionBySeverity(Severity severity) {
+    public AlertDistributionBySeverityDTO alertDistributionBySeverity(AlertSeverity severity) {
         var alertDistributionBySeverity = service.alertDistributionBySeverity(severity);
         return StatisticsMapper.toAlertDistributionBySeverityDTO(alertDistributionBySeverity);
     }

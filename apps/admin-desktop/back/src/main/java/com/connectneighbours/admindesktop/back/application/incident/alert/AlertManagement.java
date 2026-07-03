@@ -56,7 +56,7 @@ public class AlertManagement {
                 .toList();
     }
 
-    public List<AlertDTO> listBySeverity(Severity severity) {
+    public List<AlertDTO> listBySeverity(AlertSeverity severity) {
         var list = alertRepository.findBySeverity(severity);
         return list.stream()
                 .map(AlertMapper::toDTO)
@@ -78,7 +78,7 @@ public class AlertManagement {
                 .toList();
     }
 
-    public List<AlertDTO> listByIncidentAndSeverity(IncidentDTO dto, Severity severity) {
+    public List<AlertDTO> listByIncidentAndSeverity(IncidentDTO dto, AlertSeverity severity) {
         var incident = loadIncident(dto.id());
         var list = alertRepository.findByIncidentAndSeverity(incident,severity);
         return list.stream()

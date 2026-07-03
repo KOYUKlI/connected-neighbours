@@ -1,7 +1,7 @@
 package com.connectneighbours.admindesktop.back.infrastructure.statistics;
 
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
@@ -9,13 +9,10 @@ import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepositor
 import com.connectneighbours.admindesktop.back.domain.statistics.*;
 import org.springframework.stereotype.Repository;
 
-import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
-
-import static java.lang.Double.NaN;
 
 @Repository
 public class StatisticsServiceImpl implements StatisticsService {
@@ -79,7 +76,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public AlertDistributionBySeverity alertDistributionBySeverity(Severity severity) {
+    public AlertDistributionBySeverity alertDistributionBySeverity(AlertSeverity severity) {
         var list = alertRepository.findAll();
         var total = list.size();
         var count = list.stream()
@@ -90,7 +87,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public List<AlertDistributionBySeverity> listAlertDistributionBySeverity() {
-        return Arrays.stream(Severity.values())
+        return Arrays.stream(AlertSeverity.values())
                 .map(this::alertDistributionBySeverity)
                 .toList();
     }

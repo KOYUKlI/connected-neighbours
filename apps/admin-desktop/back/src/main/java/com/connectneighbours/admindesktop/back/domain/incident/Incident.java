@@ -2,12 +2,13 @@ package com.connectneighbours.admindesktop.back.domain.incident;
 
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,10 @@ public class Incident {
     @Column(length = 1000)
     private String description;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private IncidentSeverity severity;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private IncidentType type;
@@ -45,6 +50,9 @@ public class Incident {
 
     @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL)
     private List<Alert> alerts = new ArrayList<>();
+
+    @Column
+    private Instant updatedAt;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
@@ -59,12 +67,13 @@ public class Incident {
     public Incident() {
     }
 
-    public Incident(Reporter reporter, String title, String description, IncidentType type) {
+    public Incident(Reporter reporter, String title, String description, IncidentType type,IncidentSeverity severity) {
         this.reporter = reporter;
         this.title = title;
         this.description = description;
         this.type = type;
         this.status = IncidentStatus.CREATED;
+        this.severity = severity;
         this.displayId = generateDisplayId();
     }
 
@@ -119,6 +128,14 @@ public class Incident {
         return resolvedAt;
     }
 
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public IncidentSeverity getSeverity() {
+        return severity;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -150,7 +167,7 @@ public class Incident {
     }
 
     public boolean hasCriticalOpenAlerts() {
-        return alerts.stream().anyMatch(a -> a.getSeverity().equals(Severity.CRITICAL) && !a.isResolved() && a.getStatus().equals(AlertStatus.OPEN));
+        return alerts.stream().anyMatch(a -> a.getSeverity().equals(AlertSeverity.CRITICAL) && !a.isResolved() && a.getStatus().equals(AlertStatus.OPEN));
     }
 
     public boolean isResolved() {
@@ -183,5 +200,6 @@ public class Incident {
         long inc = counter.getAndIncrement();
         return "INC-" + String.format("%05d", number) + "-" + String.format("%04d",inc);
     }
+
 
 }

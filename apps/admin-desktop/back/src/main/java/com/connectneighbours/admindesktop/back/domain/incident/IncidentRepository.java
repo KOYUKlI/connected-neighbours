@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,8 @@ public interface IncidentRepository {
     List<Incident> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     List<Incident> findByReporter(Reporter reporter);
+
+    List<Incident> findByUpdatedAtAfter(Instant since);
 
     void delete(Incident incident);
 

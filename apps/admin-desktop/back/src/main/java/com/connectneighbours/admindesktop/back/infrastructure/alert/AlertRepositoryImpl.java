@@ -3,11 +3,12 @@ package com.connectneighbours.admindesktop.back.infrastructure.alert;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public class AlertRepositoryImpl implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findBySeverity(Severity severity) {
+    public List<Alert> findBySeverity(AlertSeverity severity) {
         return alertDAO.findBySeverity(severity);
     }
 
@@ -56,8 +57,13 @@ public class AlertRepositoryImpl implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findByIncidentAndSeverity(Incident incident, Severity severity) {
+    public List<Alert> findByIncidentAndSeverity(Incident incident, AlertSeverity severity) {
         return alertDAO.findByIncidentAndSeverity(incident,severity);
+    }
+
+    @Override
+    public List<Alert> findByUpdatedAtAfter(Instant since) {
+        return alertDAO.findByUpdatedAtAfter(since);
     }
 
     @Override

@@ -12,13 +12,16 @@
 
     <properties>
         <java.version>21</java.version>
-        <spring.boot.version>4.0.6</spring.boot.version>
+        <spring.boot.version>3.2.6</spring.boot.version>
         <junit.version>5.12.1</junit.version>
     </properties>
 
-    <!-- ========================= -->
-    <!--        DEPENDENCIES       -->
-    <!-- ========================= -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.6</version>
+    </parent>
+
     <dependencies>
 
         <!-- ===== JavaFX ===== -->
@@ -49,74 +52,48 @@
             <artifactId>controlsfx</artifactId>
             <version>11.2.1</version>
         </dependency>
-
         <dependency>
             <groupId>net.synedra</groupId>
             <artifactId>validatorfx</artifactId>
             <version>0.6.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-javafx</artifactId>
             <version>12.3.1</version>
         </dependency>
-
         <dependency>
             <groupId>eu.hansolo</groupId>
             <artifactId>tilesfx</artifactId>
             <version>21.0.9</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
-        <!-- ===== Spring Boot (sans parent) ===== -->
+        <!-- ===== Spring Boot ===== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-            <version>${spring.boot.version}</version>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
-            <version>${spring.boot.version}</version>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webservices</artifactId>
-            <version>${spring.boot.version}</version>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>3.0.2</version>
-        </dependency>
 
         <!-- ===== Databases ===== -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.2.224</version>
             <scope>runtime</scope>
         </dependency>
-
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.3</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -124,17 +101,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>${spring.boot.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -144,15 +118,8 @@
 
     </dependencies>
 
-    <!-- ========================= -->
-    <!--           BUILD           -->
-    <!-- ========================= -->
     <build>
-
-        <!-- Ajoute back/ et ui/ comme sources -->
         <plugins>
-
-            <!-- Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -163,7 +130,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Build helper pour ajouter les dossiers -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -180,21 +146,9 @@
                             </sources>
                         </configuration>
                     </execution>
-
-                    <execution>
-                        <id>add-test-source</id>
-                        <phase>generate-test-sources</phase>
-                        <goals><goal>add-test-source</goal></goals>
-                        <configuration>
-                            <sources>
-                                <source>back/src/test/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
 
-            <!-- JavaFX -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
@@ -204,16 +158,12 @@
                 </configuration>
             </plugin>
 
-            <!-- Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring.boot.version}</version>
             </plugin>
-
         </plugins>
 
-        <!-- Ressources -->
         <resources>
             <resource>
                 <directory>back/src/main/resources</directory>
@@ -222,7 +172,5 @@
                 <directory>ui/src/main/resources</directory>
             </resource>
         </resources>
-
     </build>
-
 </project>

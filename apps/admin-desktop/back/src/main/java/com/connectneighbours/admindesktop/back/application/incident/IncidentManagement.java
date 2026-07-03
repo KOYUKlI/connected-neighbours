@@ -43,7 +43,7 @@ public class IncidentManagement {
 
     public IncidentDTO createIncident(CreationIncidentDTO dto) {
         validateCreate(dto);
-        Incident incident = new Incident(dto.reporter(), dto.title(), dto.description(), dto.type());
+        Incident incident = new Incident(dto.reporter(), dto.title(), dto.description(), dto.type(),dto.severity());
         incidentService.open(incident);
         var savedIncident = incidentRepository.save(incident);
 

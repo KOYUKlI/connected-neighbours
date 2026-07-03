@@ -1,9 +1,9 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 
 public record AlertDistributionBySeverityDTO(
-        Severity severity,
+        AlertSeverity severity,
         Long count,
         String percentage
 ) {
