@@ -41,5 +41,6 @@ public class IncidentTableViewModel {
         incidentTable.createdAtProperty().set(source.createdAtProperty().get());
         incidentTable.resolvedAtProperty().set(source.resolvedAtProperty().get());
         incidentTable.alertsCountProperty().set(source.alertsCountProperty().get());
+        incidentTable.severityProperty().set(source.severityProperty().get());
     }
 }

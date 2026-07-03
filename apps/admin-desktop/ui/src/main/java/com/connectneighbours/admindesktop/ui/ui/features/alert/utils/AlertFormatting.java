@@ -1,10 +1,5 @@
 package com.connectneighbours.admindesktop.ui.ui.features.alert.utils;
 
-import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
-
-import static com.connectneighbours.admindesktop.back.domain.alert.Severity.CRITICAL;
-
 public class AlertFormatting {
     public static String formatAlertStatus(String s) {
         if (s == null) return "";

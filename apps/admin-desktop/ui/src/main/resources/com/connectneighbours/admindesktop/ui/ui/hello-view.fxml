@@ -17,7 +17,7 @@
 
         <Label fx:id="welcomeText"/>
         <Button text="Hello!" onAction="#onHelloButtonClick"/>
-<!--        <Button text="Voir les alertes" onAction="#goToAlerts"/>-->
+<!--        <Button text="Synchroniser" onAction="#onSyncClicked" />-->
 
     </VBox>
 

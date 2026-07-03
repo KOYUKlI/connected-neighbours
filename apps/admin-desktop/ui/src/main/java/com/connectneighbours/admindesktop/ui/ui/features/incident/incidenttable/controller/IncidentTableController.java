@@ -31,6 +31,8 @@ public class IncidentTableController extends VBox {
     @FXML
     private TableColumn<IncidentTableViewModel, String> statusColumn;
     @FXML
+    private TableColumn<IncidentTableViewModel,String> severityColumn;
+    @FXML
     private TableColumn<IncidentTableViewModel, ReporterProperty> reporterColumn;
     @FXML
     private TableColumn<IncidentTableViewModel, LocalDate> createdAtColumn;
@@ -45,6 +47,7 @@ public class IncidentTableController extends VBox {
         titleColumn.setCellValueFactory(data -> data.getValue().incidentTableProperty().titleProperty());
         typeColumn.setCellValueFactory(data -> data.getValue().incidentTableProperty().typeProperty());
         statusColumn.setCellValueFactory(data -> data.getValue().incidentTableProperty().statusProperty());
+        severityColumn.setCellValueFactory(data -> data.getValue().incidentTableProperty().severityProperty());
         reporterColumn.setCellValueFactory(data -> new SimpleObjectProperty<>((ReporterProperty) data.getValue().incidentTableProperty().reporterProperty()));
         createdAtColumn.setCellValueFactory(data -> data.getValue().incidentTableProperty().createdAtProperty().map(LocalDateTime::toLocalDate));
         resolvedAtColumn.setCellValueFactory(data -> data.getValue().incidentTableProperty().resolvedAtProperty().map(LocalDateTime::toLocalDate));

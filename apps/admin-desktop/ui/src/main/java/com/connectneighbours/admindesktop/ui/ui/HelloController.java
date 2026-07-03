@@ -2,8 +2,12 @@ package com.connectneighbours.admindesktop.ui.ui;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
+import com.connectneighbours.admindesktop.back.application.incident.IncidentMapper;
+import com.connectneighbours.admindesktop.back.application.incident.IncidentSyncDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
+import com.connectneighbours.admindesktop.back.application.sync.SyncManagement;
+import com.connectneighbours.admindesktop.back.application.sync.SyncPullResponseDTO;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.controller.IncidentTableController;
@@ -44,10 +48,15 @@ public class HelloController {
     private IncidentManagement incidentManagement;
 
     @Autowired
+    private SyncManagement syncManagement;
+
+    @Autowired
     private ApplicationContext context;
 
     @Autowired
     private AlertManagement alertManagement;
+
+    private IncidentTableController tableController;
 
     @FXML
     private Label welcomeText;
@@ -81,6 +90,7 @@ public class HelloController {
             List<IncidentTableViewModel> models = incidents.stream()
                     .map(dto -> {
                         var newDto = incidentManagement.startIncidentProgress(dto.id());
+                        System.out.println(newDto);
                         var vm = new IncidentTableViewModel();
                         vm.setDto(newDto);
                         vm.setIncidentTable(mapToProperty(newDto));
@@ -104,6 +114,27 @@ public class HelloController {
     protected void onHelloButtonClick() {
         welcomeText.setText("Welcome to JavaFX Application!");
     }
+
+
+//    @FXML
+//    private void onSyncClicked() {
+//        SyncPullResponseDTO response = syncManagement.pull("desktop-1", null);
+//
+//        var models = response.incidents().stream()
+//                .map(sync -> {
+//                    var dto = IncidentMapper.fromSyncDTO(sync);
+//                    var vm = new IncidentTableViewModel();
+//                    vm.setDto(dto);
+//                    vm.setIncidentTable(mapToProperty(dto));
+//                    return vm;
+//                })
+//                .toList();
+//
+//        tableController.getIncidentTable().getItems().setAll(models);
+//    }
+
+
+
 
     @FXML
     public void goToAlerts(IncidentDTO incident) {
@@ -146,6 +177,8 @@ public class HelloController {
         p.alertsCountProperty().set(dto.alerts().size());
 
         p.reporterProperty().set((ReporterProperty) mapReporter(dto.reporter()));
+
+        p.severityProperty().set(dto.severity().toString());
 
         return p;
     }

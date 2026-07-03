@@ -2,7 +2,7 @@ package com.connectneighbours.admindesktop.ui.ui.features.alert.controller;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.ui.ui.HelloController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.controller.AlertStatsController;
@@ -121,7 +121,7 @@ public class AlertViewController extends VBox {
     private AlertStatsProperty toAlertStatsProperty(IncidentDTO dto) {
         SimpleAlertStatsProperty p = new SimpleAlertStatsProperty();
         p.totalAlertsProperty().set(parent.getAlertManagement().listByIncident(dto).size());
-        p.totalAlertsCriticalProperty().set(parent.getAlertManagement().listByIncidentAndSeverity(dto,Severity.CRITICAL).size());
+        p.totalAlertsCriticalProperty().set(parent.getAlertManagement().listByIncidentAndSeverity(dto, AlertSeverity.CRITICAL).size());
         p.averageResolutionTimeProperty().set(0);
         return p;
     }
