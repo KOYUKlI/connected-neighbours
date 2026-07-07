@@ -2,9 +2,12 @@ package com.connectneighbours.admindesktop.ui.ui.features.alert.controller;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
+import com.connectneighbours.admindesktop.back.application.statistics.AlertDistributionBySeverityDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.ui.ui.HelloController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController;
+import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.AlertDistributionByGravityProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.SimpleAlertDistributionByGravityProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.controller.AlertStatsController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.model.AlertStatsProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.model.SimpleAlertStatsProperty;
@@ -15,13 +18,19 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AlertViewController extends VBox {
 
+    private static final Logger log = LoggerFactory.getLogger(AlertViewController.class);
     private HelloController parent;
     private IncidentDTO currentIncident;
 
@@ -87,7 +96,7 @@ public class AlertViewController extends VBox {
     public void loadIncident(IncidentDTO incident) {
         titleIncident.textProperty().set("Incident #" + incident.displayId() + " - " + incident.title());
         alertsContainer.getChildren().clear();
-
+        var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverity();
         for (AlertDTO alert : incident.alerts()) {
             var newAlertDto = parent.getAlertManagement().startAlertProgress(alert.id());
             WidgetAlertController widget = new WidgetAlertController();
@@ -95,6 +104,7 @@ public class AlertViewController extends VBox {
             alertsContainer.getChildren().add(widget);
         }
         loadStats(incident);
+        loadDistribution(distributionList);
     }
 
     public void loadStats(IncidentDTO incident) {
@@ -104,6 +114,37 @@ public class AlertViewController extends VBox {
         alertStatsContainer.getChildren().addFirst(stats);
         alertStatsContainer.getChildren().add(menuBtn);
     }
+
+    public void loadDistribution(List<AlertDistributionBySeverityDTO> dtoList) {
+        AlertDistributionByGravityController distribution = new AlertDistributionByGravityController();
+        distribution.setPrefWidth(250);
+        distribution.setMaxWidth(250);
+        HBox.setHgrow(distribution, Priority.NEVER);
+
+        AlertDistributionBySeverityDTO critical = dtoList.stream()
+                .filter(a -> a.severity().equals(AlertSeverity.CRITICAL))
+                .findFirst().orElseThrow();
+
+        AlertDistributionBySeverityDTO high = dtoList.stream()
+                .filter(a -> a.severity().equals(AlertSeverity.HIGH))
+                .findFirst().orElseThrow();
+
+        AlertDistributionBySeverityDTO medium = dtoList.stream()
+                .filter(a -> a.severity().equals(AlertSeverity.MEDIUM))
+                .findFirst().orElseThrow();
+
+        AlertDistributionBySeverityDTO low = dtoList.stream()
+                .filter(a -> a.severity().equals(AlertSeverity.LOW))
+                .findFirst().orElseThrow();
+
+        distribution.setRedDistribution(toDistributionProp(critical));
+        distribution.setBlueDistribution(toDistributionProp(high));
+        distribution.setOrangeDistribution(toDistributionProp(medium));
+        distribution.setGreenDistribution(toDistributionProp(low));
+
+        alertDistribution.getChildren().addFirst(distribution);
+    }
+
 
     private WidgetAlertProperty toWidgetProperty(AlertDTO dto) {
         SimpleWidgetAlertProperty p = new SimpleWidgetAlertProperty();
@@ -126,10 +167,17 @@ public class AlertViewController extends VBox {
         return p;
     }
 
+    private AlertDistributionByGravityProperty toDistributionProp(AlertDistributionBySeverityDTO dto) {
+        SimpleAlertDistributionByGravityProperty p = new SimpleAlertDistributionByGravityProperty();
+        p.countProperty().set(dto.count());
+        p.percentageProperty().set(dto.percentage());
+        p.rateProperty().set(dto.rate());
+        return p;
+    }
+
+
     @FXML
     private void initialize() {
-        AlertDistributionByGravityController distribution = new AlertDistributionByGravityController();
-        alertDistribution.getChildren().addFirst(distribution);
 
         btnReturn.setOnAction(e -> goToIncident());
         btnFilter.setOnAction(e -> refreshFilter());

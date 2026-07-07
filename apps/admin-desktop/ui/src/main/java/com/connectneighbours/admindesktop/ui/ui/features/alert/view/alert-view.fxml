@@ -89,6 +89,7 @@
                     style="-fx-background-color: transparent;">
             <content>
                 <HBox spacing="20" fx:id="alertDistribution" alignment="TOP_CENTER">
+                    <Region HBox.hgrow="ALWAYS"/>
 
                     <VBox fx:id="alertsContainer"
                           fillWidth="true"

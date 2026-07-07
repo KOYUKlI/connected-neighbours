@@ -6,6 +6,7 @@ import com.connectneighbours.admindesktop.back.application.incident.IncidentMapp
 import com.connectneighbours.admindesktop.back.application.incident.IncidentSyncDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
+import com.connectneighbours.admindesktop.back.application.statistics.StatisticsManagement;
 import com.connectneighbours.admindesktop.back.application.sync.SyncManagement;
 import com.connectneighbours.admindesktop.back.application.sync.SyncPullResponseDTO;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
@@ -55,6 +56,9 @@ public class HelloController {
 
     @Autowired
     private AlertManagement alertManagement;
+
+    @Autowired
+    private StatisticsManagement statisticsManagement;
 
     private IncidentTableController tableController;
 
@@ -155,6 +159,10 @@ public class HelloController {
 
     public AlertManagement getAlertManagement() {
         return alertManagement;
+    }
+
+    public StatisticsManagement getStatisticsManagement() {
+        return statisticsManagement;
     }
 
     private ReadOnlyIncidentTableProperty mapToProperty(IncidentDTO dto) {
