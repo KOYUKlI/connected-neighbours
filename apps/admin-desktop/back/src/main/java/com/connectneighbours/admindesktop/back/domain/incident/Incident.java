@@ -48,7 +48,7 @@ public class Incident {
     @Column(nullable = false)
     private IncidentStatus status;
 
-    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
     private List<Alert> alerts = new ArrayList<>();
 
     @Column

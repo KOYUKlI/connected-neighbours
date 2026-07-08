@@ -14,6 +14,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.LocalDateTime;
+
 @Configuration
 public class DataInitializer {
 
@@ -68,6 +70,24 @@ public class DataInitializer {
             );
 
 
+            Incident incident4 = incidentRepo.save(new Incident(
+                    julie,
+                    "Suspicion de sabotage dans la salle électrique",
+                    "Des anomalies ont été détectées dans le tableau électrique, suggérant une possible manipulation.",
+                    IncidentType.MAINTENANCE,
+                    IncidentSeverity.HIGH
+            ));
+
+            Incident incident5 = incidentRepo.save(new Incident(
+                    thomas,
+                    "Activité suspecte dans le dépôt de matériel",
+                    "Plusieurs éléments indiquent une intrusion ou une manipulation non autorisée dans le dépôt.",
+                    IncidentType.SECURITY,
+                    IncidentSeverity.CRITICAL
+            ));
+
+
+
             alertRepo.save(new Alert(
                     incident1,
                     julie,
@@ -108,6 +128,14 @@ public class DataInitializer {
                     AlertSeverity.HIGH
             ));
 
+            alertRepo.save(new Alert(
+                    incident1,
+                    sarah,
+                    "Caméra extérieure brièvement désactivée",
+                    "La caméra de surveillance a cessé de transmettre pendant environ 30 secondes.",
+                    AlertSeverity.MEDIUM
+            ));
+
 
             alertRepo.save(new Alert(
                     incident2,
@@ -118,12 +146,110 @@ public class DataInitializer {
             ));
 
             alertRepo.save(new Alert(
+                    incident2,
+                    julie,
+                    "Fenêtre arrière légèrement ouverte",
+                    "La fenêtre du local informatique était entrouverte alors qu’elle est normalement verrouillée.",
+                    AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident2,
+                    thomas,
+                    "Câble réseau débranché",
+                    "Un câble Ethernet principal a été débranché sans justification.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident2,
+                    sarah,
+                    "Présence d’empreintes suspectes",
+                    "Des empreintes de chaussures inconnues ont été trouvées près de la porte arrière.",
+                    AlertSeverity.HIGH
+            ));
+
+
+            alertRepo.save(new Alert(
                     incident3,
                     sarah,
                     "Suspicion de tentative d'effraction",
                     "Poignée de porte forcée, traces suspectes.",
                     AlertSeverity.HIGH
             ));
+
+            alertRepo.save(new Alert(
+                    incident3,
+                    thomas,
+                    "Badge non reconnu utilisé",
+                    "Un badge inconnu a tenté d’accéder au parking à 02h14.",
+                    AlertSeverity.HIGH
+            ));
+
+            alertRepo.save(new Alert(
+                    incident3,
+                    sarah,
+                    "Caméra obstruée",
+                    "La caméra du portail a été recouverte pendant quelques secondes.",
+                    AlertSeverity.CRITICAL
+            ));
+
+            alertRepo.save(new Alert(
+                    incident3,
+                    julie,
+                    "Voiture suspecte stationnée",
+                    "Un véhicule non enregistré est resté 15 minutes devant l’entrée.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident3,
+                    thomas,
+                    "Gravillons déplacés",
+                    "Des traces de pas ont été observées près du grillage latéral.",
+                    AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident4,
+                    sarah,
+                    "Disjoncteur déclenché",
+                    "Un disjoncteur a sauté sans raison apparente.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident4,
+                    julie,
+                    "Odeur de brûlé",
+                    "Une légère odeur de plastique brûlé a été détectée près du tableau électrique.",
+                    AlertSeverity.HIGH
+            ));
+
+            alertRepo.save(new Alert(
+                    incident5,
+                    thomas,
+                    "Casier forcé",
+                    "Un casier de stockage a été ouvert de force.",
+                    AlertSeverity.CRITICAL
+            ));
+
+            alertRepo.save(new Alert(
+                    incident5,
+                    sarah,
+                    "Inventaire incomplet",
+                    "Un outil enregistré dans l’inventaire manque.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident5,
+                    julie,
+                    "Bruit inhabituel",
+                    "Un bruit métallique a été entendu dans le dépôt vers 01h.",
+                    AlertSeverity.LOW
+            ));
+
 
         };
     }

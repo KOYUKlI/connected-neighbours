@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.back.infrastructure.statistics;
 
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public class StatisticsServiceImpl implements StatisticsService {
@@ -91,4 +93,25 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .map(this::alertDistributionBySeverity)
                 .toList();
     }
+
+    @Override
+    public List<AlertDistributionBySeverity> listAlertDistributionBySeverityAndIncident(UUID incident) {
+        var incidentFind = incidentRepository.findById(incident)
+                .orElseThrow(() -> new IncidentNotFoundException("Incident not found with UUID : " + incident));
+
+        var alerts = incidentFind.getAlerts();
+        long total = alerts.size();
+
+        return Arrays.stream(AlertSeverity.values())
+                .map(sev -> {
+                    long count = alerts.stream().filter(a -> a.getSeverity().equals(sev)).count();
+                    double rate = total == 0 ? 0 : (double) count / total;
+                    return new AlertDistributionBySeverity(sev, count, rate);
+                })
+                .toList();
+    }
+
+
+
+
 }

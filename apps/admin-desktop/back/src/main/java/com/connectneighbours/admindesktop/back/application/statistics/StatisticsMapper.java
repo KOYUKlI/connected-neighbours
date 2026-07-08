@@ -16,7 +16,7 @@ public class StatisticsMapper {
     }
 
     public static IncidentDistributionByTypeDTO toIncidentDistributionByTypeDTO(IncidentDistributionByType incidentDistributionByType) {
-        return new IncidentDistributionByTypeDTO(incidentDistributionByType.type(), incidentDistributionByType.count(), FormatPercentage.formatPercentage(incidentDistributionByType.rate()));
+        return new IncidentDistributionByTypeDTO(incidentDistributionByType.type(), incidentDistributionByType.count(), incidentDistributionByType.rate(),FormatPercentage.formatPercentage(incidentDistributionByType.rate()));
     }
 
     public static AlertDistributionBySeverityDTO toAlertDistributionBySeverityDTO(AlertDistributionBySeverity alertDistributionBySeverity) {
