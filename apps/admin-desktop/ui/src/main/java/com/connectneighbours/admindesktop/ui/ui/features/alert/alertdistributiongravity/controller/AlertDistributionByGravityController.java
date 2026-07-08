@@ -20,19 +20,6 @@ import java.util.List;
 public class AlertDistributionByGravityController extends VBox {
     @FXML
     private Group graphDistribution;
-    @FXML
-    private Arc redDistribution;
-    @FXML
-    private Arc orangeDistribution;
-    @FXML
-    private Arc greenDistribution;
-    @FXML
-    private Arc blueDistribution;
-
-    private final AlertDistributionByGravityViewModel vmCritical = new AlertDistributionByGravityViewModel();
-    private final AlertDistributionByGravityViewModel vmHigh = new AlertDistributionByGravityViewModel();
-    private final AlertDistributionByGravityViewModel vmMedium = new AlertDistributionByGravityViewModel();
-    private final AlertDistributionByGravityViewModel vmLow = new AlertDistributionByGravityViewModel();
 
     public AlertDistributionByGravityController() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(
