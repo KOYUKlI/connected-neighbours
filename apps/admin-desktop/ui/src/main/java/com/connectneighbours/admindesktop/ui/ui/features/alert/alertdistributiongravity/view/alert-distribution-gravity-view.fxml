@@ -14,19 +14,9 @@
     <Text text="Répartition par Gravité"
           style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
 
-    <StackPane  prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
-        <Group fx:id="graphDistribution">
-            <Arc centerX="110" centerY="110" radiusX="80" radiusY="80"
-                 length="90" fill="#F03B3D" type="ROUND" fx:id="redDistribution"/>
-            <Arc centerX="110" centerY="110" radiusX="80" radiusY="80"
-                 startAngle="90" length="90" fill="#FAB303" type="ROUND" fx:id="orangeDistribution"/>
-            <Arc centerX="110" centerY="110" radiusX="80" radiusY="80"
-                 startAngle="180" length="90" fill="#3AA835" type="ROUND" fx:id="greenDistribution"/>
-            <Arc centerX="110" centerY="110" radiusX="80" radiusY="80"
-                 startAngle="270" length="90" fill="#2E6BE6" type="ROUND" fx:id="blueDistribution"/>
-            <Circle centerX="110" centerY="110" radius="30" fill="white"/>
-        </Group>
-    </StackPane >
+    <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
+        <Group fx:id="graphDistribution"/>
+    </StackPane>
 
 
     <VBox spacing="10"

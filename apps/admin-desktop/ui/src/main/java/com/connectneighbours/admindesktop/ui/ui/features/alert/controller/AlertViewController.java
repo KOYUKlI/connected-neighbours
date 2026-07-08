@@ -3,8 +3,9 @@ package com.connectneighbours.admindesktop.ui.ui.features.alert.controller;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.AlertDistributionBySeverityDTO;
+import com.connectneighbours.admindesktop.back.application.statistics.FormatPercentage;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
-import com.connectneighbours.admindesktop.ui.ui.HelloController;
+import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.AlertDistributionByGravityProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.SimpleAlertDistributionByGravityProperty;
@@ -25,13 +26,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 public class AlertViewController extends VBox {
 
     private static final Logger log = LoggerFactory.getLogger(AlertViewController.class);
-    private HelloController parent;
+    private AdminDesktopController parent;
     private IncidentDTO currentIncident;
 
     private String selectedGravity = "Toutes";
@@ -89,14 +89,14 @@ public class AlertViewController extends VBox {
     }
 
 
-    public void setParent(HelloController parent) {
+    public void setParent(AdminDesktopController parent) {
         this.parent = parent;
     }
 
     public void loadIncident(IncidentDTO incident) {
         titleIncident.textProperty().set("Incident #" + incident.displayId() + " - " + incident.title());
         alertsContainer.getChildren().clear();
-        var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverity();
+        var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverityAndIncident(incident);
         for (AlertDTO alert : incident.alerts()) {
             var newAlertDto = parent.getAlertManagement().startAlertProgress(alert.id());
             WidgetAlertController widget = new WidgetAlertController();
@@ -121,30 +121,10 @@ public class AlertViewController extends VBox {
         distribution.setMaxWidth(250);
         HBox.setHgrow(distribution, Priority.NEVER);
 
-        AlertDistributionBySeverityDTO critical = dtoList.stream()
-                .filter(a -> a.severity().equals(AlertSeverity.CRITICAL))
-                .findFirst().orElseThrow();
-
-        AlertDistributionBySeverityDTO high = dtoList.stream()
-                .filter(a -> a.severity().equals(AlertSeverity.HIGH))
-                .findFirst().orElseThrow();
-
-        AlertDistributionBySeverityDTO medium = dtoList.stream()
-                .filter(a -> a.severity().equals(AlertSeverity.MEDIUM))
-                .findFirst().orElseThrow();
-
-        AlertDistributionBySeverityDTO low = dtoList.stream()
-                .filter(a -> a.severity().equals(AlertSeverity.LOW))
-                .findFirst().orElseThrow();
-
-        distribution.setRedDistribution(toDistributionProp(critical));
-        distribution.setBlueDistribution(toDistributionProp(high));
-        distribution.setOrangeDistribution(toDistributionProp(medium));
-        distribution.setGreenDistribution(toDistributionProp(low));
+        distribution.updateGraph(dtoList);
 
         alertDistribution.getChildren().addFirst(distribution);
     }
-
 
     private WidgetAlertProperty toWidgetProperty(AlertDTO dto) {
         SimpleWidgetAlertProperty p = new SimpleWidgetAlertProperty();
@@ -166,15 +146,6 @@ public class AlertViewController extends VBox {
         p.averageResolutionTimeProperty().set(0);
         return p;
     }
-
-    private AlertDistributionByGravityProperty toDistributionProp(AlertDistributionBySeverityDTO dto) {
-        SimpleAlertDistributionByGravityProperty p = new SimpleAlertDistributionByGravityProperty();
-        p.countProperty().set(dto.count());
-        p.percentageProperty().set(dto.percentage());
-        p.rateProperty().set(dto.rate());
-        return p;
-    }
-
 
     @FXML
     private void initialize() {
@@ -233,16 +204,12 @@ public class AlertViewController extends VBox {
         LocalDate created = alert.createdAt().toLocalDate();
         LocalDate now = LocalDate.now();
 
-        switch (selectedDate) {
-            case "Aujourd’hui":
-                return created.isEqual(now);
-            case "Cette semaine":
-                return created.isAfter(now.minusDays(7));
-            case "Ce mois":
-                return created.getMonth() == now.getMonth() && created.getYear() == now.getYear();
-            default:
-                return true;
-        }
+        return switch (selectedDate) {
+            case "Aujourd’hui" -> created.isEqual(now);
+            case "Cette semaine" -> created.isAfter(now.minusDays(7));
+            case "Ce mois" -> created.getMonth() == now.getMonth() && created.getYear() == now.getYear();
+            default -> true;
+        };
     }
 
     @FXML

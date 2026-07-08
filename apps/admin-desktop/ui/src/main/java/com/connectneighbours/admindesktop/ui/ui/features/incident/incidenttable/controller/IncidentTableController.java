@@ -1,7 +1,7 @@
 package com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.controller;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
-import com.connectneighbours.admindesktop.ui.ui.HelloController;
+import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.viewmodel.IncidentTableViewModel;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.utils.IncidentFormatting;
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReporterProperty;
@@ -18,7 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class IncidentTableController extends VBox {
-    private HelloController parent;
+    private AdminDesktopController parent;
 
     @FXML
     private TableView<IncidentTableViewModel> incidentTable;
@@ -116,7 +116,7 @@ public class IncidentTableController extends VBox {
         return incidentTable;
     }
 
-    public void setParent(HelloController parent) {
+    public void setParent(AdminDesktopController parent) {
         this.parent = parent;
     }
 
