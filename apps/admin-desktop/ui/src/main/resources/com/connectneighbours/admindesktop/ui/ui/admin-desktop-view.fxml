@@ -4,9 +4,9 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.*?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.connectneighbours.admindesktop.ui.ui.HelloController"
+            fx:controller="com.connectneighbours.admindesktop.ui.ui.AdminDesktopController"
             stylesheets="@style.css">
-
+    <HBox fx:id="graphIncident" alignment="CENTER" spacing="20"/>
     <VBox fx:id="mainContainer"
           alignment="CENTER"
           spacing="20"

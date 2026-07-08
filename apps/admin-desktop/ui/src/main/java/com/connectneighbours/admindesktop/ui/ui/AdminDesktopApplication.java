@@ -8,7 +8,7 @@ import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
 
-public class HelloApplication extends Application {
+public class AdminDesktopApplication extends Application {
 
     private static ApplicationContext springContext;
 
@@ -19,9 +19,9 @@ public class HelloApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                HelloApplication.class.getResource("hello-view.fxml")
+                AdminDesktopApplication.class.getResource("admin-desktop-view.fxml")
         );
-        loader.setControllerFactory(HelloApplication.getSpringContext()::getBean);
+        loader.setControllerFactory(AdminDesktopApplication.getSpringContext()::getBean);
         Scene scene = new Scene(loader.load());
         stage.setScene(scene);
         stage.setWidth(1100);

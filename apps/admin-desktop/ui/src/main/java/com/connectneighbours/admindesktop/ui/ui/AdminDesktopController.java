@@ -2,14 +2,10 @@ package com.connectneighbours.admindesktop.ui.ui;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
-import com.connectneighbours.admindesktop.back.application.incident.IncidentMapper;
-import com.connectneighbours.admindesktop.back.application.incident.IncidentSyncDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.StatisticsManagement;
 import com.connectneighbours.admindesktop.back.application.sync.SyncManagement;
-import com.connectneighbours.admindesktop.back.application.sync.SyncPullResponseDTO;
-import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.controller.IncidentTableController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.model.ReadOnlyIncidentTableProperty;
@@ -18,20 +14,17 @@ import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReadOnlyReporterProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReporterProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.SimpleReporterProperty;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -40,9 +33,8 @@ import java.util.List;
 
 @Component
 @Scope("prototype")
-public class HelloController {
+public class AdminDesktopController {
 
-    private AlertViewController alertView;
     private List<Node> homeContent;
 
     @Autowired
@@ -61,6 +53,9 @@ public class HelloController {
     private StatisticsManagement statisticsManagement;
 
     private IncidentTableController tableController;
+
+    @FXML
+    private HBox graphIncident;
 
     @FXML
     private Label welcomeText;
@@ -94,7 +89,6 @@ public class HelloController {
             List<IncidentTableViewModel> models = incidents.stream()
                     .map(dto -> {
                         var newDto = incidentManagement.startIncidentProgress(dto.id());
-                        System.out.println(newDto);
                         var vm = new IncidentTableViewModel();
                         vm.setDto(newDto);
                         vm.setIncidentTable(mapToProperty(newDto));
@@ -138,8 +132,6 @@ public class HelloController {
 //    }
 
 
-
-
     @FXML
     public void goToAlerts(IncidentDTO incident) {
         AlertViewController alertView = new AlertViewController();
@@ -172,14 +164,12 @@ public class HelloController {
 
         p.titleProperty().set(dto.title());
 
-
         p.typeProperty().set(dto.type().toString());
-
 
         p.statusProperty().set(dto.status().toString());
 
-
         p.createdAtProperty().set(dto.createdAt());
+
         p.resolvedAtProperty().set(dto.resolvedAt());
 
         p.alertsCountProperty().set(dto.alerts().size());
