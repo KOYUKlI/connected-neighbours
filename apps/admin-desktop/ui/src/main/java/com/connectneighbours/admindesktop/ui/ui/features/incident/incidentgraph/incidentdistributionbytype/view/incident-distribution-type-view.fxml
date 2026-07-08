@@ -48,7 +48,7 @@
 
         <TextFlow>
             <Circle radius="8" fill="#7831A7"/>
-            <Text text="  Maintenance"
+            <Text text="  Circulation"
                   style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
         </TextFlow>
 
