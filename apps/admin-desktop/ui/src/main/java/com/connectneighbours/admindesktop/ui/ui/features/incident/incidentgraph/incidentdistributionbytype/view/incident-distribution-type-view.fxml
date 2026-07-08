@@ -1,14 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.Group?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="10" fillWidth="false" alignment="CENTER">
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="$CONTROLLER_NAME$"
-            prefHeight="400.0" prefWidth="600.0" >
+    <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
+        <Group fx:id="graphDistribution"/>
+    </StackPane>
 
-</AnchorPane>
+    <VBox spacing="10"
+          style="-fx-background-color: #ffffff;
+                 -fx-border-color: #e0e0e0;
+                 -fx-border-radius: 8;
+                 -fx-padding: 10 15 10 15;"
+          maxWidth="150" maxHeight="150"
+          alignment="CENTER">
+
+        <TextFlow>
+            <Circle radius="8" fill="#0098C8"/>
+            <Text text="  Sécurity"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </TextFlow>
+
+        <TextFlow>
+            <Circle radius="8" fill="#FA9D03"/>
+            <Text text="  Nuisances"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </TextFlow>
+
+        <TextFlow>
+            <Circle radius="8" fill="#30AB41"/>
+            <Text text="  Propreté"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </TextFlow>
+
+        <TextFlow>
+            <Circle radius="8" fill="#EA5F3B"/>
+            <Text text="  Maintenance"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </TextFlow>
+
+        <TextFlow>
+            <Circle radius="8" fill="#7831A7"/>
+            <Text text="  Maintenance"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </TextFlow>
+
+        <TextFlow>
+            <Circle radius="8" fill="#4357D1"/>
+            <Text text="  Autres"
+                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </TextFlow>
+
+    </VBox>
+
+</fx:root>
