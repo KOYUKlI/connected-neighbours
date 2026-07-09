@@ -4,7 +4,6 @@ import com.connectneighbours.admindesktop.ui.ui.features.alert.utils.AlertFormat
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.alertsymbol.controller.WarningSymbolController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.ReadOnlyWidgetAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.viewmodel.WidgetAlertViewModel;
-import com.connectneighbours.admindesktop.ui.ui.features.reporter.viewmodel.ReporterViewModel;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;

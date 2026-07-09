@@ -17,11 +17,13 @@ public class IncidentDistributionByTypeViewModel {
             distribution.countProperty().set(0);
             distribution.rateProperty().set(0.0);
             distribution.percentageProperty().set(FormatPercentage.formatPercentage(0.0));
+            distribution.typeProperty().set(null);
             return;
         }
 
         distribution.countProperty().set(source.countProperty().get());
         distribution.rateProperty().set(source.rateProperty().get());
         distribution.percentageProperty().set(source.percentageProperty().get());
+        distribution.typeProperty().set(source.typeProperty().get());
     }
 }

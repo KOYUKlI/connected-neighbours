@@ -1,12 +1,11 @@
 package com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.model;
 
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.property.ReadOnlyLongProperty;
-import javafx.beans.property.ReadOnlyStringProperty;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import javafx.beans.property.*;
 
 public interface ReadOnlyIncidentDistributionByTypeProperty {
     ReadOnlyLongProperty countProperty();
     ReadOnlyDoubleProperty rateProperty();
     ReadOnlyStringProperty percentageProperty();
+    ReadOnlyObjectProperty<IncidentType> typeProperty();
 }

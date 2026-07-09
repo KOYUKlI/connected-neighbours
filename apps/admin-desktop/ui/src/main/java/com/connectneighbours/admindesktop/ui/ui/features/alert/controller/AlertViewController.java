@@ -3,21 +3,25 @@ package com.connectneighbours.admindesktop.ui.ui.features.alert.controller;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.AlertDistributionBySeverityDTO;
-import com.connectneighbours.admindesktop.back.application.statistics.FormatPercentage;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.AlertDistributionByGravityProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.SimpleAlertDistributionByGravityProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.viewmodel.AlertDistributionByGravityViewModel;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.controller.AlertStatsController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.model.AlertStatsProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertstats.model.SimpleAlertStatsProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.controller.WidgetAlertController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.SimpleWidgetAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.WidgetAlertProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -31,45 +35,71 @@ import java.util.List;
 public class AlertViewController extends VBox {
 
     private static final Logger log = LoggerFactory.getLogger(AlertViewController.class);
-    private AdminDesktopController parent;
+    private IncidentViewController parent;
     private IncidentDTO currentIncident;
 
     private String selectedGravity = "Toutes";
     private String selectedStatus = "Tous";
     private String selectedDate = "Toutes";
 
-    @FXML private VBox alertStatsContainer;
-    @FXML private HBox alertDistribution;
+    @FXML
+    private VBox alertStatsContainer;
+    @FXML
+    private HBox alertDistribution;
 
-    @FXML private Label titleIncident;
+    @FXML
+    private Label titleIncident;
 
-    @FXML private VBox alertsContainer;
-    @FXML private Button btnReturn;
-    @FXML private Button btnFilter;
+    @FXML
+    private VBox alertsContainer;
+    @FXML
+    private Button btnReturn;
+    @FXML
+    private Button btnFilter;
 
-    @FXML private Label gravityValue;
-    @FXML private Label statusValue;
-    @FXML private Label dateValue;
+    @FXML
+    private Label gravityValue;
+    @FXML
+    private Label statusValue;
+    @FXML
+    private Label dateValue;
 
-    @FXML private HBox menuBtn;
-    @FXML private Menu menuGravity;
-    @FXML private MenuItem gravityAll;
-    @FXML private MenuItem gravityCritical;
-    @FXML private MenuItem gravityHigh;
-    @FXML private MenuItem gravityMedium;
-    @FXML private MenuItem gravityLow;
+    @FXML
+    private HBox menuBtn;
+    @FXML
+    private Menu menuGravity;
+    @FXML
+    private MenuItem gravityAll;
+    @FXML
+    private MenuItem gravityCritical;
+    @FXML
+    private MenuItem gravityHigh;
+    @FXML
+    private MenuItem gravityMedium;
+    @FXML
+    private MenuItem gravityLow;
 
-    @FXML private Menu menuStatus;
-    @FXML private MenuItem statusAll;
-    @FXML private MenuItem statusResolved;
-    @FXML private MenuItem statusInProgress;
-    @FXML private MenuItem statusClosed;
+    @FXML
+    private Menu menuStatus;
+    @FXML
+    private MenuItem statusAll;
+    @FXML
+    private MenuItem statusResolved;
+    @FXML
+    private MenuItem statusInProgress;
+    @FXML
+    private MenuItem statusClosed;
 
-    @FXML private Menu menuDate;
-    @FXML private MenuItem dateAll;
-    @FXML private MenuItem dateToday;
-    @FXML private MenuItem dateWeek;
-    @FXML private MenuItem dateMonth;
+    @FXML
+    private Menu menuDate;
+    @FXML
+    private MenuItem dateAll;
+    @FXML
+    private MenuItem dateToday;
+    @FXML
+    private MenuItem dateWeek;
+    @FXML
+    private MenuItem dateMonth;
 
     public AlertViewController() {
         FXMLLoader loader = new FXMLLoader(
@@ -89,7 +119,7 @@ public class AlertViewController extends VBox {
     }
 
 
-    public void setParent(AdminDesktopController parent) {
+    public void setParent(IncidentViewController parent) {
         this.parent = parent;
     }
 
@@ -104,7 +134,13 @@ public class AlertViewController extends VBox {
             alertsContainer.getChildren().add(widget);
         }
         loadStats(incident);
-        loadDistribution(distributionList);
+
+
+        List<AlertDistributionByGravityProperty> list = distributionList.stream()
+                .map(this::toAlertDistributionByGravityProperty)
+                .toList();
+
+        loadDistribution(list);
     }
 
     public void loadStats(IncidentDTO incident) {
@@ -115,13 +151,17 @@ public class AlertViewController extends VBox {
         alertStatsContainer.getChildren().add(menuBtn);
     }
 
-    public void loadDistribution(List<AlertDistributionBySeverityDTO> dtoList) {
+    public void loadDistribution(List<AlertDistributionByGravityProperty> list) {
         AlertDistributionByGravityController distribution = new AlertDistributionByGravityController();
         distribution.setPrefWidth(250);
         distribution.setMaxWidth(250);
         HBox.setHgrow(distribution, Priority.NEVER);
 
-        distribution.updateGraph(dtoList);
+        List<AlertDistributionByGravityViewModel> viewModelList = list.stream()
+                .map(distribution::toAlertDistributionByGravityViewModel)
+                .toList();
+
+        distribution.bindGraph(viewModelList);
 
         alertDistribution.getChildren().addFirst(distribution);
     }
@@ -144,6 +184,15 @@ public class AlertViewController extends VBox {
         p.totalAlertsProperty().set(parent.getAlertManagement().listByIncident(dto).size());
         p.totalAlertsCriticalProperty().set(parent.getAlertManagement().listByIncidentAndSeverity(dto, AlertSeverity.CRITICAL).size());
         p.averageResolutionTimeProperty().set(0);
+        return p;
+    }
+
+    private AlertDistributionByGravityProperty toAlertDistributionByGravityProperty(AlertDistributionBySeverityDTO dto) {
+        SimpleAlertDistributionByGravityProperty p = new SimpleAlertDistributionByGravityProperty();
+        p.countProperty().set(dto.count());
+        p.rateProperty().set(dto.rate());
+        p.percentageProperty().set(dto.percentage());
+        p.severityProperty().set(dto.severity());
         return p;
     }
 
@@ -214,7 +263,7 @@ public class AlertViewController extends VBox {
 
     @FXML
     protected void goToIncident() {
-        if (parent != null) parent.showHome();
+        if (parent != null) parent.goBackToIncidents();
     }
 }
 

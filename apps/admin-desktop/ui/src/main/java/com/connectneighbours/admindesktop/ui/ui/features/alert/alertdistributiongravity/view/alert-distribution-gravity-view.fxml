@@ -6,50 +6,40 @@
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
 
+<?import javafx.scene.layout.HBox?>
 <fx:root type="VBox"
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
-         spacing="10" fillWidth="false" alignment="CENTER">
+         spacing="12" fillWidth="false" alignment="TOP_CENTER">
 
     <Text text="Répartition par Gravité"
-          style="-fx-font-weight: bold; -fx-text-fill: #1A1A1A;"/>
+          style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
 
-    <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
+    <StackPane prefWidth="180" prefHeight="180" maxWidth="180" maxHeight="180">
         <Group fx:id="graphDistribution"/>
     </StackPane>
 
+    <VBox spacing="8" alignment="CENTER_LEFT">
 
-    <VBox spacing="10"
-          style="-fx-background-color: #ffffff;
-                 -fx-border-color: #e0e0e0;
-                 -fx-border-radius: 8;
-                 -fx-padding: 10 15 10 15;"
-          maxWidth="150" maxHeight="150"
-          alignment="CENTER">
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#F03B3D"/>
+            <Text text="Critique" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </HBox>
 
-        <TextFlow>
-            <Circle radius="8" fill="#F03B3D"/>
-            <Text text="  Critique"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#2E6BE6"/>
+            <Text text="Haute" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </HBox>
 
-        <TextFlow>
-            <Circle radius="8" fill="#2E6BE6"/>
-            <Text text="  Haute"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#F7B500"/>
+            <Text text="Moyenne" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </HBox>
 
-        <TextFlow>
-            <Circle radius="8" fill="#F7B500"/>
-            <Text text="  Moyenne"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
-
-        <TextFlow>
-            <Circle radius="8" fill="#69B561"/>
-            <Text text="  Mineure"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#69B561"/>
+            <Text text="Mineure" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+        </HBox>
 
     </VBox>
 </fx:root>

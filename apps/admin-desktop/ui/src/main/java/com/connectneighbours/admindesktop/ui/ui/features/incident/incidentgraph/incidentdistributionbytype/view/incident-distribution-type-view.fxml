@@ -5,59 +5,67 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Separator?>
 <fx:root type="VBox"
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
-         spacing="10" fillWidth="false" alignment="CENTER">
+         spacing="15"
+         alignment="TOP_LEFT"
+         style="-fx-background-color: white;
+                -fx-background-radius: 10;
+                -fx-padding: 20;"
+         fillWidth="true">
 
-    <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
-        <Group fx:id="graphDistribution"/>
-    </StackPane>
+    <!-- Titre -->
+    <Text text="Répartition par Type"
+          style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
 
-    <VBox spacing="10"
-          style="-fx-background-color: #ffffff;
-                 -fx-border-color: #e0e0e0;
-                 -fx-border-radius: 8;
-                 -fx-padding: 10 15 10 15;"
-          maxWidth="150" maxHeight="150"
-          alignment="CENTER">
+    <Separator/>
 
-        <TextFlow>
-            <Circle radius="8" fill="#0098C8"/>
-            <Text text="  Sécurity"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+    <!-- Contenu : donut + légende côte à côte -->
+    <HBox spacing="30" alignment="CENTER_LEFT">
 
-        <TextFlow>
-            <Circle radius="8" fill="#FA9D03"/>
-            <Text text="  Nuisances"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+        <!-- Donut graph -->
+        <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
+            <Group fx:id="graphDistribution"/>
+        </StackPane>
 
-        <TextFlow>
-            <Circle radius="8" fill="#30AB41"/>
-            <Text text="  Propreté"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+        <!-- Légende -->
+        <VBox spacing="12" alignment="CENTER_LEFT">
 
-        <TextFlow>
-            <Circle radius="8" fill="#EA5F3B"/>
-            <Text text="  Maintenance"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#0098C8"/>
+                <Text text="Sécurité" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            </HBox>
 
-        <TextFlow>
-            <Circle radius="8" fill="#7831A7"/>
-            <Text text="  Circulation"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#FA9D03"/>
+                <Text text="Nuisances" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            </HBox>
 
-        <TextFlow>
-            <Circle radius="8" fill="#4357D1"/>
-            <Text text="  Autres"
-                  style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
-        </TextFlow>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#30AB41"/>
+                <Text text="Propreté" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            </HBox>
 
-    </VBox>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#EA5F3B"/>
+                <Text text="Maintenance" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#7831A7"/>
+                <Text text="Circulation" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#4357D1"/>
+                <Text text="Autres" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            </HBox>
+
+        </VBox>
+
+    </HBox>
 
 </fx:root>

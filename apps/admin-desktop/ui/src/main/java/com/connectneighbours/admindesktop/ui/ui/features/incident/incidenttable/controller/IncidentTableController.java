@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.viewmodel.IncidentTableViewModel;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.utils.IncidentFormatting;
 import com.connectneighbours.admindesktop.ui.ui.features.reporter.model.ReporterProperty;
@@ -18,7 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class IncidentTableController extends VBox {
-    private AdminDesktopController parent;
+    private IncidentViewController parent;
 
     @FXML
     private TableView<IncidentTableViewModel> incidentTable;
@@ -31,7 +32,7 @@ public class IncidentTableController extends VBox {
     @FXML
     private TableColumn<IncidentTableViewModel, String> statusColumn;
     @FXML
-    private TableColumn<IncidentTableViewModel,String> severityColumn;
+    private TableColumn<IncidentTableViewModel, String> severityColumn;
     @FXML
     private TableColumn<IncidentTableViewModel, ReporterProperty> reporterColumn;
     @FXML
@@ -116,9 +117,10 @@ public class IncidentTableController extends VBox {
         return incidentTable;
     }
 
-    public void setParent(AdminDesktopController parent) {
+    public void setParent(IncidentViewController parent) {
         this.parent = parent;
     }
+
 
     private static String getString(String status) {
         String formatted = IncidentFormatting.format(status).trim().toLowerCase();

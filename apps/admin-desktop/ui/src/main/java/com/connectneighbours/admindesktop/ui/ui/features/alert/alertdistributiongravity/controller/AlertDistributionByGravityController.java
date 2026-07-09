@@ -1,9 +1,9 @@
 package com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller;
 
-import com.connectneighbours.admindesktop.back.application.statistics.AlertDistributionBySeverityDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.ReadOnlyAlertDistributionByGravityProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.viewmodel.AlertDistributionByGravityViewModel;
+import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Group;
@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class AlertDistributionByGravityController extends VBox {
+
     @FXML
     private Group graphDistribution;
 
@@ -34,38 +35,47 @@ public class AlertDistributionByGravityController extends VBox {
         }
     }
 
-    public void updateGraph(List<AlertDistributionBySeverityDTO> dtoList) {
+    @FXML
+    public void initialize() {
+    }
+
+    public void bindGraph(List<AlertDistributionByGravityViewModel> list) {
         graphDistribution.getChildren().clear();
 
-        if (dtoList.isEmpty()) {
-            Circle hole = new Circle(110, 110, 30, Color.WHITE);
-            graphDistribution.getChildren().add(hole);
-            return;
-        }
-
-        boolean single = dtoList.size() == 1;
         double start = 0;
 
-        for (AlertDistributionBySeverityDTO dto : dtoList) {
-            double length = single ? 360 : dto.rate() * 360;
+        for (AlertDistributionByGravityViewModel vm : list) {
+
+            var p = vm.alertDistributionByGravityProperty();
+
             Arc arc = new Arc();
             arc.setCenterX(110);
             arc.setCenterY(110);
             arc.setRadiusX(80);
             arc.setRadiusY(80);
-            arc.setStartAngle(start);
-            arc.setLength(length);
+            arc.setStroke(Color.WHITE);
             arc.setType(ArcType.ROUND);
-            arc.setFill(colorFor(dto.severity()));
+
+            double fixedStart = start;
+            arc.startAngleProperty().set(fixedStart);
+
+            arc.lengthProperty().bind(p.rateProperty().multiply(360));
+
+            arc.fillProperty().bind(
+                    Bindings.createObjectBinding(
+                            () -> colorFor(p.severityProperty().get()),
+                            p.severityProperty()
+                    )
+            );
+
             graphDistribution.getChildren().add(arc);
-            start += length;
+
+            start += p.rateProperty().get() * 360;
         }
 
         Circle hole = new Circle(110, 110, 30, Color.WHITE);
         graphDistribution.getChildren().add(hole);
     }
-
-
 
     private Paint colorFor(AlertSeverity severity) {
         return switch (severity) {
@@ -75,4 +85,12 @@ public class AlertDistributionByGravityController extends VBox {
             case LOW      -> Color.web("#3AA835");
         };
     }
+
+    public AlertDistributionByGravityViewModel toAlertDistributionByGravityViewModel(ReadOnlyAlertDistributionByGravityProperty property) {
+        AlertDistributionByGravityViewModel vm = new AlertDistributionByGravityViewModel();
+        vm.setDistribution(property);
+        return vm;
+    }
 }
+
+

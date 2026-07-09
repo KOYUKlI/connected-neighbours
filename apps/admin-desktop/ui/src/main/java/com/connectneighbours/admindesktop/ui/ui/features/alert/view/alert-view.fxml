@@ -6,13 +6,17 @@
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
          fx:id="mainAlertContainer"
-         spacing="10"
+         spacing="15"
          maxWidth="Infinity"
          prefWidth="750"
          VBox.vgrow="ALWAYS"
-         style="-fx-background-color: #E8ECF8; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
+         style="-fx-background-color: #FFFFFF;
+                -fx-background-radius: 8;
+                -fx-border-color: #e0e0e0;
+                -fx-border-radius: 8;
+                -fx-padding: 15;">
 
-    <HBox spacing="10" style="-fx-padding: 10 15 10 15;">
+    <HBox spacing="10" alignment="CENTER_LEFT">
         <Button text="Retour"
                 fx:id="btnReturn" styleClass="return-button">
             <graphic>
@@ -22,25 +26,22 @@
 
         <Label text="Incident"
                fx:id="titleIncident"
-               style="
-               -fx-font-size: 15;
-               -fx-font-weight: bold;
-               -fx-text-fill: #1A3E8A;
-           "/>
+               style="-fx-font-size: 18px;
+                      -fx-font-weight: bold;
+                      -fx-text-fill: #1A3E8A;"/>
     </HBox>
+    <VBox fx:id="alertStatsContainer" spacing="15" VBox.vgrow="NEVER">
 
-    <VBox fx:id="alertStatsHolder" VBox.vgrow="NEVER"/>
+        <HBox spacing="12" alignment="CENTER" fx:id="menuBtn"
+              style="-fx-padding: 5 0 5 0;">
 
-    <VBox spacing="10" fillWidth="true"
-          fx:id="alertStatsContainer"
-          style="-fx-border-color: #DDE1F0;
-                 -fx-padding: 10 15 10 15;"
-          alignment="CENTER">
-
-        <HBox spacing="10" alignment="CENTER" fx:id="menuBtn" HBox.hgrow="ALWAYS">
-
-            <HBox spacing="6" alignment="CENTER" styleClass="hbox-filter">
-                <MenuBar styleClass="menu-bar">
+            <HBox spacing="6" alignment="CENTER_LEFT" styleClass="hbox-filter"
+                  style="-fx-background-color: white;
+                         -fx-background-radius: 20;
+                         -fx-border-color: #e0e0e0;
+                         -fx-border-radius: 20;
+                         -fx-padding: 6 14 6 14;">
+                <MenuBar styleClass="menu-bar" style="-fx-background-color: transparent;">
                     <Menu fx:id="menuGravity" text="Gravité">
                         <MenuItem fx:id="gravityAll" text="Toutes"/>
                         <MenuItem fx:id="gravityCritical" text="Critique"/>
@@ -49,11 +50,16 @@
                         <MenuItem fx:id="gravityLow" text="Mineure"/>
                     </Menu>
                 </MenuBar>
-                <Label fx:id="gravityValue" text="Toutes"/>
+                <Label fx:id="gravityValue" text="Toutes" style="-fx-text-fill: #1A3E8A;"/>
             </HBox>
 
-            <HBox spacing="6" alignment="CENTER" styleClass="hbox-filter">
-                <MenuBar styleClass="menu-bar">
+            <HBox spacing="6" alignment="CENTER_LEFT" styleClass="hbox-filter"
+                  style="-fx-background-color: white;
+                         -fx-background-radius: 20;
+                         -fx-border-color: #e0e0e0;
+                         -fx-border-radius: 20;
+                         -fx-padding: 6 14 6 14;">
+                <MenuBar styleClass="menu-bar" style="-fx-background-color: transparent;">
                     <Menu fx:id="menuStatus" text="Statut">
                         <MenuItem fx:id="statusAll" text="Tous"/>
                         <MenuItem fx:id="statusResolved" text="Résolue"/>
@@ -61,11 +67,16 @@
                         <MenuItem fx:id="statusClosed" text="Fermée"/>
                     </Menu>
                 </MenuBar>
-                <Label fx:id="statusValue" text="Tous"/>
+                <Label fx:id="statusValue" text="Tous" style="-fx-text-fill: #1A3E8A;"/>
             </HBox>
 
-            <HBox spacing="6" alignment="CENTER" styleClass="hbox-filter">
-                <MenuBar styleClass="menu-bar">
+            <HBox spacing="6" alignment="CENTER_LEFT" styleClass="hbox-filter"
+                  style="-fx-background-color: white;
+                         -fx-background-radius: 20;
+                         -fx-border-color: #e0e0e0;
+                         -fx-border-radius: 20;
+                         -fx-padding: 6 14 6 14;">
+                <MenuBar styleClass="menu-bar" style="-fx-background-color: transparent;">
                     <Menu fx:id="menuDate" text="Date">
                         <MenuItem fx:id="dateAll" text="Toutes"/>
                         <MenuItem fx:id="dateToday" text="Aujourd’hui"/>
@@ -73,33 +84,35 @@
                         <MenuItem fx:id="dateMonth" text="Ce mois"/>
                     </Menu>
                 </MenuBar>
-                <Label fx:id="dateValue" text="Toutes"/>
+                <Label fx:id="dateValue" text="Toutes" style="-fx-text-fill: #1A3E8A;"/>
             </HBox>
 
-            <Button text="Filtrer" fx:id="btnFilter" styleClass="filter-button"/>
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button text="Filtrer" fx:id="btnFilter" styleClass="filter-button"
+                    style="-fx-background-color: #34A853;
+                           -fx-text-fill: white;
+                           -fx-font-weight: bold;
+                           -fx-background-radius: 6;
+                           -fx-padding: 8 20 8 20;"/>
         </HBox>
 
     </VBox>
 
-    <VBox alignment="CENTER"
-          VBox.vgrow="ALWAYS"
-          style="-fx-padding: 10 15 10 15;">
+    <HBox spacing="20" fx:id="alertDistribution" alignment="TOP_LEFT" VBox.vgrow="ALWAYS">
 
-        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+        <VBox fx:id="graphColumn" minWidth="220" prefWidth="220" maxWidth="220"/>
+
+        <ScrollPane fitToWidth="true" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"
                     style="-fx-background-color: transparent;">
             <content>
-                <HBox spacing="20" fx:id="alertDistribution" alignment="TOP_CENTER">
-                    <Region HBox.hgrow="ALWAYS"/>
-
-                    <VBox fx:id="alertsContainer"
-                          fillWidth="true"
-                          spacing="10"
-                          HBox.hgrow="ALWAYS"
-                          alignment="TOP_LEFT"/>
-
-                </HBox>
+                <VBox fx:id="alertsContainer"
+                      fillWidth="true"
+                      spacing="10"
+                      alignment="TOP_LEFT"/>
             </content>
         </ScrollPane>
-    </VBox>
+
+    </HBox>
 
 </fx:root>
