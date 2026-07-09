@@ -10,7 +10,7 @@ import javafx.scene.layout.HBox;
 
 import java.io.IOException;
 
-public class ReporterWidget extends HBox {
+public class ReporterWidgetController extends HBox {
 
     @FXML
     private ImageView avatarImage;
@@ -20,9 +20,9 @@ public class ReporterWidget extends HBox {
 
     private final ReporterViewModel viewModel = new ReporterViewModel();
 
-    public ReporterWidget() {
+    public ReporterWidgetController() {
         FXMLLoader loader = new FXMLLoader(
-                ReporterWidget.class.getResource("../view/reporter-widget-view.fxml")
+                ReporterWidgetController.class.getResource("../view/reporter-widget-view.fxml")
         );
         loader.setRoot(this);
         loader.setController(this);
