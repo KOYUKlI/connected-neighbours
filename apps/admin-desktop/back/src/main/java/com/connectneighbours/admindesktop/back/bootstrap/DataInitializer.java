@@ -86,6 +86,47 @@ public class DataInitializer {
                     IncidentSeverity.CRITICAL
             ));
 
+            Incident incident6 = incidentRepo.save(new Incident(
+                    julie,
+                    "Dépôt sauvage de déchets",
+                    "Des sacs poubelles ont été abandonnés près de l’entrée du parking.",
+                    IncidentType.CLEANLINESS,
+                    IncidentSeverity.MEDIUM
+            ));
+
+            Incident incident7 = incidentRepo.save(new Incident(
+                    thomas,
+                    "Lampadaire défectueux",
+                    "Un lampadaire clignote en continu depuis plusieurs jours.",
+                    IncidentType.MAINTENANCE,
+                    IncidentSeverity.LOW
+            ));
+
+            Incident incident8 = incidentRepo.save(new Incident(
+                    sarah,
+                    "Embouteillage inhabituel",
+                    "Un bouchon s’est formé devant la résidence à cause d’un véhicule mal stationné.",
+                    IncidentType.TRAFFIC,
+                    IncidentSeverity.MEDIUM
+            ));
+
+            Incident incident9 = incidentRepo.save(new Incident(
+                    julie,
+                    "Signalement d’odeur suspecte",
+                    "Une odeur étrange a été détectée dans le hall, sans cause identifiée.",
+                    IncidentType.OTHER,
+                    IncidentSeverity.LOW
+            ));
+
+            Incident incident10 = incidentRepo.save(new Incident(
+                    thomas,
+                    "Dégradation des espaces verts",
+                    "Des branches cassées et des détritus retrouvés dans le jardin commun.",
+                    IncidentType.CLEANLINESS,
+                    IncidentSeverity.MEDIUM
+            ));
+
+
 
 
             alertRepo.save(new Alert(
@@ -248,6 +289,88 @@ public class DataInitializer {
                     "Bruit inhabituel",
                     "Un bruit métallique a été entendu dans le dépôt vers 01h.",
                     AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident6,
+                    julie,
+                    "Sacs éventrés",
+                    "Certains sacs ont été ouverts, laissant des déchets au sol.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident6,
+                    sarah,
+                    "Caméra obstruée",
+                    "La caméra donnant sur le parking était recouverte de poussière.",
+                    AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident7,
+                    thomas,
+                    "Clignotement constant",
+                    "Le lampadaire clignote toutes les 3 secondes.",
+                    AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident7,
+                    julie,
+                    "Risque de court-circuit",
+                    "Une odeur de chaud a été brièvement détectée.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident8,
+                    sarah,
+                    "Stationnement gênant",
+                    "Un véhicule bloque partiellement l’accès au parking.",
+                    AlertSeverity.MEDIUM
+            ));
+
+            alertRepo.save(new Alert(
+                    incident8,
+                    thomas,
+                    "Klaxons répétés",
+                    "Plusieurs résidents ont signalé des nuisances sonores.",
+                    AlertSeverity.LOW
+            ));
+
+
+            alertRepo.save(new Alert(
+                    incident9,
+                    julie,
+                    "Odeur persistante",
+                    "L’odeur est revenue le lendemain matin.",
+                    AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident9,
+                    sarah,
+                    "Ventilation suspecte",
+                    "Le système de ventilation semble faire un bruit inhabituel.",
+                    AlertSeverity.MEDIUM
+            ));
+
+
+            alertRepo.save(new Alert(
+                    incident10,
+                    thomas,
+                    "Branches cassées",
+                    "Plusieurs branches ont été retrouvées au sol.",
+                    AlertSeverity.LOW
+            ));
+
+            alertRepo.save(new Alert(
+                    incident10,
+                    julie,
+                    "Déchets dispersés",
+                    "Des papiers et emballages traînent dans les buissons.",
+                    AlertSeverity.MEDIUM
             ));
 
 
