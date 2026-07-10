@@ -50,6 +50,17 @@ public class IncidentManagement {
         return IncidentMapper.toDTO(savedIncident);
     }
 
+    public IncidentDTO openIncident(UUID id) {
+        var incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new IncidentNotFoundException("Incident not found with Id : "+id));
+
+        incidentService.open(incident);
+
+        var saved = incidentRepository.save(incident);
+        return IncidentMapper.toDTO(saved);
+    }
+
+
 
     public IncidentDTO startIncidentProgress(UUID incidentId) {
         Incident incident = loadIncident(incidentId);
@@ -58,6 +69,17 @@ public class IncidentManagement {
         return IncidentMapper.toDTO(savedIncident);
 
     }
+
+    public IncidentDTO closeIncident(UUID id) {
+        var incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new IncidentNotFoundException("Incident not found with id : "+id));
+
+        incidentService.close(incident);
+
+        var saved = incidentRepository.save(incident);
+        return IncidentMapper.toDTO(saved);
+    }
+
 
     public IncidentDTO resolveIncident(UUID incidentId) {
         Incident incident = loadIncident(incidentId);

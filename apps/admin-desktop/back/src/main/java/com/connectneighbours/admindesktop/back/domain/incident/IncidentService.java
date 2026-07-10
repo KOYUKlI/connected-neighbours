@@ -31,6 +31,13 @@ public class IncidentService {
         incident.inProgress();
     }
 
+    public void close(Incident incident) {
+        if(incident.isClosed()) throw new IncidentAlreadyClosedException("Incident already closed");
+
+        incident.close();
+    }
+
+
     public void attachAlert(Incident incident, Alert alert) {
         if (incident.isResolved()) throw new IncidentAlreadyResolvedException("Incident Already resolved");
 

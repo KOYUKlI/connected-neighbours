@@ -77,6 +77,24 @@ public class Incident {
         this.displayId = generateDisplayId();
     }
 
+    public Incident(Reporter reporter,
+                    String title,
+                    String description,
+                    IncidentType type,
+                    IncidentSeverity severity,
+                    LocalDateTime createdAt) {
+
+        this.reporter = reporter;
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.severity = severity;
+        this.status = IncidentStatus.CREATED;
+        this.displayId = generateDisplayId();
+        this.createdAt = createdAt;
+    }
+
+
     public Incident(Reporter reporter, String title, String description, IncidentType type, Clock clock) {
         this.incidentId = UUID.randomUUID();
         this.reporter = reporter;
@@ -181,6 +199,8 @@ public class Incident {
     public boolean isInProgress() {
         return status.equals(IncidentStatus.IN_PROGRESS);
     }
+
+    public boolean isClosed() {return status.equals(IncidentStatus.CLOSED);}
 
     @Override
     public boolean equals(Object o) {
