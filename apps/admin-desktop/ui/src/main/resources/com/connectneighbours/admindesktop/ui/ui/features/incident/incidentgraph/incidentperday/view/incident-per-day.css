@@ -1,0 +1,62 @@
+.root {
+    -fx-background-color: white;
+}
+
+.incident-chart {
+    -fx-background-color: #fdfdfd;
+    -fx-padding: 20;
+    -fx-border-color: #E6E6E6;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.incident-chart .chart-plot-background {
+    -fx-background-color: #fdfdfd;
+}
+
+.incident-chart .chart-horizontal-grid-lines {
+    -fx-stroke: #E0E0E0;
+    -fx-stroke-dash-array: null;
+}
+
+.incident-chart .chart-vertical-grid-lines {
+    -fx-stroke: transparent;
+    -fx-stroke-dash-array: null;
+}
+
+.incident-chart .chart-bar {
+    -fx-bar-width: 12px;
+    -fx-max-bar-width: 12px;
+}
+
+.default-color0.chart-bar { -fx-bar-fill: #0098C8; }
+.default-color1.chart-bar { -fx-bar-fill: #FA9D03; }
+.default-color2.chart-bar { -fx-bar-fill: #30AB41; }
+.default-color3.chart-bar { -fx-bar-fill: #EA5F3B; }
+.default-color4.chart-bar { -fx-bar-fill: #7831A7; }
+.default-color5.chart-bar { -fx-bar-fill: #4357D1; }
+
+.incident-chart .axis {
+    -fx-tick-label-fill: #555555;
+    -fx-font-size: 12px;
+}
+
+.incident-chart .chart-title {
+    -fx-text-fill: #1A1A2E;
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+    -fx-padding: 0 0 14 0;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 0 0 1 0;
+}
+
+
+
+.chart-legend {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 8;
+    -fx-border-color: #E0E0E0;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
