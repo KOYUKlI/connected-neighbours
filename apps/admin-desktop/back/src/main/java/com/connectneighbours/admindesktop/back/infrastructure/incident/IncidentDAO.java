@@ -21,4 +21,6 @@ public interface IncidentDAO extends JpaRepository<Incident, UUID> {
     List<Incident> findByReporter(Reporter reporter);
 
     List<Incident> findByUpdatedAtAfter(Instant since);
+
+    Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end);
 }

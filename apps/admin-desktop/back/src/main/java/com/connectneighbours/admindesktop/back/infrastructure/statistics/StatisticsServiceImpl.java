@@ -11,10 +11,13 @@ import com.connectneighbours.admindesktop.back.domain.statistics.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class StatisticsServiceImpl implements StatisticsService {
@@ -112,6 +115,34 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
 
+    @Override
+    public IncidentPerDayByType incidentPerDayByType(IncidentType type) {
+        var count = incidentRepository.countByTypeAndCreatedAtBetween(type,LocalDateTime.now(),LocalDateTime.now().plusDays(1));
+        return new IncidentPerDayByType(count,type,LocalDateTime.now());
+    }
+
+    @Override
+    public List<IncidentPerDayByType> listIncidentPerDayByType(int days) {
+        LocalDate start = LocalDate.now().minusDays(days);
+        LocalDate end = LocalDate.now();
+
+        return incidentRepository.findAll().stream()
+                .filter(i -> {
+                    LocalDate d = i.getCreatedAt().toLocalDate();
+                    return !d.isBefore(start) && !d.isAfter(end);
+                })
+                .collect(Collectors.groupingBy(i -> i.getCreatedAt().toLocalDate()))
+                .entrySet().stream()
+                .flatMap(e -> Arrays.stream(IncidentType.values())
+                        .map(t -> new IncidentPerDayByType(
+                                e.getValue().stream().filter(i -> i.getType() == t).count(),
+                                t,
+                                e.getKey().atStartOfDay()
+                        ))
+                )
+                .sorted(Comparator.comparing(IncidentPerDayByType::dateTime))
+                .toList();
+    }
 
 
 }

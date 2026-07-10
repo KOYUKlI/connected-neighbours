@@ -60,4 +60,15 @@ public class StatisticsManagement {
                 .map(StatisticsMapper::toAlertDistributionBySeverityDTO)
                 .toList();
     }
+
+    public IncidentPerDayByTypeDTO incidentPerDayByType(IncidentType type) {
+        var incident = service.incidentPerDayByType(type);
+        return StatisticsMapper.toIncidentPerDayByType(incident);
+    }
+
+    public List<IncidentPerDayByTypeDTO> listIncidentPerDayByType(int day) {
+        return service.listIncidentPerDayByType(day).stream()
+                .map(StatisticsMapper::toIncidentPerDayByType)
+                .toList();
+    }
 }

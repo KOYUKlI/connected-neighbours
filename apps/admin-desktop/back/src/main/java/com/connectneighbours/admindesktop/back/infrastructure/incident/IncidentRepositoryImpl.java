@@ -64,6 +64,11 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     }
 
     @Override
+    public Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end) {
+        return incidentDAO.countByTypeAndCreatedAtBetween(type,start,end);
+    }
+
+    @Override
     public void delete(Incident incident) {
         incidentDAO.delete(incident);
     }

@@ -30,6 +30,8 @@ public interface IncidentRepository {
 
     List<Incident> findByUpdatedAtAfter(Instant since);
 
+    Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end);
+
     void delete(Incident incident);
 
     long count();

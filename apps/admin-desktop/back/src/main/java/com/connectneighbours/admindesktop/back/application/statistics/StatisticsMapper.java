@@ -22,4 +22,8 @@ public class StatisticsMapper {
     public static AlertDistributionBySeverityDTO toAlertDistributionBySeverityDTO(AlertDistributionBySeverity alertDistributionBySeverity) {
         return new AlertDistributionBySeverityDTO(alertDistributionBySeverity.severity(), alertDistributionBySeverity.count(), alertDistributionBySeverity.rate(), FormatPercentage.formatPercentage(alertDistributionBySeverity.rate()));
     }
+
+    public static IncidentPerDayByTypeDTO toIncidentPerDayByType(IncidentPerDayByType type) {
+        return new IncidentPerDayByTypeDTO(type.count(),type.type(),type.dateTime());
+    }
 }
