@@ -10,5 +10,6 @@
     <HBox fx:id="graphIncident" alignment="CENTER" spacing="20"/>
     <VBox fx:id="container" spacing="10" alignment="CENTER">
     </VBox>
+
 </fx:root>
 

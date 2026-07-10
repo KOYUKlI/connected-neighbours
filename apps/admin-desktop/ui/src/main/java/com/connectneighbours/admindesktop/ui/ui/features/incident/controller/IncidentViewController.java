@@ -5,6 +5,7 @@ import com.connectneighbours.admindesktop.back.application.incident.IncidentMana
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentDistributionByTypeDTO;
+import com.connectneighbours.admindesktop.back.application.statistics.IncidentPerDayByTypeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.StatisticsManagement;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
@@ -12,6 +13,10 @@ import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.model.IncidentDistributionByTypeProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.model.SimpleIncidentDistributionByTypeProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.viewmodel.IncidentDistributionByTypeViewModel;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentperday.controller.IncidentPerDayController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentperday.model.IncidentPerDayProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentperday.model.SimpleIncidentPerDayProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentperday.viewmodel.IncidentPerDayViewModel;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.controller.IncidentTableController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.model.ReadOnlyIncidentTableProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.model.SimpleIncidentTableProperty;
@@ -29,11 +34,12 @@ import java.io.IOException;
 import java.util.List;
 
 public class IncidentViewController extends VBox {
-    @FXML
-    private HBox graphIncident;
     private AdminDesktopController parent;
 
     private IncidentTableController tableController;
+
+    @FXML
+    private HBox graphIncident;
 
     @FXML
     private VBox container;
@@ -90,7 +96,16 @@ public class IncidentViewController extends VBox {
                 .toList();
 
         tableController.getIncidentTable().getItems().setAll(models);
-        var distributionList = getStatisticsManagement().listIncidentDistributedByType();
+
+        List<IncidentPerDayByTypeDTO> incidentPerDayByTypeDTOList = getStatisticsManagement().listIncidentPerDayByType(7);
+
+        List<IncidentPerDayProperty> incidentPerDayProperties = incidentPerDayByTypeDTOList.stream()
+                .map(this::toIncidentPerDayProperty)
+                .toList();
+
+        loadIncidentPerDay(incidentPerDayProperties);
+
+        List<IncidentDistributionByTypeDTO> distributionList = getStatisticsManagement().listIncidentDistributedByType();
 
         List<IncidentDistributionByTypeProperty> properties = distributionList.stream()
                 .map(this::toIncidentDistributionByTypeProperty)
@@ -100,7 +115,6 @@ public class IncidentViewController extends VBox {
     }
 
     public void loadIncidentDistribution(List<IncidentDistributionByTypeProperty> list) {
-        graphIncident.getChildren().clear();
 
         IncidentDistributionByTypeController distribution = new IncidentDistributionByTypeController();
         distribution.setPrefWidth(250);
@@ -113,6 +127,20 @@ public class IncidentViewController extends VBox {
         distribution.bindGraph(viewModelList);
 
         graphIncident.getChildren().add(distribution);
+    }
+
+    public void loadIncidentPerDay(List<IncidentPerDayProperty> list) {
+        graphIncident.getChildren().clear();
+
+        IncidentPerDayController incidentPerDay = new IncidentPerDayController();
+
+        List<IncidentPerDayViewModel> viewModelList = list.stream()
+                .map(incidentPerDay::toIncidentPerDayViewModel)
+                .toList();
+
+        incidentPerDay.bind(viewModelList);
+
+        graphIncident.getChildren().addFirst(incidentPerDay);
     }
 
 
@@ -148,6 +176,13 @@ public class IncidentViewController extends VBox {
         return p;
     }
 
+    private IncidentPerDayProperty toIncidentPerDayProperty(IncidentPerDayByTypeDTO dto) {
+        SimpleIncidentPerDayProperty p = new SimpleIncidentPerDayProperty();
+        p.countProperty().set(dto.count());
+        p.typeProperty().set(dto.type());
+        p.dateTimeProperty().set(dto.dateTime());
+        return p;
+    }
 
     public AlertManagement getAlertManagement() {
         return parent.getAlertManagement();

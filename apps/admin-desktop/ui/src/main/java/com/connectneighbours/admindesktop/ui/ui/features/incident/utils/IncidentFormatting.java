@@ -9,6 +9,7 @@ public class IncidentFormatting {
             case "IN_PROGRESS" -> "En cours";
             case "RESOLVED" -> "Résolu";
             case "OPEN" -> "Ouvert";
+            case "CLOSED" -> "Fermé";
             case "SECURITY" -> "Sécurité";
             case "MAINTENANCE" -> "Maintenance";
             case "NUISANCE" -> "Nuisances";
