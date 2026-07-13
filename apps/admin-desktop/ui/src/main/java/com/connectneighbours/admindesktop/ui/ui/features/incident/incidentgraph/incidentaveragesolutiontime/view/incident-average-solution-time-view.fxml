@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.scene.chart.AreaChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.CategoryAxis?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="10" alignment="CENTER">
+
+        <AreaChart fx:id="areaChart"
+                   prefWidth="500"
+                   prefHeight="300"
+                   stylesheets="@incident-average-solution-time.css"
+                   verticalGridLinesVisible="false">
+            <xAxis>
+                <CategoryAxis fx:id="xAxis" animated="false"/>
+            </xAxis>
+            <yAxis>
+                <NumberAxis fx:id="yAxis"
+                            autoRanging="false"
+                            upperBound="10"
+                            tickUnit="1"
+                            animated="false"/>
+            </yAxis>
+        </AreaChart>
+</fx:root>
