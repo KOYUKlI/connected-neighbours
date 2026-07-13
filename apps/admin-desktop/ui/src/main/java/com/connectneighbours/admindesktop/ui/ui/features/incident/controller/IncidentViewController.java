@@ -4,11 +4,16 @@ import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
+import com.connectneighbours.admindesktop.back.application.statistics.IncidentAverageSolutionTimeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentDistributionByTypeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentPerDayByTypeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.StatisticsManagement;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentaveragesolutiontime.controller.IncidentAverageSolutionTimeController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentaveragesolutiontime.model.IncidentAverageSolutionTimeProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentaveragesolutiontime.model.SimpleIncidentAverageSolutionTimeProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentaveragesolutiontime.viewmodel.IncidentAverageSolutionTimeViewModel;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.controller.IncidentDistributionByTypeController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.model.IncidentDistributionByTypeProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.model.SimpleIncidentDistributionByTypeProperty;
@@ -37,6 +42,8 @@ public class IncidentViewController extends VBox {
     private AdminDesktopController parent;
 
     private IncidentTableController tableController;
+    private IncidentAverageSolutionTimeController incidentAverageSolutionTime;
+
 
     @FXML
     private HBox graphIncident;
@@ -84,13 +91,28 @@ public class IncidentViewController extends VBox {
         parent.getMainContainer().getChildren().setAll(alertView);
     }
 
+    public void updateAverageSolutionTimeGraph() {
+        var average = getStatisticsManagement().listIncidentAverageSolutionTime(7)
+                .stream().map(this::toIncidentAverageSolutionTimeProperty).toList();
+
+
+        var viewModels = average.stream()
+                .map(incidentAverageSolutionTime::toIncidentAverageSolutionTimeViewModel)
+                .toList();
+
+        incidentAverageSolutionTime.bind(viewModels);
+    }
+
+
+
+
     public void loadIncidents(List<IncidentDTO> incidents) {
         List<IncidentTableViewModel> models = incidents.stream()
                 .map(dto -> {
-                    var newDto = getIncidentManagement().startIncidentProgress(dto.id());
+//                    var newDto = getIncidentManagement().startIncidentProgress(dto.id());
                     var vm = new IncidentTableViewModel();
-                    vm.setDto(newDto);
-                    vm.setIncidentTable(mapToProperty(newDto));
+                    vm.setDto(dto);
+                    vm.setIncidentTable(mapToProperty(dto));
                     return vm;
                 })
                 .toList();
@@ -112,6 +134,14 @@ public class IncidentViewController extends VBox {
                 .toList();
 
         loadIncidentDistribution(properties);
+
+        List<IncidentAverageSolutionTimeDTO> averageSolutionTimeList = getStatisticsManagement().listIncidentAverageSolutionTime(7);
+
+        List<IncidentAverageSolutionTimeProperty> averageSolutionTimeProperties = averageSolutionTimeList.stream()
+                .map(this::toIncidentAverageSolutionTimeProperty)
+                .toList();
+
+        loadIncidentAverageSolutionTime(averageSolutionTimeProperties);
     }
 
     public void loadIncidentDistribution(List<IncidentDistributionByTypeProperty> list) {
@@ -143,6 +173,18 @@ public class IncidentViewController extends VBox {
         graphIncident.getChildren().addFirst(incidentPerDay);
     }
 
+
+    public void loadIncidentAverageSolutionTime(List<IncidentAverageSolutionTimeProperty> list) {
+       incidentAverageSolutionTime = new IncidentAverageSolutionTimeController();
+
+        List<IncidentAverageSolutionTimeViewModel> viewModelList = list.stream()
+                .map(incidentAverageSolutionTime::toIncidentAverageSolutionTimeViewModel)
+                .toList();
+
+        incidentAverageSolutionTime.bind(viewModelList);
+
+        graphIncident.getChildren().addLast(incidentAverageSolutionTime);
+    }
 
     private ReadOnlyIncidentTableProperty mapToProperty(IncidentDTO dto) {
         SimpleIncidentTableProperty p = new SimpleIncidentTableProperty();
@@ -183,6 +225,17 @@ public class IncidentViewController extends VBox {
         p.dateTimeProperty().set(dto.dateTime());
         return p;
     }
+
+    private IncidentAverageSolutionTimeProperty toIncidentAverageSolutionTimeProperty(IncidentAverageSolutionTimeDTO dto) {
+        SimpleIncidentAverageSolutionTimeProperty p = new SimpleIncidentAverageSolutionTimeProperty();
+        p.countProperty().set(dto.count());
+        p.durationProperty().set(dto.duration());
+        p.dateTimeProperty().set(dto.dateTime());
+        return p;
+    }
+
+
+
 
     public AlertManagement getAlertManagement() {
         return parent.getAlertManagement();

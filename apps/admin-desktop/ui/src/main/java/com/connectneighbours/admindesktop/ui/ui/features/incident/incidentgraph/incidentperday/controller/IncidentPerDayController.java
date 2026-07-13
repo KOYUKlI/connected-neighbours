@@ -56,7 +56,7 @@ public class IncidentPerDayController extends VBox {
 
     public void bind(List<IncidentPerDayViewModel> list) {
 
-        var dates = list.stream()
+        List<String> dates = list.stream()
                 .map(vm -> vm.incidentPerDayProperty().dateTimeProperty().get().toLocalDate().toString())
                 .distinct()
                 .sorted()

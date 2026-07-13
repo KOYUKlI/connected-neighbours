@@ -135,6 +135,7 @@ public class IncidentTableController extends VBox {
                     var updated = parent.getIncidentManagement().openIncident(vm.getDto().id());
                     loadIncident(vm, updated);
                     incidentTable.refresh();
+                    parent.updateAverageSolutionTimeGraph();
                 }
             });
 
@@ -144,6 +145,7 @@ public class IncidentTableController extends VBox {
                     var updated = parent.getIncidentManagement().startIncidentProgress(vm.getDto().id());
                     loadIncident(vm, updated);
                     incidentTable.refresh();
+                    parent.updateAverageSolutionTimeGraph();
                 }
             });
 
@@ -153,6 +155,7 @@ public class IncidentTableController extends VBox {
                     var updated = parent.getIncidentManagement().resolveIncident(vm.getDto().id());
                     loadIncident(vm, updated);
                     incidentTable.refresh();
+                    parent.updateAverageSolutionTimeGraph();
                 }
             });
 
@@ -162,6 +165,7 @@ public class IncidentTableController extends VBox {
                     var updated = parent.getIncidentManagement().closeIncident(vm.getDto().id());
                     loadIncident(vm, updated);
                     incidentTable.refresh();
+                    parent.updateAverageSolutionTimeGraph();
                 }
             });
 
@@ -170,6 +174,7 @@ public class IncidentTableController extends VBox {
                 if (vm != null) {
                     parent.getIncidentManagement().deleteIncident(vm.getDto().id());
                     incidentTable.getItems().remove(vm);
+                    parent.updateAverageSolutionTimeGraph();
                 }
             });
 

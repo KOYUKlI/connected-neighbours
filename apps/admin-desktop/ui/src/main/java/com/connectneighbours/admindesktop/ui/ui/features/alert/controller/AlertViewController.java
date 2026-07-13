@@ -128,9 +128,8 @@ public class AlertViewController extends VBox {
         alertsContainer.getChildren().clear();
         var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverityAndIncident(incident);
         for (AlertDTO alert : incident.alerts()) {
-            var newAlertDto = parent.getAlertManagement().startAlertProgress(alert.id());
             WidgetAlertController widget = new WidgetAlertController();
-            widget.setAlert(toWidgetProperty(newAlertDto));
+            widget.setAlert(toWidgetProperty(alert));
             alertsContainer.getChildren().add(widget);
         }
         loadStats(incident);

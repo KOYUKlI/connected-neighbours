@@ -23,7 +23,7 @@
                      verticalGridLinesVisible="false"
                      horizontalGridLinesVisible="true">
 
-    <xAxis>
+        <xAxis>
             <CategoryAxis fx:id="xAxis" animated="false"/>
         </xAxis>
         <yAxis>

@@ -17,21 +17,17 @@
                 -fx-padding: 20;"
          fillWidth="true">
 
-    <!-- Titre -->
     <Text text="Répartition par Type"
           style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
 
     <Separator/>
 
-    <!-- Contenu : donut + légende côte à côte -->
     <HBox spacing="30" alignment="CENTER_LEFT">
 
-        <!-- Donut graph -->
         <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
             <Group fx:id="graphDistribution"/>
         </StackPane>
 
-        <!-- Légende -->
         <VBox spacing="12" alignment="CENTER_LEFT">
 
             <HBox spacing="8" alignment="CENTER_LEFT">

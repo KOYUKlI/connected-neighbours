@@ -6,6 +6,7 @@ public class IncidentFormatting {
         if (string == null || string.isBlank()) return "";
 
         return switch (string) {
+            case "CREATED" -> "Signalé";
             case "IN_PROGRESS" -> "En cours";
             case "RESOLVED" -> "Résolu";
             case "OPEN" -> "Ouvert";
