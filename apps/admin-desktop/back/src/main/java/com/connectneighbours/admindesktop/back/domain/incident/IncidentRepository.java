@@ -35,4 +35,6 @@ public interface IncidentRepository {
     void delete(Incident incident);
 
     long count();
+
+    void flush();
 }

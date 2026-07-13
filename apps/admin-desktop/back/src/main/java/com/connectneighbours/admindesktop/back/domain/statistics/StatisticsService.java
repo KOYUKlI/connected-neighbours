@@ -27,4 +27,8 @@ public interface StatisticsService {
     IncidentPerDayByType incidentPerDayByType(IncidentType type);
 
     List<IncidentPerDayByType> listIncidentPerDayByType(int day);
+
+    IncidentAverageSolutionTime incidentAverageSolutionTime();
+
+    List<IncidentAverageSolutionTime> listIncidentAverageSolutionTime(int days);
 }

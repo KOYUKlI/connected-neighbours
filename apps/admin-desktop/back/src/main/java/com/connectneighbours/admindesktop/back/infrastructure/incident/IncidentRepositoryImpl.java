@@ -82,4 +82,9 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     public long count() {
         return incidentDAO.count();
     }
+
+    @Override
+    public void flush() {
+        incidentDAO.flush();
+    }
 }

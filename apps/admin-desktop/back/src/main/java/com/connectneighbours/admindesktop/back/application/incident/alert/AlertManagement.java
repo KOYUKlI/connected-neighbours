@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional(readOnly = true)
+@Transactional
 public class AlertManagement {
     private final AlertRepository alertRepository;
     private final AlertService alertService;

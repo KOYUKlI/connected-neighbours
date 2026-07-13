@@ -3,6 +3,7 @@ package com.connectneighbours.admindesktop.back.application.statistics;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.statistics.IncidentAverageSolutionTime;
 import com.connectneighbours.admindesktop.back.domain.statistics.StatisticsService;
 import org.springframework.stereotype.Service;
 
@@ -63,12 +64,23 @@ public class StatisticsManagement {
 
     public IncidentPerDayByTypeDTO incidentPerDayByType(IncidentType type) {
         var incident = service.incidentPerDayByType(type);
-        return StatisticsMapper.toIncidentPerDayByType(incident);
+        return StatisticsMapper.toIncidentPerDayByTypeDTO(incident);
     }
 
     public List<IncidentPerDayByTypeDTO> listIncidentPerDayByType(int day) {
         return service.listIncidentPerDayByType(day).stream()
-                .map(StatisticsMapper::toIncidentPerDayByType)
+                .map(StatisticsMapper::toIncidentPerDayByTypeDTO)
+                .toList();
+    }
+
+    public IncidentAverageSolutionTimeDTO incidentAverageSolutionTime() {
+        var incident = service.incidentAverageSolutionTime();
+        return StatisticsMapper.toIncidentAverageSolutionTimeDTO(incident);
+    }
+
+    public List<IncidentAverageSolutionTimeDTO> listIncidentAverageSolutionTime(int days) {
+        return service.listIncidentAverageSolutionTime(days).stream()
+                .map(StatisticsMapper::toIncidentAverageSolutionTimeDTO)
                 .toList();
     }
 }
