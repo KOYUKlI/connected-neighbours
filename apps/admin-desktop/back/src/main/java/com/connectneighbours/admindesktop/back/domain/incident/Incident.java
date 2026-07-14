@@ -173,6 +173,7 @@ public class Incident {
 
     public void open() {
         this.status = IncidentStatus.OPEN;
+        if (this.resolvedAt != null) this.resolvedAt = null;
     }
 
     public void close() {
@@ -182,6 +183,7 @@ public class Incident {
 
     public void inProgress() {
         this.status = IncidentStatus.IN_PROGRESS;
+        if (this.resolvedAt != null) this.resolvedAt = null;
     }
 
     public boolean hasCriticalOpenAlerts() {
