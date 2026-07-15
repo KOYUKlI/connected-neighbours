@@ -8,10 +8,10 @@ import com.connectneighbours.admindesktop.back.domain.theme.ThemeRepository;
 import java.util.List;
 import java.util.UUID;
 
-public class ThemeMangement {
+public class ThemeManagement {
     private final ThemeRepository themeRepository;
 
-    public ThemeMangement(ThemeRepository themeRepository) {
+    public ThemeManagement(ThemeRepository themeRepository) {
         this.themeRepository = themeRepository;
     }
 

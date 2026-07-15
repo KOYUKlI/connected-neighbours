@@ -12,12 +12,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class ThemeManagementTest {
 
     private ThemeRepositoryInMemory repository;
-    private ThemeMangement management;
+    private ThemeManagement management;
 
     @BeforeEach
     void setup() {
         repository = new ThemeRepositoryInMemory();
-        management = new ThemeMangement(repository);
+        management = new ThemeManagement(repository);
     }
 
     @Test

@@ -1,4 +1,4 @@
-package com.connectneighbours.admindesktop.back.expostion;
+package com.connectneighbours.admindesktop.back.exposition;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
