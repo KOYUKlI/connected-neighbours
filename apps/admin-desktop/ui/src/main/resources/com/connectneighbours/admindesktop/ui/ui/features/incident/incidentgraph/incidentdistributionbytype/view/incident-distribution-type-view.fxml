@@ -12,13 +12,12 @@
          xmlns:fx="http://javafx.com/fxml"
          spacing="15"
          alignment="TOP_LEFT"
-         style="-fx-background-color: white;
-                -fx-background-radius: 10;
-                -fx-padding: 20;"
+         styleClass="distribution-card"
+         stylesheets="@incident-distribution-type.css"
          fillWidth="true">
 
     <Text text="Répartition par Type"
-          style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+          styleClass="distribution-title"/>
 
     <Separator/>
 
@@ -32,32 +31,32 @@
 
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Circle radius="6" fill="#0098C8"/>
-                <Text text="Sécurité" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+                <Text text="Sécurité" styleClass="legend-label"/>
             </HBox>
 
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Circle radius="6" fill="#FA9D03"/>
-                <Text text="Nuisances" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+                <Text text="Nuisances" styleClass="legend-label"/>
             </HBox>
 
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Circle radius="6" fill="#30AB41"/>
-                <Text text="Propreté" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+                <Text text="Propreté" styleClass="legend-label"/>
             </HBox>
 
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Circle radius="6" fill="#EA5F3B"/>
-                <Text text="Maintenance" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+                <Text text="Maintenance" styleClass="legend-label"/>
             </HBox>
 
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Circle radius="6" fill="#7831A7"/>
-                <Text text="Circulation" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+                <Text text="Circulation" styleClass="legend-label"/>
             </HBox>
 
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Circle radius="6" fill="#4357D1"/>
-                <Text text="Autres" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+                <Text text="Autres" styleClass="legend-label"/>
             </HBox>
 
         </VBox>

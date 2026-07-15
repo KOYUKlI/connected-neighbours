@@ -1,0 +1,11 @@
+.distribution-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 20;
+}
+
+.distribution-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-fill: #1A1A1A;
+}

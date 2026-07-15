@@ -2,6 +2,11 @@
     -fx-background-color: white;
 }
 
+.per-day-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+}
+
 .incident-chart {
     -fx-background-color: #fdfdfd;
     -fx-padding: 20;

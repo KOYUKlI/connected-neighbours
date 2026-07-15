@@ -11,18 +11,19 @@
          prefWidth="409" prefHeight="140"
          maxWidth="Infinity" maxHeight="Infinity"
          minWidth="280"
-         style="-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;">
+         styleClass="widget-alert-container"
+         stylesheets="@widget-alert.css">
 
     <AnchorPane fx:id="widgetHeaderContainer"
                 prefHeight="40" maxHeight="40"
                 AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"
-                style="-fx-background-color: #e53935; -fx-background-radius: 8 8 0 0;">
+                styleClass="widget-alert-header">
         <Pane fx:id="warningSymbolContainer"
               AnchorPane.leftAnchor="12" AnchorPane.topAnchor="8"/>
 
         <Label fx:id="titleLabel"
                layoutX="40" layoutY="10"
-               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14;"/>
+               styleClass="widget-alert-title"/>
     </AnchorPane>
 
     <HBox spacing="10"
@@ -38,7 +39,7 @@
         <VBox spacing="4" HBox.hgrow="ALWAYS">
 
             <Label fx:id="reporterLabel"
-                   style="-fx-font-weight: bold; -fx-font-size: 13;" text="TEST"/>
+                   styleClass="widget-alert-reporter" text="TEST"/>
 
             <TextFlow fx:id="createdAtFlow"/>
             <TextFlow fx:id="statusFlow"/>

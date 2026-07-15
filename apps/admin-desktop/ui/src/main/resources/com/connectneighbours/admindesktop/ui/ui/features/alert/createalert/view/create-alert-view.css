@@ -1,0 +1,69 @@
+.create-alert-container {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 8;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8;
+    -fx-padding: 15;
+}
+
+.form-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A3E8A;
+}
+
+.form-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8;
+    -fx-padding: 20;
+}
+
+.form-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17295A;
+}
+
+.form-field {
+    -fx-background-color: white;
+    -fx-background-radius: 6;
+    -fx-border-color: #DDE1F0;
+    -fx-border-radius: 6;
+    -fx-padding: 6 10;
+}
+
+.form-field:focused {
+    -fx-border-color: #1A73E8;
+}
+
+.form-field-error {
+    -fx-border-color: #D93025;
+}
+
+.error-label {
+    -fx-text-fill: #D93025;
+    -fx-font-size: 11px;
+}
+
+.severity-button {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20;
+    -fx-border-color: #DDE1F0;
+    -fx-border-radius: 20;
+    -fx-padding: 6 16;
+    -fx-text-fill: #17295A;
+    -fx-font-weight: bold;
+}
+
+.severity-button:hover {
+    -fx-background-color: #F5F8FF;
+    -fx-cursor: hand;
+}
+
+.severity-button:selected {
+    -fx-background-color: #1A73E8;
+    -fx-text-fill: white;
+    -fx-border-color: #1A73E8;
+}

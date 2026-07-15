@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="16"
+         maxWidth="Infinity"
+         VBox.vgrow="ALWAYS"
+         stylesheets="@actual-plugin-view.css"
+         styleClass="actual-plugin-card">
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label text="🧩" styleClass="actual-plugin-icon"/>
+        <Label fx:id="nameLabel" styleClass="actual-plugin-title"/>
+    </HBox>
+
+    <Separator/>
+
+    <VBox spacing="10">
+        <HBox spacing="6">
+            <Label text="Version :" styleClass="actual-plugin-field-label"/>
+            <Label fx:id="versionLabel" styleClass="actual-plugin-field-value"/>
+        </HBox>
+        <HBox spacing="6">
+            <Label text="Auteur :" styleClass="actual-plugin-field-label"/>
+            <Label fx:id="authorLabel" styleClass="actual-plugin-field-value"/>
+        </HBox>
+        <HBox spacing="6" alignment="TOP_LEFT">
+            <Label text="Description :" styleClass="actual-plugin-field-label"/>
+            <Label fx:id="descriptionLabel" styleClass="actual-plugin-field-value" wrapText="true"/>
+        </HBox>
+    </VBox>
+
+    <Button text="Exécuter le Plugin" fx:id="btnExecute" styleClass="actual-plugin-execute-button"/>
+
+    <Separator/>
+
+    <Label text="Activité du Plugin" styleClass="actual-plugin-section-title"/>
+
+    <ScrollPane fitToWidth="true" styleClass="actual-plugin-log-scroll" VBox.vgrow="ALWAYS">
+        <content>
+            <VBox fx:id="logContainer" spacing="4" styleClass="actual-plugin-log-console"/>
+        </content>
+    </ScrollPane>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Actualiser" fx:id="btnRefresh" styleClass="return-button"/>
+        <Button text="Fermer" fx:id="btnClose" styleClass="filter-button"/>
+    </HBox>
+
+</fx:root>

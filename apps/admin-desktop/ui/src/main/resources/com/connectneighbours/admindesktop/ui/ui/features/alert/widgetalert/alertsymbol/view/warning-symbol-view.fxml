@@ -8,6 +8,7 @@
 <fx:root type="Pane"
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
+         stylesheets="@warning-symbol.css"
          prefWidth="24" prefHeight="24">
 
     <Polygon fx:id="shape" fill="white">
@@ -26,6 +27,6 @@
     <Text fx:id="icon"
           text="!"
           x="9" y="18"
-          style="-fx-font-size: 14px; -fx-font-weight: bold;"
+          styleClass="warning-symbol-icon"
           fill="#F13C3E"/>
 </fx:root>

@@ -5,13 +5,14 @@
 
 <fx:root type="HBox"
          xmlns="http://javafx.com/javafx"
-         xmlns:fx="http://javafx.com/fxml">
+         xmlns:fx="http://javafx.com/fxml"
+         stylesheets="@reporter-widget.css">
 
     <ImageView fx:id="avatarImage"
                fitWidth="48"
                fitHeight="48"
                preserveRatio="true"
                smooth="true"
-               style="-fx-background-radius: 24;" />
+               styleClass="avatar-image" />
 
 </fx:root>

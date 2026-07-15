@@ -9,7 +9,7 @@
          xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
          alignment="CENTER"
-         style="-fx-background-color: white; -fx-background-radius: 8;"
+         styleClass="per-day-card"
          stylesheets="@incident-per-day.css"
          spacing="10">
 

@@ -1,0 +1,22 @@
+.widget-alert-container {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8;
+}
+
+.widget-alert-header {
+    -fx-background-color: #e53935;
+    -fx-background-radius: 8 8 0 0;
+}
+
+.widget-alert-title {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14;
+}
+
+.widget-alert-reporter {
+    -fx-font-weight: bold;
+    -fx-font-size: 13;
+}

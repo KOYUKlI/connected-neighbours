@@ -13,7 +13,7 @@
          spacing="12" fillWidth="false" alignment="TOP_CENTER">
 
     <Text text="Répartition par Gravité"
-          style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+          styleClass="legend-label"/>
 
     <StackPane prefWidth="180" prefHeight="180" maxWidth="180" maxHeight="180">
         <Group fx:id="graphDistribution"/>
@@ -23,22 +23,22 @@
 
         <HBox spacing="8" alignment="CENTER_LEFT">
             <Circle radius="7" fill="#F03B3D"/>
-            <Text text="Critique" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="Critique" styleClass="legend-label"/>
         </HBox>
 
         <HBox spacing="8" alignment="CENTER_LEFT">
             <Circle radius="7" fill="#2E6BE6"/>
-            <Text text="Haute" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="Haute" styleClass="legend-label"/>
         </HBox>
 
         <HBox spacing="8" alignment="CENTER_LEFT">
             <Circle radius="7" fill="#F7B500"/>
-            <Text text="Moyenne" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="Moyenne" styleClass="legend-label"/>
         </HBox>
 
         <HBox spacing="8" alignment="CENTER_LEFT">
             <Circle radius="7" fill="#69B561"/>
-            <Text text="Mineure" style="-fx-font-weight: bold; -fx-fill: #1A1A1A;"/>
+            <Text text="Mineure" styleClass="legend-label"/>
         </HBox>
 
     </VBox>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         styleClass="alert-stats-container"
+         stylesheets="@alert-stats.css">
+
+    <VBox spacing="15" alignment="CENTER">
+        <HBox spacing="15" alignment="CENTER" fillHeight="false">
+            <VBox alignment="CENTER" HBox.hgrow="ALWAYS" maxHeight="100" styleClass="alert-stats-card">
+                <Label text="Total Alertes" styleClass="alert-stats-label"/>
+                <Label fx:id="totalAlerts" text="4" styleClass="alert-stats-value"/>
+            </VBox>
+
+            <VBox alignment="CENTER" HBox.hgrow="ALWAYS" maxHeight="100" styleClass="alert-stats-card-critical">
+                <Label text="Alertes Critiques" styleClass="alert-stats-label-critical"/>
+                <Label fx:id="totalAlertsCritical" text="1" styleClass="alert-stats-value-critical"/>
+            </VBox>
+
+            <VBox alignment="CENTER" HBox.hgrow="ALWAYS" maxHeight="100" styleClass="alert-stats-card">
+                <Label text="Temps de Résolution Moyen" styleClass="alert-stats-label"/>
+                <Label fx:id="averageResolutionTime" text="2 heures" styleClass="alert-stats-value"/>
+            </VBox>
+        </HBox>
+    </VBox>
+</fx:root>

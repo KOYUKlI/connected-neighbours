@@ -8,7 +8,7 @@
          alignment="CENTER"
          fillWidth="false">
     <TableView fx:id="incidentTable" prefWidth="1500"
-               prefHeight="500" style="-fx-background-radius:10;" stylesheets="@incident-table.css">
+               prefHeight="500" stylesheets="@incident-table.css">
         <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
         </columnResizePolicy>
