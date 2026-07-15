@@ -2,21 +2,22 @@ package com.connectneighbours.admindesktop.back.infrastructure.sync;
 
 import com.connectneighbours.admindesktop.back.application.sync.SyncHistoryDTO;
 import com.connectneighbours.admindesktop.back.application.sync.SyncPushRequestDTO;
+import com.connectneighbours.admindesktop.back.domain.sync.SyncHistoryEntry;
+import com.connectneighbours.admindesktop.back.domain.sync.SyncHistoryRepository;
 import com.connectneighbours.admindesktop.back.domain.sync.SyncRepository;
+import com.connectneighbours.admindesktop.back.domain.sync.SyncType;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public class SyncRepositoryImpl implements SyncRepository {
 
-    private final Map<String, List<SyncHistoryDTO>> history = new HashMap<>();
-    private final Map<String, String> lastPush = new HashMap<>();
-    private final Map<String, String> lastPull = new HashMap<>();
+    private final SyncHistoryRepository syncHistoryRepository;
+
+    public SyncRepositoryImpl(SyncHistoryRepository syncHistoryRepository) {
+        this.syncHistoryRepository = syncHistoryRepository;
+    }
 
     @Override
     public void applyOperations(SyncPushRequestDTO request) {
@@ -24,28 +25,26 @@ public class SyncRepositoryImpl implements SyncRepository {
 
     @Override
     public void recordPush(String clientId, int count) {
-        String ts = Instant.now().toString();
-        lastPush.put(clientId, ts);
-        history.computeIfAbsent(clientId, k -> new ArrayList<>())
-                .add(new SyncHistoryDTO(ts, "PUSH", count));
+        syncHistoryRepository.save(new SyncHistoryEntry(clientId, SyncType.PUSH, count));
     }
 
     @Override
     public void recordPull(String clientId, int count) {
-        String ts = Instant.now().toString();
-        lastPull.put(clientId, ts);
-        history.computeIfAbsent(clientId, k -> new ArrayList<>())
-                .add(new SyncHistoryDTO(ts, "PULL", count));
+        syncHistoryRepository.save(new SyncHistoryEntry(clientId, SyncType.PULL, count));
     }
 
     @Override
     public String findLastPush(String clientId) {
-        return lastPush.get(clientId);
+        return syncHistoryRepository.findLatestByClientIdAndType(clientId, SyncType.PUSH)
+                .map(entry -> entry.getTimestamp().toString())
+                .orElse(null);
     }
 
     @Override
     public String findLastPull(String clientId) {
-        return lastPull.get(clientId);
+        return syncHistoryRepository.findLatestByClientIdAndType(clientId, SyncType.PULL)
+                .map(entry -> entry.getTimestamp().toString())
+                .orElse(null);
     }
 
     @Override
@@ -55,7 +54,12 @@ public class SyncRepositoryImpl implements SyncRepository {
 
     @Override
     public List<SyncHistoryDTO> findHistory(String clientId) {
-        return history.getOrDefault(clientId, List.of());
+        return syncHistoryRepository.findByClientIdOrderByTimestampDesc(clientId).stream()
+                .map(entry -> new SyncHistoryDTO(
+                        entry.getTimestamp().toString(),
+                        entry.getType().name(),
+                        entry.getCount()
+                ))
+                .toList();
     }
 }
-

@@ -68,5 +68,13 @@ public class SyncManagement {
     public List<SyncHistoryDTO> history(String clientId) {
         return syncRepository.findHistory(clientId);
     }
+
+    public List<SyncHistoryDTO> history() {
+        return history(clientId);
+    }
+
+    public SyncStatusDTO status() {
+        return status(clientId);
+    }
 }
 

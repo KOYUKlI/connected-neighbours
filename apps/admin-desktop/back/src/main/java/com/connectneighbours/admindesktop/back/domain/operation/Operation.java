@@ -50,11 +50,16 @@ public class Operation {
         this.entityId = entityId;
         this.entityType = entityType;
         this.type = type;
+        this.status = OperationStatus.PENDING;
         this.retryCount = 0;
     }
 
     public UUID getOperationId() {
         return operationId;
+    }
+
+    public void setOperationId(UUID operationId) {
+        this.operationId = operationId;
     }
 
     public UUID getClientId() {
