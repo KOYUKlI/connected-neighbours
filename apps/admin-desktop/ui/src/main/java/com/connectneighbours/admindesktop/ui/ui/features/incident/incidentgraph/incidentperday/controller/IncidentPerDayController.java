@@ -11,6 +11,9 @@ import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.StackedBarChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 
@@ -52,6 +55,48 @@ public class IncidentPerDayController extends VBox {
         yAxis.setAutoRanging(false);
         yAxis.setUpperBound(20);
         yAxis.setTickUnit(5);
+
+        setupYAxisContextMenu();
+    }
+
+    private void setupYAxisContextMenu() {
+        ContextMenu menu = new ContextMenu();
+
+        for (int value : List.of(5, 10, 15, 20)) {
+            MenuItem item = new MenuItem(String.valueOf(value));
+            item.setOnAction(e -> applyYAxisUpperBound(value));
+            menu.getItems().add(item);
+        }
+
+        MenuItem custom = new MenuItem("Valeur personnalisée...");
+        custom.setOnAction(e -> promptCustomYAxisUpperBound());
+        menu.getItems().add(custom);
+
+        chart.setOnContextMenuRequested(event ->
+                menu.show(chart, event.getScreenX(), event.getScreenY())
+        );
+    }
+
+    private void promptCustomYAxisUpperBound() {
+        TextInputDialog dialog = new TextInputDialog(String.valueOf((int) yAxis.getUpperBound()));
+        dialog.setTitle("Valeur personnalisée");
+        dialog.setHeaderText(null);
+        dialog.setContentText("Nombre maximal d'incidents par jour :");
+
+        dialog.showAndWait().ifPresent(input -> {
+            try {
+                int value = Integer.parseInt(input.trim());
+                if (value > 0) {
+                    applyYAxisUpperBound(value);
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        });
+    }
+
+    private void applyYAxisUpperBound(int upperBound) {
+        yAxis.setUpperBound(upperBound);
+        yAxis.setTickUnit(Math.max(1, upperBound / 4));
     }
 
     public void bind(List<IncidentPerDayViewModel> list) {
