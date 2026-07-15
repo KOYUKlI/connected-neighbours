@@ -1,11 +1,5 @@
 package com.connectneighbours.admindesktop.back.application.incident;
 
-import com.connectneighbours.admindesktop.back.application.incident.alert.AlertRepositoryInMemory;
-import com.connectneighbours.admindesktop.back.application.incident.alert.CreationAlertDTO;
-import com.connectneighbours.admindesktop.back.domain.alert.Alert;
-import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
-import com.connectneighbours.admindesktop.back.domain.alert.AlertService;
-import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.*;
@@ -23,9 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class IncidentManagementTest {
 
     private IncidentRepository incidentRepo;
-    private AlertRepository alertRepo;
     private IncidentService incidentService;
-    private AlertService alertService;
     private IncidentManagement management;
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
@@ -33,27 +25,19 @@ class IncidentManagementTest {
     @BeforeEach
     void setup() {
         incidentRepo = new IncidentRepositoryInMemory();
-        alertRepo = new AlertRepositoryInMemory();
         incidentService = new IncidentService();
-        alertService = new AlertService();
-        management = new IncidentManagement(alertRepo, incidentRepo, alertService, incidentService);
+        management = new IncidentManagement(incidentRepo, incidentService);
     }
 
     @Test
     void startIncidentProgress_shouldSetStatusToInProgress() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(
-                        new Reporter("first", "last"),
-                        "Leak",
-                        "Water leak",
-                        IncidentType.MAINTENANCE
-                )
-        );
+        var incident = new Incident(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
 
-        var updated = management.startIncidentProgress(incident.id());
+        var updated = management.startIncidentProgress(incident.getIncidentId());
 
         assertEquals(IncidentStatus.IN_PROGRESS, updated.status());
-        assertEquals(IncidentStatus.IN_PROGRESS, incidentRepo.findById(incident.id()).get().getStatus());
+        assertEquals(IncidentStatus.IN_PROGRESS, incidentRepo.findById(incident.getIncidentId()).get().getStatus());
     }
 
     @Test
@@ -64,19 +48,13 @@ class IncidentManagementTest {
 
     @Test
     void resolveIncident_shouldSetStatusToResolved() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(
-                        new Reporter("first", "last"),
-                        "Leak",
-                        "Water leak",
-                        IncidentType.MAINTENANCE
-                )
-        );
+        var incident = new Incident(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
 
-        var updated = management.resolveIncident(incident.id());
+        var updated = management.resolveIncident(incident.getIncidentId());
 
         assertEquals(IncidentStatus.RESOLVED, updated.status());
-        assertEquals(IncidentStatus.RESOLVED, incidentRepo.findById(incident.id()).get().getStatus());
+        assertEquals(IncidentStatus.RESOLVED, incidentRepo.findById(incident.getIncidentId()).get().getStatus());
     }
 
     @Test
@@ -88,12 +66,12 @@ class IncidentManagementTest {
 
     @Test
     void createIncident_shouldCreateAndReturnDTO() {
-        var dto = new CreationIncidentDTO(new Reporter("first", "last"), "Fire", "Kitchen fire", IncidentType.MAINTENANCE);
+        var dto = new CreationIncidentDTO(new Reporter("first", "last"), "Fire", "Kitchen fire", IncidentType.MAINTENANCE, IncidentSeverity.LOW);
 
         var result = management.createIncident(dto);
 
         assertEquals("Fire", result.title());
-        assertEquals(IncidentStatus.OPEN, result.status());
+        assertEquals(IncidentStatus.CREATED, result.status());
         assertEquals(1, incidentRepo.findAll().size());
     }
 
@@ -103,7 +81,8 @@ class IncidentManagementTest {
                 new Reporter("first", "last"),
                 null,
                 "desc",
-                IncidentType.MAINTENANCE
+                IncidentType.MAINTENANCE,
+                IncidentSeverity.LOW
         );
 
         assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
@@ -116,7 +95,8 @@ class IncidentManagementTest {
                 new Reporter("first", "last"),
                 "",
                 "desc",
-                IncidentType.MAINTENANCE
+                IncidentType.MAINTENANCE,
+                IncidentSeverity.LOW
         );
 
         assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
@@ -129,7 +109,8 @@ class IncidentManagementTest {
                 new Reporter("first", "last"),
                 "Leak",
                 null,
-                IncidentType.MAINTENANCE
+                IncidentType.MAINTENANCE,
+                IncidentSeverity.LOW
         );
 
         assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
@@ -142,7 +123,8 @@ class IncidentManagementTest {
                 null,
                 "Leak",
                 "desc",
-                IncidentType.MAINTENANCE
+                IncidentType.MAINTENANCE,
+                IncidentSeverity.LOW
         );
 
         assertThrows(IllegalArgumentException.class, () -> management.createIncident(dto));
@@ -151,12 +133,11 @@ class IncidentManagementTest {
 
     @Test
     void updateIncident_shouldModifyFields() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
-        );
+        var incident = new Incident(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
 
         var updated = management.updateIncident(
-                incident.id(),
+                incident.getIncidentId(),
                 new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE)
         );
 
@@ -167,25 +148,23 @@ class IncidentManagementTest {
 
     @Test
     void updateIncident_shouldThrow_whenTitleIsNull() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
-        );
+        var incident = new Incident(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
 
         var dto = new UpdateIncidentDTO(null, "NewDesc", IncidentType.MAINTENANCE);
 
-        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.id(), dto));
+        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.getIncidentId(), dto));
     }
 
 
     @Test
     void updateIncident_shouldThrow_whenDescriptionIsBlank() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE)
-        );
+        var incident = new Incident(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
 
         var dto = new UpdateIncidentDTO("New", "", IncidentType.MAINTENANCE);
 
-        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.id(), dto));
+        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.getIncidentId(), dto));
     }
 
     @Test
@@ -197,123 +176,9 @@ class IncidentManagementTest {
 
 
     @Test
-    void addAlertToIncident_shouldAttachAlert() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE)
-        );
-
-        var alert = management.addAlertToIncident(
-                incident.id(),
-                new CreationAlertDTO("Pipe broken", AlertSeverity.CRITICAL)
-        );
-
-        assertEquals("Pipe broken", alert.details());
-        assertEquals(1, incidentRepo.findById(incident.id()).get().getAlerts().size());
-    }
-
-    @Test
-    void addAlertToIncident_shouldThrow_whenIncidentIdIsNull() {
-        var dto = new CreationAlertDTO("msg", AlertSeverity.CRITICAL);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.addAlertToIncident(null, dto));
-    }
-
-    @Test
-    void addAlertToIncident_shouldThrow_whenDtoIsNull() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
-        );
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.addAlertToIncident(incident.id(), null));
-    }
-
-    @Test
-    void addAlertToIncident_shouldThrow_whenMessageIsNull() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
-        );
-
-        var dto = new CreationAlertDTO(null, AlertSeverity.CRITICAL);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.addAlertToIncident(incident.id(), dto));
-    }
-
-    @Test
-    void addAlertToIncident_shouldThrow_whenMessageIsBlank() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
-        );
-
-        var dto = new CreationAlertDTO("", AlertSeverity.CRITICAL);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.addAlertToIncident(incident.id(), dto));
-    }
-
-    @Test
-    void addAlertToIncident_shouldThrow_whenSeverityIsNull() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
-        );
-
-        var dto = new CreationAlertDTO("msg", null);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.addAlertToIncident(incident.id(), dto));
-    }
-
-
-
-    @Test
-    void detachAlert_shouldRemoveAlertFromIncident() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE)
-        );
-
-        var alert = management.addAlertToIncident(
-                incident.id(),
-                new CreationAlertDTO("Pipe broken", AlertSeverity.CRITICAL)
-        );
-
-        Alert alertEntity = alertRepo.findById(alert.id()).get();
-        alertService.resolve(alertEntity);
-        alertRepo.save(alertEntity);
-
-        management.detachAlertFromIncident(incident.id(), alert.id());
-
-        var updated = incidentRepo.findById(incident.id()).get();
-        assertEquals(0, updated.getAlerts().size());
-    }
-
-    @Test
-    void detachAlert_shouldThrow_whenIncidentIdIsNull() {
-        var alertId = UUID.randomUUID();
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.detachAlertFromIncident(null, alertId));
-    }
-
-
-    @Test
-    void detachAlert_shouldThrow_whenAlertIdIsNull() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Leak", "desc", IncidentType.MAINTENANCE)
-        );
-
-        assertThrows(IllegalArgumentException.class,
-                () -> management.detachAlertFromIncident(incident.id(), null));
-    }
-
-
-    @Test
     void listIncidents_shouldReturnPaginatedResults() {
         for (int i = 0; i < 15; i++) {
-            management.createIncident(
-                    new CreationIncidentDTO(new Reporter("first", "last"), "i" + i, "desc", IncidentType.MAINTENANCE)
-            );
+            incidentRepo.save(new Incident(new Reporter("first", "last"), "i" + i, "desc", IncidentType.MAINTENANCE));
         }
 
         var page0 = management.listIncidents(0, 10);
@@ -356,11 +221,10 @@ class IncidentManagementTest {
 
     @Test
     void getIncident_shouldReturnCorrectIncident() {
-        var incident = management.createIncident(
-                new CreationIncidentDTO(new Reporter("first", "last"), "Fire", "Kitchen", IncidentType.MAINTENANCE)
-        );
+        var incident = new Incident(new Reporter("first", "last"), "Fire", "Kitchen", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
 
-        var result = management.getIncident(incident.id());
+        var result = management.getIncident(incident.getIncidentId());
 
         assertEquals("Fire", result.title());
         assertEquals("Kitchen", result.description());

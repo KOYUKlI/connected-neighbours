@@ -7,10 +7,11 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 
+import java.time.Instant;
 import java.util.*;
 
 public class AlertRepositoryInMemory implements AlertRepository {
-    private final Map<UUID, Alert> data = new HashMap<>();
+    private final Map<UUID, Alert> data = new LinkedHashMap<>();
 
     @Override
     public Alert save(Alert alert) {
@@ -69,5 +70,10 @@ public class AlertRepositoryInMemory implements AlertRepository {
     @Override
     public long count() {
         return 0;
+    }
+
+    @Override
+    public List<Alert> findByUpdatedAtAfter(Instant since) {
+        return List.of();
     }
 }

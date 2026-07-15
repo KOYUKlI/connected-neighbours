@@ -1,3 +1,41 @@
+.top-nav-bar {
+    -fx-background-color: #17295A;
+    -fx-padding: 10 20 10 20;
+}
+
+.nav-menu-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.nav-menu-button > .label {
+    -fx-text-fill: white;
+}
+
+.nav-menu-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-menu-button .arrow {
+    -fx-background-color: white;
+}
+
+.top-nav-title {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.main-content-area {
+    -fx-padding: 15;
+}
+
+.menu-bar {
+    -fx-background-color: transparent;
+}
+
 .menu-bar .label {
     -fx-font-weight: bold;
     -fx-text-fill: #17295A;
@@ -18,7 +56,7 @@
     -fx-background-radius: 6;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-padding: 6 14;
+    -fx-padding: 8 20;
 }
 
 .filter-button:hover {
@@ -39,11 +77,11 @@
 
 
 .hbox-filter {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 4 10;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-padding: 6 14 6 14;
     -fx-spacing: 6;
     -fx-alignment: center;
 }
@@ -51,6 +89,37 @@
 
 .hbox-filter:hover {
     -fx-background-color: rgba(23, 41, 90, 0.05);
+}
+
+.filter-bar {
+    -fx-padding: 5 0 5 0;
+}
+
+.filter-value-label {
+    -fx-text-fill: #1A3E8A;
+}
+
+.section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A3E8A;
+}
+
+.card-container {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 8;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8;
+    -fx-padding: 15;
+}
+
+.legend-label {
+    -fx-font-weight: bold;
+    -fx-fill: #1A1A1A;
+}
+
+.scroll-transparent {
+    -fx-background-color: transparent;
 }
 
 .return-button {

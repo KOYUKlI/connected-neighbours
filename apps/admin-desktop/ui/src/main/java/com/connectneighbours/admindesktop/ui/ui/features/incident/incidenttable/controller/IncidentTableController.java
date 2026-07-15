@@ -1,6 +1,7 @@
 package com.connectneighbours.admindesktop.ui.ui.features.incident.incidenttable.controller;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
+import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentDeletionNotAllowedException;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
@@ -172,9 +173,17 @@ public class IncidentTableController extends VBox {
             delete.setOnAction(e -> {
                 var vm = row.getItem();
                 if (vm != null) {
-                    parent.getIncidentManagement().deleteIncident(vm.getDto().id());
-                    incidentTable.getItems().remove(vm);
-                    parent.updateAverageSolutionTimeGraph();
+                    try {
+                        parent.getIncidentManagement().deleteIncident(vm.getDto().id());
+                        incidentTable.getItems().remove(vm);
+                        parent.updateAverageSolutionTimeGraph();
+                    } catch (IncidentDeletionNotAllowedException ex) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Suppression impossible");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Cet incident doit être résolu ou clos avant de pouvoir être supprimé.");
+                        alert.showAndWait();
+                    }
                 }
             });
 

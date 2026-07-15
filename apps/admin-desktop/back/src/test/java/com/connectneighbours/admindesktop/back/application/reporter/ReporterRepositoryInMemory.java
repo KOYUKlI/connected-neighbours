@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.*;
 
 public class ReporterRepositoryInMemory implements ReporterRepository {
-    private final Map<UUID, Reporter> data = new HashMap<>();
+    private final Map<UUID, Reporter> data = new LinkedHashMap<>();
 
     @Override
     public Reporter save(Reporter reporter) {

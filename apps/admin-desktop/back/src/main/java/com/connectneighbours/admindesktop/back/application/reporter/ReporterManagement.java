@@ -48,6 +48,13 @@ public class ReporterManagement {
         reporterRepository.delete(reporter);
     }
 
+    // Pas encore de notion d'utilisateur connecté : on retombe sur le premier
+    // reporter trouvé en base pour les créations qui en ont besoin.
+    public Reporter getDefaultReporter() {
+        return reporterRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new ReporterNotFoundException("No reporter available"));
+    }
+
     private Reporter loadReporter(UUID uuid) {
         return reporterRepository.findById(uuid).orElseThrow(() -> new ReporterNotFoundException("reporter not found with id : " + uuid));
     }

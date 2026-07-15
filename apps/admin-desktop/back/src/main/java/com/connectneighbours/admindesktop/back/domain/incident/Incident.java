@@ -95,6 +95,19 @@ public class Incident {
     }
 
 
+    // Constructeur de confort pour les tests : date posée manuellement
+    // (pas de repository JPA en mémoire pour générer id/timestamps).
+    public Incident(Reporter reporter, String title, String description, IncidentType type) {
+        this.incidentId = UUID.randomUUID();
+        this.reporter = reporter;
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.status = IncidentStatus.CREATED;
+        this.displayId = generateDisplayId();
+        this.createdAt = LocalDateTime.now();
+    }
+
     public Incident(Reporter reporter, String title, String description, IncidentType type, Clock clock) {
         this.incidentId = UUID.randomUUID();
         this.reporter = reporter;

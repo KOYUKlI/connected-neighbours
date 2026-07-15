@@ -37,7 +37,6 @@ public class Reporter {
     }
 
     public Reporter(LocalDateTime dateCreation, LocalDateTime dateUpdate, String firstname, String lastname) {
-//        this.idReporter = UUID.randomUUID();
         this.dateCreation = dateCreation;
         this.dateUpdate = dateUpdate;
         this.firstname = firstname;
@@ -48,6 +47,17 @@ public class Reporter {
         this.firstname = firstname;
         this.lastname = lastname;
         this.avatarPath = avatarPath;
+    }
+
+    // Constructeur de confort pour les tests : dates et avatar posés manuellement
+    // (pas de repository JPA en mémoire pour générer id/timestamps).
+    public Reporter(String firstname, String lastname) {
+        this.idReporter = UUID.randomUUID();
+        this.dateCreation = LocalDateTime.now();
+        this.dateUpdate = LocalDateTime.now();
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.avatarPath = "/assets/default_avatar.png";
     }
 
     public UUID getIdReporter() {

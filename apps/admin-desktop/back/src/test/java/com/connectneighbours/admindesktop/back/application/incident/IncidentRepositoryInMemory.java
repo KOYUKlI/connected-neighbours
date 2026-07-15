@@ -9,11 +9,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
 public class IncidentRepositoryInMemory implements IncidentRepository {
-    private final Map<UUID, Incident> data = new HashMap<>();
+    private final Map<UUID, Incident> data = new LinkedHashMap<>();
 
     @Override
     public Incident save(Incident incident) {
@@ -85,5 +86,20 @@ public class IncidentRepositoryInMemory implements IncidentRepository {
     @Override
     public long count() {
         return 0;
+    }
+
+    @Override
+    public List<Incident> findByUpdatedAtAfter(Instant since) {
+        return List.of();
+    }
+
+    @Override
+    public Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end) {
+        return 0L;
+    }
+
+    @Override
+    public void flush() {
+
     }
 }

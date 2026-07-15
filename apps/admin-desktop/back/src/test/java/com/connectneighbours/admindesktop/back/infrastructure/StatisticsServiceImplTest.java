@@ -103,8 +103,8 @@ public class StatisticsServiceImplTest {
 
     @Test
     void reporterActivity_returnsCorrectCounts() {
-        var r1 = new Reporter(LocalDateTime.now(), LocalDateTime.now(), "John", "Doe");
-        var r2 = new Reporter(LocalDateTime.now(), LocalDateTime.now(), "Alice", "Smith");
+        var r1 = new Reporter("John", "Doe");
+        var r2 = new Reporter("Alice", "Smith");
 
         reporterRepo.save(r1);
         reporterRepo.save(r2);
