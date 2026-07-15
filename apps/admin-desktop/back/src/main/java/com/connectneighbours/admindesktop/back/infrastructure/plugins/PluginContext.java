@@ -54,8 +54,6 @@ public class PluginContext {
 
             var pluginFile = new File(pluginDir.getPath(), fileName);
 
-            // Ré-exécuter un plugin d'export doit régénérer le fichier, pas échouer
-            // parce qu'il existe déjà depuis la dernière exécution.
             try (FileOutputStream fos = new FileOutputStream(pluginFile)) {
                 fos.write(content);
             }

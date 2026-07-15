@@ -41,7 +41,7 @@
 
 .plugin-row-selected {
     -fx-background-color: #DCE7FB;
-    -fx-border-color: transparent transparent transparent #1A73E8;
+    -fx-border-color: transparent transparent transparent -app-primary;
     -fx-border-width: 0 0 0 3;
 }
 

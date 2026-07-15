@@ -19,6 +19,7 @@
                 <items>
                     <MenuItem fx:id="navIncidents" text="Incidents"/>
                     <MenuItem fx:id="navPlugins" text="Plugins"/>
+                    <MenuItem fx:id="navThemes" text="Thèmes"/>
                 </items>
             </MenuButton>
             <Label text="Connect Neighbours" styleClass="top-nav-title"/>

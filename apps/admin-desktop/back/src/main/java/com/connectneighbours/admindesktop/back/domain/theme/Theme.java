@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.back.domain.theme;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -24,7 +25,8 @@ public class Theme {
     @Column(nullable = false,updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false,updatable = false)
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     public Theme() {

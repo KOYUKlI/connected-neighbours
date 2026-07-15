@@ -14,9 +14,6 @@
         <java.version>21</java.version>
         <spring.boot.version>3.2.6</spring.boot.version>
         <junit.version>5.12.1</junit.version>
-        <!-- spring-boot-starter-parent fixe Mockito à une version dont le Byte Buddy
-             embarqué ne reconnaît pas les JVM récentes (ex: Java 25). Cette propriété
-             est directement lue par le parent Spring Boot, pas besoin de dependencyManagement. -->
         <mockito.version>5.14.2</mockito.version>
     </properties>
 
@@ -28,10 +25,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Aligne tous les artefacts org.junit.* (jupiter + platform) sur la même
-                 version, car spring-boot-starter-parent gère junit-platform-* à une
-                 version plus ancienne que ${junit.version}, ce qui casse la découverte
-                 des tests (NoSuchMethodError sur EngineDiscoveryRequest). -->
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
@@ -159,8 +152,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- Filet de sécurité si la JVM d'exécution est plus récente que ce que
-                         Byte Buddy supporte officiellement (voir mockito.version ci-dessus). -->
                     <argLine>-Dnet.bytebuddy.experimental=true</argLine>
                 </configuration>
             </plugin>
@@ -208,11 +199,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>com.connectneighbours.admindesktop.Launcher</mainClass>
-                    <!-- Sans classifier, repackage écrase le jar "plain" par le fat jar
-                         (classes sous BOOT-INF/classes/...), ce qui casse toute dépendance
-                         Maven normale sur ce module (ex: plugins/example-plugin). Avec un
-                         classifier, le jar exécutable devient un artefact à part et le jar
-                         plain (utilisable comme dépendance) reste l'artefact principal. -->
                     <classifier>exec</classifier>
                 </configuration>
             </plugin>

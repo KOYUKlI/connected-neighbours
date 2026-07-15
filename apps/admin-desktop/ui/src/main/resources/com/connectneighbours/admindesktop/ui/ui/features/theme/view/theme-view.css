@@ -1,0 +1,31 @@
+.theme-row {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8;
+    -fx-padding: 10 14 10 14;
+    -fx-alignment: center-left;
+}
+
+.theme-row-active {
+    -fx-border-color: -app-primary;
+    -fx-border-width: 2;
+}
+
+.theme-swatch {
+    -fx-background-radius: 50%;
+    -fx-border-radius: 50%;
+    -fx-border-color: #e0e0e0;
+}
+
+.theme-row-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A1A1A;
+}
+
+.theme-row-active-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -app-primary;
+}

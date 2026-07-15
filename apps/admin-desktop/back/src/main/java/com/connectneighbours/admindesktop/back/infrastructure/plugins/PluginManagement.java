@@ -81,9 +81,6 @@ public class PluginManagement {
         return lastContext == null ? List.of() : lastContext.getLoggerPlugin().getLogs();
     }
 
-    // Reconstruit le contexte avec les données réelles à chaque exécution : un
-    // PluginContext fixé une fois au démarrage de l'appli n'aurait jamais vu les
-    // incidents/alertes créés après (toujours 0, peu importe l'état réel).
     private PluginContext buildContext(String pluginName) {
         var incidents = incidentManagement.listIncidents(0, Integer.MAX_VALUE);
         var alerts = alertManagement.listAlerts();

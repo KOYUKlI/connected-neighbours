@@ -9,7 +9,7 @@
 .form-title {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1A3E8A;
+    -fx-text-fill: -app-primary-dark;
 }
 
 .form-card {
@@ -23,7 +23,7 @@
 .form-label {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-text-fill: #17295A;
+    -fx-text-fill: -app-primary-darker;
 }
 
 .form-field {
@@ -35,7 +35,7 @@
 }
 
 .form-field:focused {
-    -fx-border-color: #1A73E8;
+    -fx-border-color: -app-primary;
 }
 
 .form-field-error {
@@ -53,17 +53,17 @@
     -fx-border-color: #DDE1F0;
     -fx-border-radius: 20;
     -fx-padding: 6 16;
-    -fx-text-fill: #17295A;
+    -fx-text-fill: -app-primary-darker;
     -fx-font-weight: bold;
 }
 
 .severity-button:hover {
-    -fx-background-color: #F5F8FF;
+    -fx-background-color: -app-primary-tint;
     -fx-cursor: hand;
 }
 
 .severity-button:selected {
-    -fx-background-color: #1A73E8;
+    -fx-background-color: -app-primary;
     -fx-text-fill: white;
-    -fx-border-color: #1A73E8;
+    -fx-border-color: -app-primary;
 }

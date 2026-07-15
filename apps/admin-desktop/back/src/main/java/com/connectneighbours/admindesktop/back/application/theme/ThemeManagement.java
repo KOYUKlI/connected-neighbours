@@ -4,10 +4,12 @@ import com.connectneighbours.admindesktop.back.domain.exception.theme.ThemeNotFo
 import com.connectneighbours.admindesktop.back.domain.theme.RGB;
 import com.connectneighbours.admindesktop.back.domain.theme.Theme;
 import com.connectneighbours.admindesktop.back.domain.theme.ThemeRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class ThemeManagement {
     private final ThemeRepository themeRepository;
 

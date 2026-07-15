@@ -1,7 +1,7 @@
 .chart-title {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #17295A;
+    -fx-text-fill: -app-primary-darker;
     -fx-padding: 0 0 10 0;
     -fx-border-color: #E0E0E0;
     -fx-border-width: 0 0 1 0;

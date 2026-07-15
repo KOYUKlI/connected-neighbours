@@ -1,4 +1,4 @@
-.create-incident-container {
+.create-theme-container {
     -fx-background-color: #FFFFFF;
     -fx-background-radius: 8;
     -fx-border-color: #e0e0e0;
@@ -45,25 +45,4 @@
 .error-label {
     -fx-text-fill: #D93025;
     -fx-font-size: 11px;
-}
-
-.severity-button {
-    -fx-background-color: #FFFFFF;
-    -fx-background-radius: 20;
-    -fx-border-color: #DDE1F0;
-    -fx-border-radius: 20;
-    -fx-padding: 6 16;
-    -fx-text-fill: -app-primary-darker;
-    -fx-font-weight: bold;
-}
-
-.severity-button:hover {
-    -fx-background-color: -app-primary-tint;
-    -fx-cursor: hand;
-}
-
-.severity-button:selected {
-    -fx-background-color: -app-primary;
-    -fx-text-fill: white;
-    -fx-border-color: -app-primary;
 }

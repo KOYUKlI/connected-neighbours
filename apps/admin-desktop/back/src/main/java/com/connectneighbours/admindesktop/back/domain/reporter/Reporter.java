@@ -49,8 +49,6 @@ public class Reporter {
         this.avatarPath = avatarPath;
     }
 
-    // Constructeur de confort pour les tests : dates et avatar posés manuellement
-    // (pas de repository JPA en mémoire pour générer id/timestamps).
     public Reporter(String firstname, String lastname) {
         this.idReporter = UUID.randomUUID();
         this.dateCreation = LocalDateTime.now();
