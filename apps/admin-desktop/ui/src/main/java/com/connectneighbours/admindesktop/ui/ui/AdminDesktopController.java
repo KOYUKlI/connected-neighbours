@@ -4,12 +4,14 @@ import com.connectneighbours.admindesktop.back.application.incident.IncidentMana
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterManagement;
 import com.connectneighbours.admindesktop.back.application.statistics.StatisticsManagement;
+import com.connectneighbours.admindesktop.back.application.sync.SyncManagement;
 import com.connectneighbours.admindesktop.back.application.theme.ThemeDTO;
 import com.connectneighbours.admindesktop.back.application.theme.ThemeManagement;
 import com.connectneighbours.admindesktop.back.infrastructure.plugins.PluginManagement;
 import com.connectneighbours.admindesktop.back.infrastructure.theme.ThemeContext;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.plugin.controller.PluginViewController;
+import com.connectneighbours.admindesktop.ui.ui.features.sync.controller.SyncHistoryViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.theme.controller.ThemeViewController;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -47,6 +49,9 @@ public class AdminDesktopController {
     private ThemeManagement themeManagement;
 
     @Autowired
+    private SyncManagement syncManagement;
+
+    @Autowired
     private ThemeContext themeContext;
 
     @Autowired
@@ -67,12 +72,16 @@ public class AdminDesktopController {
     private MenuItem navThemes;
 
     @FXML
+    private MenuItem navSync;
+
+    @FXML
     public void initialize() {
         homeContent = new ArrayList<>(mainContainer.getChildren());
 
         navIncidents.setOnAction(e -> showIncidents());
         navPlugins.setOnAction(e -> showPlugins());
         navThemes.setOnAction(e -> showThemes());
+        navSync.setOnAction(e -> showSyncHistory());
 
         showIncidents();
     }
@@ -105,6 +114,15 @@ public class AdminDesktopController {
         themeView.loadThemes(themeManagement.listThemes());
 
         mainContainer.getChildren().setAll(themeView);
+    }
+
+    public void showSyncHistory() {
+        SyncHistoryViewController syncView = new SyncHistoryViewController();
+        syncView.setParent(this);
+        syncView.loadHistory(syncManagement.history());
+        syncView.loadStatus(syncManagement.status());
+
+        mainContainer.getChildren().setAll(syncView);
     }
 
     public void showHome() {
@@ -151,5 +169,9 @@ public class AdminDesktopController {
 
     public ThemeContext getThemeContext() {
         return themeContext;
+    }
+
+    public SyncManagement getSyncManagement() {
+        return syncManagement;
     }
 }

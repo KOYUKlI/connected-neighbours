@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="16"
+         maxWidth="Infinity"
+         VBox.vgrow="ALWAYS"
+         stylesheets="@sync-history-view.css"
+         styleClass="sync-page">
+
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="sync-header">
+        <Label text="Historique de Synchronisation" styleClass="sync-header-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Rafraîchir" fx:id="btnRefresh" styleClass="filter-button"/>
+    </HBox>
+
+    <HBox spacing="24" alignment="CENTER_LEFT" styleClass="sync-status-bar">
+        <Label text="Dernier push :" styleClass="sync-status-key"/>
+        <Label fx:id="lastPushLabel" text="—" styleClass="sync-status-value"/>
+
+        <Label text="Dernier pull :" styleClass="sync-status-key"/>
+        <Label fx:id="lastPullLabel" text="—" styleClass="sync-status-value"/>
+
+        <Label text="Opérations en attente :" styleClass="sync-status-key"/>
+        <Label fx:id="pendingOperationsLabel" text="0" styleClass="sync-status-value"/>
+    </HBox>
+
+    <TableView fx:id="historyTable" VBox.vgrow="ALWAYS">
+        <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+        </columnResizePolicy>
+        <columns>
+            <TableColumn fx:id="typeColumn" text="Type" prefWidth="120" minWidth="100"/>
+            <TableColumn fx:id="timestampColumn" text="Date" prefWidth="220" minWidth="180"/>
+            <TableColumn fx:id="countColumn" text="Nombre d'éléments" prefWidth="180" minWidth="150"/>
+        </columns>
+    </TableView>
+
+</fx:root>
