@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.ui.ui;
 
+import com.connectneighbours.admindesktop.ui.ui.features.auth.controller.LoginController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -17,16 +18,28 @@ public class AdminDesktopApplication extends Application {
     }
 
     @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader loader = new FXMLLoader(
-                AdminDesktopApplication.class.getResource("admin-desktop-view.fxml")
-        );
-        loader.setControllerFactory(AdminDesktopApplication.getSpringContext()::getBean);
-        Scene scene = new Scene(loader.load());
+    public void start(Stage stage) {
+        LoginController loginController = new LoginController();
+        loginController.setOnLoginSuccess(() -> showAdminDesktop(stage));
+
+        Scene scene = new Scene(loginController, 1100, 700);
         stage.setScene(scene);
-        stage.setWidth(1100);
-        stage.setHeight(700);
+        stage.setTitle("Connect Neighbours - Connexion");
         stage.show();
+    }
+
+    private void showAdminDesktop(Stage stage) {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    AdminDesktopApplication.class.getResource("admin-desktop-view.fxml")
+            );
+            loader.setControllerFactory(AdminDesktopApplication.getSpringContext()::getBean);
+            Scene scene = new Scene(loader.load(), 1100, 700);
+            stage.setScene(scene);
+            stage.setTitle("Connect Neighbours");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static ApplicationContext getSpringContext() {
