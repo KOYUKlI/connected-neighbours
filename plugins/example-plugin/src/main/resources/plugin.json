@@ -1,0 +1,7 @@
+{
+  "name": "Example Plugin",
+  "version": "1.0",
+  "description": "Plugin d'exemple qui journalise le nombre d'incidents et d'alertes connus.",
+  "author": "Connect Neighbours",
+  "main": "com.connectneighbours.plugins.example.ExamplePlugin"
+}
