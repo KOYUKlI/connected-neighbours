@@ -13,6 +13,8 @@ import type {
   CreateApplicationInput,
   ServiceApplication,
 } from './api/applications';
+import { createAlert, getIncidentAlerts } from './api/alerts';
+import type { AlertItem, CreateAlertInput, AlertSeverity } from './api/alerts';
 import { getMe, login } from './api/auth';
 import type { AuthUser } from './api/auth';
 import {
@@ -139,6 +141,8 @@ export default function App() {
     [],
   );
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const [alertsIncident, setAlertsIncident] = useState<IncidentItem | null>(null);
+  const [incidentAlerts, setIncidentAlerts] = useState<AlertItem[]>([]);
   const [rgpdExport, setRgpdExport] = useState<RgpdExport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [actionPending, setActionPending] = useState<string | null>(null);
@@ -163,6 +167,8 @@ export default function App() {
     setPointBalance(null);
     setPointTransactions([]);
     setIncidents([]);
+    setAlertsIncident(null);
+    setIncidentAlerts([]);
     setRgpdExport(null);
     setActiveSection('dashboard');
     setError(message ?? null);
@@ -277,6 +283,68 @@ export default function App() {
     }
   }
 
+  async function handleOpenIncidentAlerts(incident: IncidentItem) {
+    setAlertsIncident(incident);
+    setIncidentAlerts([]);
+    setError(null);
+    setNotice(null);
+
+    const incidentId = getEntityId(incident);
+
+    if (!incidentId) {
+      return;
+    }
+
+    setActionPending('open-incident-alerts');
+
+    try {
+      setIncidentAlerts(await getIncidentAlerts(incidentId));
+    } catch (loadError) {
+      if (isUnauthorized(loadError)) {
+        clearSession('Session expiree. Merci de vous reconnecter.');
+        return;
+      }
+
+      setError(getErrorMessage(loadError));
+    } finally {
+      setActionPending(null);
+    }
+  }
+
+  function handleCloseIncidentAlerts() {
+    setAlertsIncident(null);
+    setIncidentAlerts([]);
+  }
+
+  async function handleCreateAlert(input: CreateAlertInput) {
+    const incidentId = alertsIncident ? getEntityId(alertsIncident) : '';
+
+    if (!incidentId) {
+      return false;
+    }
+
+    setActionPending('create-alert');
+    setError(null);
+    setNotice(null);
+
+    try {
+      await createAlert(incidentId, input);
+      setIncidentAlerts(await getIncidentAlerts(incidentId));
+      setNotice('Alerte enregistree avec succes.');
+      return true;
+    } catch (createError) {
+      if (isUnauthorized(createError)) {
+        clearSession('Session expiree. Merci de vous reconnecter.');
+        return false;
+      }
+
+      setError(getErrorMessage(createError));
+      return false;
+    } finally {
+      setActionPending(null);
+    }
+  }
+
   async function handleRgpdExport() {
     setActionPending('rgpd-export');
     setError(null);
@@ -370,8 +438,10 @@ export default function App() {
           {renderSection({
             activeSection,
             actionPending,
+            alertsIncident,
             contracts,
             currentUser,
+            incidentAlerts,
             incidents,
             myApplications,
             onAcceptApplication: (id) =>
@@ -386,11 +456,14 @@ export default function App() {
               runAction('create-application', () =>
                 createApplication(serviceId, input),
               ),
+            onCloseIncidentAlerts: handleCloseIncidentAlerts,
+            onCreateAlert: handleCreateAlert,
             onCreateIncident: (input) =>
               runAction('create-incident', () => createIncident(input)),
             onCreateService: (input) =>
               runAction('create-service', () => createService(input)),
             onExportRgpd: handleRgpdExport,
+            onOpenIncidentAlerts: handleOpenIncidentAlerts,
             onGenerateContract: (id) =>
               runAction('generate-contract', () =>
                 createContractFromApplication(id),
@@ -419,14 +492,18 @@ export default function App() {
 type RenderSectionProps = {
   activeSection: SectionId;
   actionPending: string | null;
+  alertsIncident: IncidentItem | null;
   contracts: ContractItem[];
   currentUser: AuthUser | null;
+  incidentAlerts: AlertItem[];
   incidents: IncidentItem[];
   myApplications: ServiceApplication[];
   onAcceptApplication: (id: string) => Promise<boolean>;
   onCancelContract: (id: string) => Promise<boolean>;
   onCancelService: (id: string) => Promise<boolean>;
+  onCloseIncidentAlerts: () => void;
   onCompleteContract: (id: string) => Promise<boolean>;
+  onCreateAlert: (input: CreateAlertInput) => Promise<boolean>;
   onCreateApplication: (
     serviceId: string,
     input: CreateApplicationInput,
@@ -435,6 +512,7 @@ type RenderSectionProps = {
   onCreateService: (input: CreateServiceInput) => Promise<boolean>;
   onExportRgpd: () => Promise<void>;
   onGenerateContract: (id: string) => Promise<boolean>;
+  onOpenIncidentAlerts: (incident: IncidentItem) => void;
   onPublishService: (id: string) => Promise<boolean>;
   onRejectApplication: (id: string) => Promise<boolean>;
   onSignContract: (id: string) => Promise<boolean>;
@@ -460,7 +538,11 @@ function renderSection(props: RenderSectionProps) {
     case 'points':
       return <PointsView {...props} />;
     case 'incidents':
-      return <IncidentsView {...props} />;
+      return props.alertsIncident ? (
+        <IncidentAlertsView {...props} />
+      ) : (
+        <IncidentsView {...props} />
+      );
     case 'rgpd':
       return <RgpdView {...props} />;
   }
@@ -1340,29 +1422,245 @@ function IncidentsView({
   currentUser,
   incidents,
   onCreateIncident,
+  onOpenIncidentAlerts,
 }: RenderSectionProps) {
-  const columns: TableColumn<IncidentItem>[] = [
-    { header: 'Titre', render: (incident) => incident.title },
-    { header: 'Type', render: (incident) => incident.type },
-    { header: 'Severite', render: (incident) => <SeverityBadge value={incident.severity} /> },
-    { header: 'Statut', render: (incident) => <StatusBadge value={incident.status} /> },
-    { header: 'Source', render: (incident) => incident.source },
-    { header: 'Creation', render: (incident) => formatDate(incident.createdAt) },
-  ];
+  const [isCreating, setIsCreating] = useState(false);
+
+  const myIncidents = incidents.filter(
+    (incident) => incident.reportedById === currentUser?.id,
+  );
+  const otherIncidents = incidents.filter(
+    (incident) =>
+      incident.reportedById !== currentUser?.id &&
+      incident.neighborhoodId === currentUser?.neighborhoodId,
+  );
+
+  async function handleCreate(input: CreateIncidentInput) {
+    const success = await onCreateIncident(input);
+
+    if (success) {
+      setIsCreating(false);
+    }
+
+    return success;
+  }
 
   return (
-    <div className="two-column-layout">
-      <IncidentForm
-        currentUser={currentUser}
-        isPending={actionPending === 'create-incident'}
-        onCreate={onCreateIncident}
-      />
-      <DataTable
-        columns={columns}
-        emptyMessage="Aucun incident visible."
-        rows={incidents}
-      />
+    <div className="stack">
+      <div className="section-header-row">
+        <h2>Mes incidents</h2>
+        {isCreating ? (
+          <button
+            className="ghost-button"
+            onClick={() => setIsCreating(false)}
+            type="button"
+          >
+            Annuler
+          </button>
+        ) : (
+          <button
+            className="create-button"
+            onClick={() => setIsCreating(true)}
+            type="button"
+          >
+            + Signaler un incident
+          </button>
+        )}
+      </div>
+
+      {isCreating ? (
+        <IncidentForm
+          currentUser={currentUser}
+          isPending={actionPending === 'create-incident'}
+          onCreate={handleCreate}
+        />
+      ) : null}
+
+      {myIncidents.length === 0 ? (
+        <EmptyState message="Vous n'avez signale aucun incident." />
+      ) : (
+        <div className="stack">
+          {myIncidents.map((incident) => (
+            <IncidentCard
+              incident={incident}
+              key={getEntityId(incident)}
+              onOpenAlerts={onOpenIncidentAlerts}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="section-header-row">
+        <h2>Incidents du quartier</h2>
+      </div>
+
+      {otherIncidents.length === 0 ? (
+        <EmptyState message="Aucun autre incident signale dans votre quartier." />
+      ) : (
+        <div className="stack">
+          {otherIncidents.map((incident) => (
+            <IncidentCard
+              incident={incident}
+              key={getEntityId(incident)}
+              onOpenAlerts={onOpenIncidentAlerts}
+            />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function IncidentCard({
+  incident,
+  onOpenAlerts,
+}: {
+  incident: IncidentItem;
+  onOpenAlerts: (incident: IncidentItem) => void;
+}) {
+  return (
+    <article className="service-card">
+      <div className="card-heading">
+        <div>
+          <h3>{incident.title}</h3>
+          <p>{incident.description}</p>
+        </div>
+        <div className="card-heading-badges">
+          <SeverityBadge value={incident.severity} />
+          <StatusBadge value={incident.status} />
+        </div>
+      </div>
+
+      <dl className="details-grid">
+        <div>
+          <dt>Signale par</dt>
+          <dd>{incident.reporterName ?? 'Anonyme'}</dd>
+        </div>
+        <div>
+          <dt>Type</dt>
+          <dd>{incident.type}</dd>
+        </div>
+        <div>
+          <dt>Quartier</dt>
+          <dd>{incident.neighborhoodId}</dd>
+        </div>
+        <div>
+          <dt>Creation</dt>
+          <dd>{formatDate(incident.createdAt)}</dd>
+        </div>
+      </dl>
+
+      <div className="action-row">
+        <button
+          className="secondary-button"
+          onClick={() => onOpenAlerts(incident)}
+          type="button"
+        >
+          Voir les alertes
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function IncidentAlertsView({
+  actionPending,
+  alertsIncident,
+  incidentAlerts,
+  onCloseIncidentAlerts,
+  onCreateAlert,
+}: RenderSectionProps) {
+  const [isCreating, setIsCreating] = useState(false);
+
+  if (!alertsIncident) {
+    return null;
+  }
+
+  async function handleCreate(input: CreateAlertInput) {
+    const success = await onCreateAlert(input);
+
+    if (success) {
+      setIsCreating(false);
+    }
+
+    return success;
+  }
+
+  return (
+    <div className="stack">
+      <div className="section-header-row">
+        <button className="secondary-button" onClick={onCloseIncidentAlerts} type="button">
+          Retour aux incidents
+        </button>
+        <h2>Alertes - {alertsIncident.title}</h2>
+        {isCreating ? (
+          <button
+            className="ghost-button"
+            onClick={() => setIsCreating(false)}
+            type="button"
+          >
+            Annuler
+          </button>
+        ) : (
+          <button
+            className="create-button"
+            onClick={() => setIsCreating(true)}
+            type="button"
+          >
+            + Signaler une alerte
+          </button>
+        )}
+      </div>
+
+      {isCreating ? (
+        <AlertForm
+          isPending={actionPending === 'create-alert'}
+          onCreate={handleCreate}
+        />
+      ) : null}
+
+      {incidentAlerts.length === 0 ? (
+        <EmptyState message="Aucune alerte pour cet incident." />
+      ) : (
+        <div className="stack">
+          {incidentAlerts.map((alert) => (
+            <AlertCard alert={alert} key={getEntityId(alert)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AlertCard({ alert }: { alert: AlertItem }) {
+  return (
+    <article className="service-card">
+      <div className="card-heading">
+        <div>
+          <h3>{alert.title}</h3>
+          <p>{alert.details}</p>
+        </div>
+        <div className="card-heading-badges">
+          <SeverityBadge value={alert.severity} />
+          <StatusBadge value={alert.status} />
+        </div>
+      </div>
+
+      <dl className="details-grid">
+        <div>
+          <dt>Signale par</dt>
+          <dd>{alert.reporterName ?? 'Anonyme'}</dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{alert.source}</dd>
+        </div>
+        <div>
+          <dt>Creation</dt>
+          <dd>{formatDate(alert.createdAt)}</dd>
+        </div>
+      </dl>
+    </article>
   );
 }
 
@@ -1458,6 +1756,69 @@ function IncidentForm({
             required
             value={neighborhoodId}
           />
+        </label>
+        <button className="primary-button" disabled={isPending} type="submit">
+          {isPending ? 'Signalement...' : 'Signaler'}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function AlertForm({
+  isPending,
+  onCreate,
+}: {
+  isPending: boolean;
+  onCreate: (input: CreateAlertInput) => Promise<boolean>;
+}) {
+  const [title, setTitle] = useState('');
+  const [details, setDetails] = useState('');
+  const [severity, setSeverity] = useState<AlertSeverity>('medium');
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const success = await onCreate({ title, details, severity });
+
+    if (success) {
+      setTitle('');
+      setDetails('');
+    }
+  }
+
+  return (
+    <section className="panel">
+      <h2>Signaler une alerte</h2>
+      <form className="form-grid" onSubmit={handleSubmit}>
+        <label>
+          Titre
+          <input
+            onChange={(event) => setTitle(event.target.value)}
+            required
+            value={title}
+          />
+        </label>
+        <label>
+          Details
+          <textarea
+            onChange={(event) => setDetails(event.target.value)}
+            required
+            rows={4}
+            value={details}
+          />
+        </label>
+        <label>
+          Severite
+          <select
+            onChange={(event) => setSeverity(event.target.value as AlertSeverity)}
+            value={severity}
+          >
+            <option value="low">Mineure</option>
+            <option value="medium">Moyenne</option>
+            <option value="high">Haute</option>
+            <option value="critical">Critique</option>
+          </select>
         </label>
         <button className="primary-button" disabled={isPending} type="submit">
           {isPending ? 'Signalement...' : 'Signaler'}

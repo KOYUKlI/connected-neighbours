@@ -60,6 +60,9 @@ export class Alert {
   @Prop({ type: String, trim: true, default: null })
   externalId: string | null;
 
+  @Prop({ type: String, trim: true, default: null })
+  reportedById: string | null;
+
   @Prop({ type: Date, default: null })
   resolvedAt: Date | null;
 }

@@ -28,6 +28,7 @@ export type IncidentItem = {
   severity: IncidentSeverity;
   neighborhoodId: string;
   reportedById?: string | null;
+  reporterName?: string | null;
   source: 'web' | 'admin_web' | 'javafx';
   externalId?: string | null;
   lastSyncedAt?: string | null;

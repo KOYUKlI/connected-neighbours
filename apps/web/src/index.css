@@ -9,6 +9,14 @@
   --focus: rgba(37, 99, 235, 0.24);
   --neutral: #475569;
   --neutral-soft: #e2e8f0;
+  --severity-low: #3aa835;
+  --severity-low-soft: rgba(58, 168, 53, 0.14);
+  --severity-medium: #fab303;
+  --severity-medium-soft: rgba(250, 179, 3, 0.18);
+  --severity-high: #2e6be6;
+  --severity-high-soft: rgba(46, 107, 230, 0.12);
+  --severity-critical: #f03b3d;
+  --severity-critical-soft: rgba(240, 59, 61, 0.12);
   --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
   --success: #047857;
   --success-soft: #d1fae5;
