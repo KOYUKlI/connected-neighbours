@@ -1,5 +1,8 @@
 package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
+import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterManagement;
 import com.connectneighbours.admindesktop.back.infrastructure.plugins.exceptions.PluginNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,10 +11,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -21,7 +26,11 @@ public class PluginManagementTest {
     private PluginLoader pluginLoader;
 
     @Mock
-    private PluginContext pluginContext;
+    private IncidentManagement incidentManagement;
+    @Mock
+    private AlertManagement alertManagement;
+    @Mock
+    private ReporterManagement reporterManagement;
 
     private PluginManagement pluginManagement;
 
@@ -29,7 +38,12 @@ public class PluginManagementTest {
     void setup() {
         this.pluginLoader = new FakePluginLoader();
         this.pluginRepository = new PluginRepositoryImpl();
-        this.pluginManagement = new PluginManagement(pluginRepository, pluginContext, pluginLoader);
+
+        lenient().when(incidentManagement.listIncidents(anyInt(), anyInt())).thenReturn(List.of());
+        lenient().when(alertManagement.listAlerts()).thenReturn(List.of());
+        lenient().when(reporterManagement.listReporters()).thenReturn(List.of());
+
+        this.pluginManagement = new PluginManagement(pluginRepository, pluginLoader, incidentManagement, alertManagement, reporterManagement);
     }
 
 
@@ -51,7 +65,7 @@ public class PluginManagementTest {
         when(loader.installJar(any())).thenReturn(new File("fake.jar"));
         when(loader.inspect(any())).thenThrow(new RuntimeException("invalid"));
 
-        PluginManagement pm = new PluginManagement(pluginRepository, pluginContext, loader);
+        PluginManagement pm = new PluginManagement(pluginRepository, loader, incidentManagement, alertManagement, reporterManagement);
 
         assertThrows(RuntimeException.class, () -> {
             pm.install(new File("fake.jar"));
@@ -89,7 +103,10 @@ public class PluginManagementTest {
 
         assertEquals(StatePlugin.ACTIVATE, result.statePlugin());
 
-        verify(pluginContext, times(1)).log(any());
+        assertTrue(pluginManagement.getLogs().stream().anyMatch(line -> line.contains("test")));
+        verify(incidentManagement, times(1)).listIncidents(0, Integer.MAX_VALUE);
+        verify(alertManagement, times(1)).listAlerts();
+        verify(reporterManagement, times(1)).listReporters();
     }
 
     @Test
@@ -100,7 +117,7 @@ public class PluginManagementTest {
         PluginLoader failingLoader = mock(PluginLoader.class);
         when(failingLoader.load(any())).thenThrow(new ClassNotFoundException());
 
-        PluginManagement pm = new PluginManagement(pluginRepository, pluginContext, failingLoader);
+        PluginManagement pm = new PluginManagement(pluginRepository, failingLoader, incidentManagement, alertManagement, reporterManagement);
 
         assertThrows(ClassNotFoundException.class, () -> {
             pm.execute(installed.uuid());
@@ -150,7 +167,7 @@ public class PluginManagementTest {
         PluginLoader loader = mock(PluginLoader.class);
         when(loader.load(any())).thenReturn(failingPlugin);
 
-        PluginManagement pm = new PluginManagement(pluginRepository, pluginContext, loader);
+        PluginManagement pm = new PluginManagement(pluginRepository, loader, incidentManagement, alertManagement, reporterManagement);
 
         assertThrows(RuntimeException.class, () -> {
             pm.execute(installed.uuid());

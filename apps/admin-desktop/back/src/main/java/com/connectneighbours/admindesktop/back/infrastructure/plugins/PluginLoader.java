@@ -31,8 +31,9 @@ public class PluginLoader {
     }
 
     public File[] scan() {
-        var file = new File("/plugins/output");
-        return file.listFiles();
+        var file = PluginPaths.pluginsDirectory();
+        var files = file.listFiles();
+        return files != null ? files : new File[0];
     }
 
     public PluginMetaData inspect(File pluginFile) {
@@ -53,7 +54,7 @@ public class PluginLoader {
             throw new IllegalArgumentException("Source JAR does not exist: " + sourceJar);
         }
 
-        File pluginsDir = new File("/plugins/output");
+        File pluginsDir = PluginPaths.pluginsDirectory();
         if (!pluginsDir.exists()) pluginsDir.mkdirs();
 
 
