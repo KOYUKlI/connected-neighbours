@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AlertsService } from './alerts.service';
 import { CreateAlertDto } from './dto/create-alert.dto';
@@ -26,8 +28,9 @@ export class AlertsController {
   create(
     @Param('incidentId') incidentId: string,
     @Body() dto: CreateAlertDto,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.alertsService.create(incidentId, dto);
+    return this.alertsService.create(incidentId, dto, user.sub);
   }
 
   @Get('incidents/:incidentId/alerts')

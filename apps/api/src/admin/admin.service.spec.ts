@@ -1,6 +1,9 @@
-import { AlertStatus } from '../alerts/schemas/alert.schema';
+import { AlertSeverity, AlertStatus } from '../alerts/schemas/alert.schema';
 import { ContractStatus } from '../contracts/schemas/contract.schema';
-import { IncidentStatus } from '../incidents/schemas/incident.schema';
+import {
+  IncidentSeverity,
+  IncidentStatus,
+} from '../incidents/schemas/incident.schema';
 import { ServiceStatus } from '../services/schemas/service.schema';
 import { SyncStateStatus } from '../sync/schemas/sync-state.schema';
 import { AdminService } from './admin.service';
@@ -152,6 +155,113 @@ describe('AdminService', () => {
     ]);
   });
 
+  it('should return an incident by id', async () => {
+    const query = findByIdQuery({
+      _id: 'incident_1',
+      title: 'Fuite eau',
+      type: 'maintenance',
+      status: IncidentStatus.OPEN,
+      severity: IncidentSeverity.HIGH,
+      neighborhoodId: 'quartier-centre',
+      source: 'web',
+      externalId: null,
+      lastSyncedAt: null,
+      createdAt: new Date('2026-06-30T08:00:00.000Z'),
+      updatedAt: new Date('2026-06-30T09:00:00.000Z'),
+    });
+
+    incidentModelMock.findById.mockReturnValue(query.findResult);
+
+    const result = await service.getIncidentById('incident_1');
+
+    expect(incidentModelMock.findById).toHaveBeenCalledWith('incident_1');
+    expect(query.select).toHaveBeenCalledWith(
+      'title type status severity neighborhoodId source externalId lastSyncedAt createdAt updatedAt',
+    );
+    expect(result).toEqual({
+      id: 'incident_1',
+      title: 'Fuite eau',
+      type: 'maintenance',
+      status: IncidentStatus.OPEN,
+      severity: IncidentSeverity.HIGH,
+      neighborhoodId: 'quartier-centre',
+      source: 'web',
+      externalId: null,
+      lastSyncedAt: null,
+      createdAt: new Date('2026-06-30T08:00:00.000Z'),
+      updatedAt: new Date('2026-06-30T09:00:00.000Z'),
+    });
+  });
+
+  it('should return null when the incident does not exist', async () => {
+    const query = findByIdQuery(null);
+
+    incidentModelMock.findById.mockReturnValue(query.findResult);
+
+    const result = await service.getIncidentById('missing_incident');
+
+    expect(result).toBeNull();
+  });
+
+  it('should return alerts for an incident with the reporter name', async () => {
+    const query = findQuery([
+      {
+        _id: 'alert_1',
+        incidentId: 'incident_1',
+        title: 'Alerte critique',
+        details: 'Fuite majeure detectee',
+        severity: AlertSeverity.CRITICAL,
+        status: AlertStatus.OPEN,
+        source: 'web',
+        externalId: null,
+        reportedById: 'user_1',
+        createdAt: new Date('2026-06-30T08:00:00.000Z'),
+        resolvedAt: null,
+      },
+    ]);
+
+    alertModelMock.find.mockReturnValue(query.findResult);
+
+    userModelMock.find.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({
+          exec: jest
+            .fn()
+            .mockResolvedValue([{ _id: 'user_1', displayName: 'Alice Martin' }]),
+        }),
+      }),
+    });
+
+    const result = await service.getIncidentAlerts('incident_1');
+
+    expect(alertModelMock.find).toHaveBeenCalledWith({
+      incidentId: 'incident_1',
+    });
+    expect(query.sort).toHaveBeenCalledWith({ createdAt: -1 });
+    expect(query.select).toHaveBeenCalledWith(
+      'incidentId title details severity status source externalId reportedById createdAt resolvedAt',
+    );
+    expect(userModelMock.find).toHaveBeenCalledWith({
+      _id: { $in: ['user_1'] },
+    });
+    expect(result).toEqual([
+      {
+        id: 'alert_1',
+        incidentId: 'incident_1',
+        title: 'Alerte critique',
+        details: 'Fuite majeure detectee',
+        severity: AlertSeverity.CRITICAL,
+        status: AlertStatus.OPEN,
+        source: 'web',
+        externalId: null,
+        reportedById: 'user_1',
+        createdAt: new Date('2026-06-30T08:00:00.000Z'),
+        resolvedAt: null,
+        reporterName: 'Alice Martin',
+      },
+    ]);
+  });
+
   it('should return known sync states', async () => {
     const query = findQuery([
       {
@@ -191,6 +301,7 @@ function createModelMock() {
   return {
     countDocuments: jest.fn(),
     find: jest.fn(),
+    findById: jest.fn(),
   };
 }
 
@@ -224,5 +335,18 @@ function findQuery<T>(value: T[]) {
     limit,
     select,
     sort,
+  };
+}
+
+function findByIdQuery<T>(value: T | null) {
+  const exec = jest.fn().mockResolvedValue(value);
+  const lean = jest.fn().mockReturnValue({ exec });
+  const select = jest.fn().mockReturnValue({ lean });
+
+  return {
+    exec,
+    findResult: { select },
+    lean,
+    select,
   };
 }
