@@ -53,8 +53,8 @@ public class IncidentPerDayController extends VBox {
         chart.setCategoryGap(20);
 
         yAxis.setAutoRanging(false);
-        yAxis.setUpperBound(20);
-        yAxis.setTickUnit(5);
+        yAxis.setUpperBound(5);
+        yAxis.setTickUnit(1);
 
         setupYAxisContextMenu();
     }
