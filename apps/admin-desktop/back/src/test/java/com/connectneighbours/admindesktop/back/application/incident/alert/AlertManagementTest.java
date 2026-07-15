@@ -1,7 +1,11 @@
 package com.connectneighbours.admindesktop.back.application.incident.alert;
 
+import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentMapper;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterMapper;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
@@ -9,6 +13,7 @@ import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepositor
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentService;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +28,8 @@ public class AlertManagementTest {
     private AlertRepository alertRepo;
     private AlertService alertService;
     private IncidentRepository incidentRepo;
+    private IncidentService incidentService;
+    private ReporterRepository reporterRepo;
     private AlertManagement management;
 
     @BeforeEach
@@ -30,7 +37,14 @@ public class AlertManagementTest {
         alertRepo = new AlertRepositoryInMemory();
         alertService = new AlertService();
         incidentRepo = new IncidentRepositoryInMemory();
-        management = new AlertManagement(alertRepo, alertService, incidentRepo);
+        incidentService = new IncidentService();
+        reporterRepo = new ReporterRepositoryInMemory();
+        management = new AlertManagement(alertRepo, alertService, incidentRepo, incidentService, reporterRepo);
+    }
+
+    private ReporterDTO createReporterDTO() {
+        Reporter reporter = reporterRepo.save(new Reporter("first", "last"));
+        return ReporterMapper.toDTO(reporter);
     }
 
     private Alert createSampleAlert() {
@@ -41,6 +55,108 @@ public class AlertManagementTest {
         );
         alertService.open(alert);
         return alertRepo.save(alert);
+    }
+
+    private IncidentDTO createIncidentDTO() {
+        var incident = new Incident(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE);
+        incidentService.open(incident);
+        incidentRepo.save(incident);
+        return IncidentMapper.toDTO(incident);
+    }
+
+    @Test
+    void addAlertToIncident_shouldAttachAlert() {
+        var incident = createIncidentDTO();
+
+        var alert = management.addAlertToIncident(
+                incident.id(),
+                new CreationAlertDTO(createReporterDTO(), "Broken pipe", "Pipe broken", AlertSeverity.CRITICAL)
+        );
+
+        assertEquals("Pipe broken", alert.details());
+        assertEquals(1, incidentRepo.findById(incident.id()).get().getAlerts().size());
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenIncidentIdIsNull() {
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", "msg", AlertSeverity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(null, dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenDtoIsNull() {
+        var incident = createIncidentDTO();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), null));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenMessageIsNull() {
+        var incident = createIncidentDTO();
+
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", null, AlertSeverity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenMessageIsBlank() {
+        var incident = createIncidentDTO();
+
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", "", AlertSeverity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenSeverityIsNull() {
+        var incident = createIncidentDTO();
+
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", "msg", null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void detachAlert_shouldRemoveAlertFromIncident() {
+        var incident = createIncidentDTO();
+        var incidentEntity = incidentRepo.findById(incident.id()).get();
+
+        var alertEntity = new Alert(incidentEntity, "Pipe broken", AlertSeverity.CRITICAL);
+        alertService.open(alertEntity);
+        incidentService.attachAlert(incidentEntity, alertEntity);
+        alertRepo.save(alertEntity);
+        incidentRepo.save(incidentEntity);
+
+        alertService.resolve(alertEntity);
+        alertRepo.save(alertEntity);
+
+        management.detachAlertFromIncident(incident.id(), alertEntity.getAlertId());
+
+        var updated = incidentRepo.findById(incident.id()).get();
+        assertEquals(0, updated.getAlerts().size());
+    }
+
+    @Test
+    void detachAlert_shouldThrow_whenIncidentIdIsNull() {
+        var alertId = UUID.randomUUID();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.detachAlertFromIncident(null, alertId));
+    }
+
+    @Test
+    void detachAlert_shouldThrow_whenAlertIdIsNull() {
+        var incident = createIncidentDTO();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.detachAlertFromIncident(incident.id(), null));
     }
 
     @Test

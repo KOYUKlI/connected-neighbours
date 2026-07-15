@@ -42,6 +42,18 @@ public class AlertDistributionByGravityController extends VBox {
     public void bindGraph(List<AlertDistributionByGravityViewModel> list) {
         graphDistribution.getChildren().clear();
 
+        boolean hasData = list.stream()
+                .anyMatch(vm -> vm.alertDistributionByGravityProperty().rateProperty().get() > 0);
+
+        if (!hasData) {
+            Circle empty = new Circle(110, 110, 80, Color.web("#E0E0E0"));
+            graphDistribution.getChildren().add(empty);
+
+            Circle hole = new Circle(110, 110, 30, Color.WHITE);
+            graphDistribution.getChildren().add(hole);
+            return;
+        }
+
         double start = 0;
 
         for (AlertDistributionByGravityViewModel vm : list) {

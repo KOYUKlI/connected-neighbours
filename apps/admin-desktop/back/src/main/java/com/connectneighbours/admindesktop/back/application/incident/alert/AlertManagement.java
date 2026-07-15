@@ -1,11 +1,16 @@
 package com.connectneighbours.admindesktop.back.application.incident.alert;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
+import com.connectneighbours.admindesktop.back.application.incident.IncidentMapper;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.exception.incident.IncidentNotFoundException;
+import com.connectneighbours.admindesktop.back.domain.exception.reporter.ReporterNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentService;
+import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +23,53 @@ public class AlertManagement {
     private final AlertRepository alertRepository;
     private final AlertService alertService;
     private final IncidentRepository incidentRepository;
+    private final IncidentService incidentService;
+    private final ReporterRepository reporterRepository;
 
-    public AlertManagement(AlertRepository alertRepository, AlertService alertService, IncidentRepository incidentRepository) {
+    public AlertManagement(AlertRepository alertRepository, AlertService alertService, IncidentRepository incidentRepository, IncidentService incidentService, ReporterRepository reporterRepository) {
         this.alertRepository = alertRepository;
         this.alertService = alertService;
         this.incidentRepository = incidentRepository;
+        this.incidentService = incidentService;
+        this.reporterRepository = reporterRepository;
+    }
+
+    public AlertDTO addAlertToIncident(UUID incidentId, CreationAlertDTO dto) {
+        if (incidentId == null) throw new IllegalArgumentException("Incident ID cannot be null");
+
+        validateCreationAlert(dto);
+
+        Incident incident = loadIncident(incidentId);
+        Reporter reporter = loadReporter(dto.reporter().idReporter());
+
+        Alert alert = new Alert(
+                incident,
+                reporter,
+                dto.title(),
+                dto.message(),
+                dto.severity()
+        );
+
+        alertService.open(alert);
+        incidentService.attachAlert(incident, alert);
+
+        var savedAlert = alertRepository.save(alert);
+        incidentRepository.save(incident);
+
+        return AlertMapper.toDTO(savedAlert);
+    }
+
+    public IncidentDTO detachAlertFromIncident(UUID incidentId, UUID alertId) {
+        if (incidentId == null) throw new IllegalArgumentException("Incident ID cannot be null");
+        if (alertId == null) throw new IllegalArgumentException("Alert ID cannot be null");
+
+        Incident incident = loadIncident(incidentId);
+        Alert alert = loadAlert(alertId);
+
+        incidentService.detachAlert(incident, alert);
+        var savedIncident = incidentRepository.save(incident);
+
+        return IncidentMapper.toDTO(savedIncident);
     }
 
     public AlertDTO resolveAlert(UUID alertId) {
@@ -94,5 +141,21 @@ public class AlertManagement {
     private Alert loadAlert(UUID id) {
         return alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException(id.toString()));
+    }
+
+    private Reporter loadReporter(UUID id) {
+        return reporterRepository.findById(id)
+                .orElseThrow(() -> new ReporterNotFoundException(id.toString()));
+    }
+
+    private void validateCreationAlert(CreationAlertDTO dto) {
+        if (dto == null) throw new IllegalArgumentException("Alert DTO cannot be null");
+        if (dto.reporter() == null) throw new IllegalArgumentException("Reporter cannot be null");
+        if (dto.title() == null || dto.title().isBlank())
+            throw new IllegalArgumentException("Alert title cannot be null or empty");
+        if (dto.message() == null || dto.message().isBlank())
+            throw new IllegalArgumentException("Alert message cannot be null or empty");
+        if (dto.severity() == null)
+            throw new IllegalArgumentException("Severity cannot be null");
     }
 }

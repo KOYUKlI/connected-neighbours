@@ -4,6 +4,7 @@ import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.AlertDistributionBySeverityDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.AlertDistributionByGravityProperty;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AlertViewController extends VBox {
 
@@ -56,6 +58,8 @@ public class AlertViewController extends VBox {
     private Button btnReturn;
     @FXML
     private Button btnFilter;
+    @FXML
+    private Button createAlert;
 
     @FXML
     private Label gravityValue;
@@ -124,6 +128,7 @@ public class AlertViewController extends VBox {
     }
 
     public void loadIncident(IncidentDTO incident) {
+        currentIncident = incident;
         titleIncident.textProperty().set("Incident #" + incident.displayId() + " - " + incident.title());
         alertsContainer.getChildren().clear();
         var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverityAndIncident(incident);
@@ -151,6 +156,8 @@ public class AlertViewController extends VBox {
     }
 
     public void loadDistribution(List<AlertDistributionByGravityProperty> list) {
+        alertDistribution.getChildren().removeIf(node -> node instanceof AlertDistributionByGravityController);
+
         AlertDistributionByGravityController distribution = new AlertDistributionByGravityController();
         distribution.setPrefWidth(250);
         distribution.setMaxWidth(250);
@@ -200,27 +207,31 @@ public class AlertViewController extends VBox {
 
         btnReturn.setOnAction(e -> goToIncident());
         btnFilter.setOnAction(e -> refreshFilter());
+        createAlert.setOnAction(e -> goToCreateAlert());
 
 
-        bindMenuItem(gravityAll, gravityValue);
-        bindMenuItem(gravityCritical, gravityValue);
-        bindMenuItem(gravityHigh, gravityValue);
-        bindMenuItem(gravityMedium, gravityValue);
-        bindMenuItem(gravityLow, gravityValue);
+        bindMenuItem(gravityAll, gravityValue, v -> selectedGravity = v);
+        bindMenuItem(gravityCritical, gravityValue, v -> selectedGravity = v);
+        bindMenuItem(gravityHigh, gravityValue, v -> selectedGravity = v);
+        bindMenuItem(gravityMedium, gravityValue, v -> selectedGravity = v);
+        bindMenuItem(gravityLow, gravityValue, v -> selectedGravity = v);
 
-        bindMenuItem(statusAll, statusValue);
-        bindMenuItem(statusResolved, statusValue);
-        bindMenuItem(statusInProgress, statusValue);
-        bindMenuItem(statusClosed, statusValue);
+        bindMenuItem(statusAll, statusValue, v -> selectedStatus = v);
+        bindMenuItem(statusResolved, statusValue, v -> selectedStatus = v);
+        bindMenuItem(statusInProgress, statusValue, v -> selectedStatus = v);
+        bindMenuItem(statusClosed, statusValue, v -> selectedStatus = v);
 
-        bindMenuItem(dateAll, dateValue);
-        bindMenuItem(dateToday, dateValue);
-        bindMenuItem(dateWeek, dateValue);
-        bindMenuItem(dateMonth, dateValue);
+        bindMenuItem(dateAll, dateValue, v -> selectedDate = v);
+        bindMenuItem(dateToday, dateValue, v -> selectedDate = v);
+        bindMenuItem(dateWeek, dateValue, v -> selectedDate = v);
+        bindMenuItem(dateMonth, dateValue, v -> selectedDate = v);
     }
 
-    private void bindMenuItem(MenuItem item, Label target) {
-        item.setOnAction(e -> target.setText(item.getText()));
+    private void bindMenuItem(MenuItem item, Label target, Consumer<String> onSelect) {
+        item.setOnAction(e -> {
+            target.setText(item.getText());
+            onSelect.accept(item.getText());
+        });
     }
 
     private void refreshFilter() {
@@ -231,10 +242,10 @@ public class AlertViewController extends VBox {
         for (AlertDTO alert : currentIncident.alerts()) {
 
             boolean matchGravity = selectedGravity.equals("Toutes")
-                    || alert.severity().toString().equalsIgnoreCase(selectedGravity);
+                    || severityLabel(alert.severity()).equalsIgnoreCase(selectedGravity);
 
             boolean matchStatus = selectedStatus.equals("Tous")
-                    || alert.status().toString().equalsIgnoreCase(selectedStatus);
+                    || statusLabel(alert.status()).equalsIgnoreCase(selectedStatus);
 
             boolean matchDate = selectedDate.equals("Toutes")
                     || matchDateFilter(alert);
@@ -245,6 +256,25 @@ public class AlertViewController extends VBox {
                 alertsContainer.getChildren().add(widget);
             }
         }
+    }
+
+    private String severityLabel(AlertSeverity severity) {
+        return switch (severity) {
+            case LOW -> "Mineure";
+            case MEDIUM -> "Moyenne";
+            case HIGH -> "Haute";
+            case CRITICAL -> "Critique";
+        };
+    }
+
+    private String statusLabel(AlertStatus status) {
+        return switch (status) {
+            case CREATED -> "Créée";
+            case OPEN -> "Ouverte";
+            case IN_PROGRESS -> "En cours";
+            case RESOLVED -> "Résolue";
+            case CLOSED -> "Fermée";
+        };
     }
 
 
@@ -263,6 +293,11 @@ public class AlertViewController extends VBox {
     @FXML
     protected void goToIncident() {
         if (parent != null) parent.goBackToIncidents();
+    }
+
+    @FXML
+    protected void goToCreateAlert() {
+        if (parent != null) parent.goToCreateAlert(this, currentIncident);
     }
 }
 
