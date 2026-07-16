@@ -1,66 +1,80 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
-import { AuthContext, type AuthContextValue } from './AuthContext';
-import { getMe, login as loginRequest } from './api';
-import { authStorage } from './storage';
-import type { AuthUser, LoginInput } from './types';
+import { getMe, login as loginRequest } from '../api/auth';
+import type { AuthUser } from '../api/auth';
+import { ApiError, clearAuthToken, getAuthToken, setAuthToken } from '../api/client';
+import { getErrorMessage } from '../shared/utils/errors';
+import { AuthContext } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [token, setToken] = useState(() => getAuthToken());
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const clearSession = useCallback((message?: string) => {
+    clearAuthToken();
+    setToken(null);
+    setCurrentUser(null);
+    setLoginError(message ?? null);
+  }, []);
 
   useEffect(() => {
-    async function bootstrap() {
-      const token = authStorage.getToken();
-
-      if (!token) {
-        setIsReady(true);
-        return;
-      }
-
-      try {
-        const me = await getMe();
-        setUser(me);
-      } catch {
-        authStorage.clearToken();
-        setUser(null);
-      } finally {
-        setIsReady(true);
-      }
+    if (!token || currentUser) {
+      return;
     }
 
-    void bootstrap();
+    let ignore = false;
+
+    getMe()
+      .then((profile) => {
+        if (!ignore) {
+          setCurrentUser(profile);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          clearSession('Session expiree. Merci de vous reconnecter.');
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [token, currentUser, clearSession]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    setLoginError(null);
+
+    try {
+      const response = await loginRequest({ email, password });
+      setAuthToken(response.accessToken);
+      setCurrentUser(response.user);
+      setToken(response.accessToken);
+      return true;
+    } catch (error) {
+      setLoginError(getErrorMessage(error));
+      return false;
+    }
   }, []);
 
-  const login = useCallback(async (input: LoginInput) => {
-    const result = await loginRequest(input);
-    authStorage.setToken(result.accessToken);
-    setUser(result.user);
-  }, []);
+  const handleSessionError = useCallback(
+    (error: unknown) => {
+      if (error instanceof ApiError && [401, 403].includes(error.status)) {
+        clearSession('Session expiree. Merci de vous reconnecter.');
+        return true;
+      }
 
-  const logout = useCallback(() => {
-    authStorage.clearToken();
-    setUser(null);
-    queryClient.clear();
-  }, [queryClient]);
-
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      isReady,
-      login,
-      logout,
-    }),
-    [user, isReady, login, logout],
+      return false;
+    },
+    [clearSession],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{ token, currentUser, loginError, login, clearSession, handleSessionError }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
