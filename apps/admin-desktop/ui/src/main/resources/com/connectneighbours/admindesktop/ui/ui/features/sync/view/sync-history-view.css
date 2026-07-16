@@ -29,6 +29,15 @@
     -fx-font-size: 12px;
 }
 
+.sync-feedback {
+    -fx-text-fill: #334155;
+    -fx-font-size: 12px;
+}
+
+.sync-feedback.error {
+    -fx-text-fill: #D93025;
+}
+
 .table-view {
     -fx-background-color: white;
     -fx-border-color: #E2E8F0;

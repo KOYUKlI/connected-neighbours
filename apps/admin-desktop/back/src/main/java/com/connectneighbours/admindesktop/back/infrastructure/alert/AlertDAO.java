@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface AlertDAO extends JpaRepository<Alert, UUID> {
@@ -23,4 +24,10 @@ public interface AlertDAO extends JpaRepository<Alert, UUID> {
     List<Alert> findByIncidentAndSeverity(Incident incident, AlertSeverity severity);
 
     List<Alert> findByUpdatedAtAfter(Instant since);
+
+    List<Alert> findByExternalIdIsNull();
+
+    Optional<Alert> findByExternalId(String externalId);
+
+    List<Alert> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since);
 }

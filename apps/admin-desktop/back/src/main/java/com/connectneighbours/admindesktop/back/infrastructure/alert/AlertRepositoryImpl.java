@@ -67,6 +67,21 @@ public class AlertRepositoryImpl implements AlertRepository {
     }
 
     @Override
+    public List<Alert> findByExternalIdIsNull() {
+        return alertDAO.findByExternalIdIsNull();
+    }
+
+    @Override
+    public Optional<Alert> findByExternalId(String externalId) {
+        return alertDAO.findByExternalId(externalId);
+    }
+
+    @Override
+    public List<Alert> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since) {
+        return alertDAO.findByExternalIdIsNotNullAndUpdatedAtAfter(since);
+    }
+
+    @Override
     public void delete(Alert alert) {
         alertDAO.delete(alert);
     }

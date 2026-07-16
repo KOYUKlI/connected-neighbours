@@ -1,4 +1,4 @@
-package com.connectneighbours.admindesktop.back.infrastructure.auth;
+package com.connectneighbours.admindesktop.back.application.auth;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

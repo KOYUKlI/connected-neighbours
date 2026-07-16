@@ -2,8 +2,11 @@ package com.connectneighbours.admindesktop.back.application.sync;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertRepositoryInMemory;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
+import com.connectneighbours.admindesktop.back.infrastructure.auth.SessionContext;
 import com.connectneighbours.admindesktop.back.infrastructure.sync.SyncHttpClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +20,7 @@ public class SyncManagementTest {
     private SyncRepositoryInMemory syncRepo;
     private IncidentRepository incidentRepo;
     private AlertRepository alertRepo;
+    private ReporterRepository reporterRepo;
     private SyncManagement management;
 
     private static final String CLIENT_ID = "desktop-1";
@@ -26,8 +30,10 @@ public class SyncManagementTest {
         syncRepo = new SyncRepositoryInMemory();
         incidentRepo = new IncidentRepositoryInMemory();
         alertRepo = new AlertRepositoryInMemory();
-        SyncHttpClient syncHttpClient = new SyncHttpClient(new RestTemplateBuilder());
-        management = new SyncManagement(syncRepo, incidentRepo, alertRepo, syncHttpClient);
+        reporterRepo = new ReporterRepositoryInMemory();
+        SyncHttpClient syncHttpClient = new SyncHttpClient(
+                new RestTemplateBuilder(), new SessionContext(), "http://localhost:3000/api");
+        management = new SyncManagement(syncRepo, incidentRepo, alertRepo, reporterRepo, syncHttpClient);
     }
 
     @Test

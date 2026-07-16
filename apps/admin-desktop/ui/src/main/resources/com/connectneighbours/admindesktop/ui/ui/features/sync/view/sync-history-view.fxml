@@ -14,6 +14,7 @@
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="sync-header">
         <Label text="Historique de Synchronisation" styleClass="sync-header-title"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Synchroniser" fx:id="btnSynchronize" styleClass="filter-button"/>
         <Button text="Rafraîchir" fx:id="btnRefresh" styleClass="filter-button"/>
     </HBox>
 
@@ -27,6 +28,8 @@
         <Label text="Opérations en attente :" styleClass="sync-status-key"/>
         <Label fx:id="pendingOperationsLabel" text="0" styleClass="sync-status-value"/>
     </HBox>
+
+    <Label fx:id="syncFeedbackLabel" text="" styleClass="sync-feedback" visible="false" managed="false"/>
 
     <TableView fx:id="historyTable" VBox.vgrow="ALWAYS">
         <columnResizePolicy>

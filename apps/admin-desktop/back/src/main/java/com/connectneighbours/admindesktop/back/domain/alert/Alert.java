@@ -4,6 +4,7 @@ import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -42,6 +43,7 @@ public class Alert {
     @Column(nullable = false)
     private AlertStatus status;
 
+    @UpdateTimestamp
     @Column
     private Instant updatedAt;
 
@@ -51,6 +53,9 @@ public class Alert {
 
     @Column
     private LocalDateTime resolvedAt;
+
+    @Column
+    private String externalId;
 
     @Transient
     private static AtomicLong counter = new AtomicLong(1);
@@ -124,6 +129,14 @@ public class Alert {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 
     public void setDetails(String details) {

@@ -76,4 +76,27 @@ public class AlertRepositoryInMemory implements AlertRepository {
     public List<Alert> findByUpdatedAtAfter(Instant since) {
         return List.of();
     }
+
+    @Override
+    public List<Alert> findByExternalIdIsNull() {
+        return data.values().stream()
+                .filter(a -> a.getExternalId() == null)
+                .toList();
+    }
+
+    @Override
+    public List<Alert> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since) {
+        return data.values().stream()
+                .filter(a -> a.getExternalId() != null
+                        && a.getUpdatedAt() != null
+                        && a.getUpdatedAt().isAfter(since))
+                .toList();
+    }
+
+    @Override
+    public Optional<Alert> findByExternalId(String externalId) {
+        return data.values().stream()
+                .filter(a -> externalId.equals(a.getExternalId()))
+                .findFirst();
+    }
 }

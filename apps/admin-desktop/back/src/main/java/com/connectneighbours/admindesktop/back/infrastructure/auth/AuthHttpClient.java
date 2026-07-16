@@ -1,5 +1,7 @@
 package com.connectneighbours.admindesktop.back.infrastructure.auth;
 
+import com.connectneighbours.admindesktop.back.application.auth.LoginRequestBody;
+import com.connectneighbours.admindesktop.back.application.auth.LoginResponseBody;
 import com.connectneighbours.admindesktop.back.domain.auth.AuthClient;
 import com.connectneighbours.admindesktop.back.domain.auth.AuthenticatedSession;
 import com.connectneighbours.admindesktop.back.domain.exception.auth.AuthenticationFailedException;
