@@ -54,3 +54,7 @@ export function createIncident(input: CreateIncidentInput) {
 export function getIncidents() {
   return apiRequest<IncidentItem[]>('/api/incidents');
 }
+
+export function getIncident(id: string) {
+  return apiRequest<IncidentItem | null>(`/api/incidents/${id}`);
+}
