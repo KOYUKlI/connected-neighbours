@@ -48,6 +48,7 @@ public class IncidentMapperTest {
     void toIncidentSyncDTO_shouldMapNestedAlerts() {
         Incident incident = createIncident();
         Alert alert = new Alert(incident, "Broken pipe", AlertSeverity.CRITICAL);
+        alert.setReporter(new Reporter("Jane", "Doe"));
         incident.getAlerts().add(alert);
 
         var dto = IncidentMapper.toIncidentSyncDTO(incident);

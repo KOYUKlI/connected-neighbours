@@ -5,15 +5,15 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.IOException;
 
 public class AdminDesktopApplication extends Application {
 
-    private static ApplicationContext springContext;
+    private static ConfigurableApplicationContext springContext;
 
-    public static void setSpringContext(ApplicationContext ctx) {
+    public static void setSpringContext(ConfigurableApplicationContext ctx) {
         springContext = ctx;
     }
 
@@ -42,8 +42,16 @@ public class AdminDesktopApplication extends Application {
         }
     }
 
-    public static ApplicationContext getSpringContext() {
+    public static ConfigurableApplicationContext getSpringContext() {
         return springContext;
+    }
+
+    @Override
+    public void stop() {
+        if (springContext != null) {
+            springContext.close();
+        }
+        System.exit(0);
     }
 }
 
