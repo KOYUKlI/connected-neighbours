@@ -64,6 +64,21 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     }
 
     @Override
+    public List<Incident> findByExternalIdIsNull() {
+        return incidentDAO.findByExternalIdIsNull();
+    }
+
+    @Override
+    public Optional<Incident> findByExternalId(String externalId) {
+        return incidentDAO.findByExternalId(externalId);
+    }
+
+    @Override
+    public List<Incident> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since) {
+        return incidentDAO.findByExternalIdIsNotNullAndUpdatedAtAfter(since);
+    }
+
+    @Override
     public Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end) {
         return incidentDAO.countByTypeAndCreatedAtBetween(type,start,end);
     }

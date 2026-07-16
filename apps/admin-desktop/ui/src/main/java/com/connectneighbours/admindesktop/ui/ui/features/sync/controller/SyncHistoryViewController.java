@@ -2,9 +2,10 @@ package com.connectneighbours.admindesktop.ui.ui.features.sync.controller;
 
 import com.connectneighbours.admindesktop.back.application.sync.SyncHistoryDTO;
 import com.connectneighbours.admindesktop.back.application.sync.SyncStatusDTO;
+import com.connectneighbours.admindesktop.back.domain.exception.sync.SyncFailedException;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.sync.model.SimpleSyncHistoryProperty;
+import com.connectneighbours.admindesktop.ui.ui.features.sync.viewmodel.SyncHistoryViewModel;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -27,6 +28,8 @@ public class SyncHistoryViewController extends VBox {
     private AdminDesktopController parent;
 
     @FXML
+    private Button btnSynchronize;
+    @FXML
     private Button btnRefresh;
     @FXML
     private Label lastPushLabel;
@@ -35,13 +38,15 @@ public class SyncHistoryViewController extends VBox {
     @FXML
     private Label pendingOperationsLabel;
     @FXML
-    private TableView<SyncHistoryDTO> historyTable;
+    private Label syncFeedbackLabel;
     @FXML
-    private TableColumn<SyncHistoryDTO, String> typeColumn;
+    private TableView<SyncHistoryViewModel> historyTable;
     @FXML
-    private TableColumn<SyncHistoryDTO, String> timestampColumn;
+    private TableColumn<SyncHistoryViewModel, String> typeColumn;
     @FXML
-    private TableColumn<SyncHistoryDTO, Number> countColumn;
+    private TableColumn<SyncHistoryViewModel, String> timestampColumn;
+    @FXML
+    private TableColumn<SyncHistoryViewModel, Number> countColumn;
 
     public SyncHistoryViewController() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(
@@ -58,13 +63,14 @@ public class SyncHistoryViewController extends VBox {
 
     @FXML
     private void initialize() {
-        typeColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().type()));
-        timestampColumn.setCellValueFactory(data -> new SimpleStringProperty(formatTimestamp(data.getValue().timestamp())));
-        countColumn.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().count()));
+        typeColumn.setCellValueFactory(data -> data.getValue().syncHistoryProperty().typeProperty());
+        timestampColumn.setCellValueFactory(data -> data.getValue().syncHistoryProperty().timestampProperty());
+        countColumn.setCellValueFactory(data -> data.getValue().syncHistoryProperty().countProperty());
 
         historyTable.setItems(FXCollections.observableArrayList());
 
         btnRefresh.setOnAction(e -> refresh());
+        btnSynchronize.setOnAction(e -> synchronize());
     }
 
     public void setParent(AdminDesktopController parent) {
@@ -72,7 +78,24 @@ public class SyncHistoryViewController extends VBox {
     }
 
     public void loadHistory(List<SyncHistoryDTO> history) {
-        historyTable.setItems(FXCollections.observableArrayList(history));
+        List<SyncHistoryViewModel> models = history.stream()
+                .map(dto -> {
+                    var vm = new SyncHistoryViewModel();
+                    vm.setDto(dto);
+                    vm.setSyncHistory(toProperty(dto));
+                    return vm;
+                })
+                .toList();
+
+        historyTable.setItems(FXCollections.observableArrayList(models));
+    }
+
+    private SimpleSyncHistoryProperty toProperty(SyncHistoryDTO dto) {
+        var property = new SimpleSyncHistoryProperty();
+        property.timestampProperty().set(formatTimestamp(dto.timestamp()));
+        property.typeProperty().set(dto.type());
+        property.countProperty().set(dto.count());
+        return property;
     }
 
     public void loadStatus(SyncStatusDTO status) {
@@ -84,6 +107,30 @@ public class SyncHistoryViewController extends VBox {
     public void refresh() {
         loadHistory(parent.getSyncManagement().history());
         loadStatus(parent.getSyncManagement().status());
+    }
+
+    private void synchronize() {
+        btnSynchronize.setDisable(true);
+
+        try {
+            var result = parent.getSyncManagement().synchronize();
+            showFeedback(result.pushedCount() + " envoye(s), " + result.pulledCount() + " recu(s)", false);
+            refresh();
+        } catch (SyncFailedException e) {
+            showFeedback(e.getMessage(), true);
+        } finally {
+            btnSynchronize.setDisable(false);
+        }
+    }
+
+    private void showFeedback(String message, boolean isError) {
+        syncFeedbackLabel.setText(message);
+        syncFeedbackLabel.getStyleClass().removeAll("error");
+        if (isError) {
+            syncFeedbackLabel.getStyleClass().add("error");
+        }
+        syncFeedbackLabel.setVisible(true);
+        syncFeedbackLabel.setManaged(true);
     }
 
     private static String formatTimestamp(String isoTimestamp) {

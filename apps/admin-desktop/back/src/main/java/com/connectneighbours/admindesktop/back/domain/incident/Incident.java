@@ -6,6 +6,7 @@ import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -51,6 +52,7 @@ public class Incident {
     @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
     private List<Alert> alerts = new ArrayList<>();
 
+    @UpdateTimestamp
     @Column
     private Instant updatedAt;
 
@@ -60,6 +62,9 @@ public class Incident {
 
     @Column
     private LocalDateTime resolvedAt;
+
+    @Column
+    private String externalId;
 
     @Transient
     private static AtomicLong counter = new AtomicLong(1);
@@ -165,6 +170,14 @@ public class Incident {
         return severity;
     }
 
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -175,6 +188,10 @@ public class Incident {
 
     public void setType(IncidentType type) {
         this.type = type;
+    }
+
+    public void setSeverity(IncidentSeverity severity) {
+        this.severity = severity;
     }
 
     public void resolve() {

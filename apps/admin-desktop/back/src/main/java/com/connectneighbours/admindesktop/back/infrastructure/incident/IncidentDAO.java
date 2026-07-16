@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface IncidentDAO extends JpaRepository<Incident, UUID> {
@@ -21,6 +22,12 @@ public interface IncidentDAO extends JpaRepository<Incident, UUID> {
     List<Incident> findByReporter(Reporter reporter);
 
     List<Incident> findByUpdatedAtAfter(Instant since);
+
+    List<Incident> findByExternalIdIsNull();
+
+    Optional<Incident> findByExternalId(String externalId);
+
+    List<Incident> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since);
 
     Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end);
 }

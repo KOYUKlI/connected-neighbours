@@ -16,8 +16,8 @@
         <Label text="Connexion à l'administration" styleClass="login-subtitle"/>
 
         <VBox spacing="6">
-            <Label text="Nom d'utilisateur" styleClass="form-label"/>
-            <TextField fx:id="usernameField" styleClass="form-field" promptText="admin"/>
+            <Label text="Email" styleClass="form-label"/>
+            <TextField fx:id="emailField" styleClass="form-field" promptText="admin@connected-neighbours.local"/>
         </VBox>
 
         <VBox spacing="6">

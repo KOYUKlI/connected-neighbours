@@ -30,6 +30,12 @@ public interface IncidentRepository {
 
     List<Incident> findByUpdatedAtAfter(Instant since);
 
+    List<Incident> findByExternalIdIsNull();
+
+    Optional<Incident> findByExternalId(String externalId);
+
+    List<Incident> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since);
+
     Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end);
 
     void delete(Incident incident);

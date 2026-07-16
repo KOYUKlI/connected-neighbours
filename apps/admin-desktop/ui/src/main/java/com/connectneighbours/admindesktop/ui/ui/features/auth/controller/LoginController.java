@@ -1,5 +1,8 @@
 package com.connectneighbours.admindesktop.ui.ui.features.auth.controller;
 
+import com.connectneighbours.admindesktop.back.application.auth.AuthManagement;
+import com.connectneighbours.admindesktop.back.domain.exception.auth.AuthenticationFailedException;
+import com.connectneighbours.admindesktop.ui.ui.AdminDesktopApplication;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
@@ -11,11 +14,9 @@ import javafx.scene.layout.VBox;
 import java.io.IOException;
 
 public class LoginController extends VBox {
-    private static final String VALID_USERNAME = "admin";
-    private static final String VALID_PASSWORD = "123";
 
     @FXML
-    private TextField usernameField;
+    private TextField emailField;
     @FXML
     private PasswordField passwordField;
     @FXML
@@ -49,10 +50,12 @@ public class LoginController extends VBox {
     }
 
     private void attemptLogin() {
-        boolean valid = VALID_USERNAME.equals(usernameField.getText())
-                && VALID_PASSWORD.equals(passwordField.getText());
+        AuthManagement authManagement = AdminDesktopApplication.getSpringContext().getBean(AuthManagement.class);
 
-        if (!valid) {
+        try {
+            authManagement.login(emailField.getText(), passwordField.getText());
+        } catch (AuthenticationFailedException e) {
+            errorLabel.setText(e.getMessage());
             errorLabel.setVisible(true);
             errorLabel.setManaged(true);
             return;

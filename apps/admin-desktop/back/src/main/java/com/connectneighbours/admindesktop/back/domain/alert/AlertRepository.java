@@ -27,6 +27,12 @@ public interface AlertRepository {
 
     List<Alert> findByUpdatedAtAfter(Instant since);
 
+    List<Alert> findByExternalIdIsNull();
+
+    Optional<Alert> findByExternalId(String externalId);
+
+    List<Alert> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since);
+
     void delete(Alert alert);
 
     long count();

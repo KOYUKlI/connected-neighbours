@@ -94,6 +94,29 @@ public class IncidentRepositoryInMemory implements IncidentRepository {
     }
 
     @Override
+    public List<Incident> findByExternalIdIsNull() {
+        return data.values().stream()
+                .filter(i -> i.getExternalId() == null)
+                .toList();
+    }
+
+    @Override
+    public List<Incident> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since) {
+        return data.values().stream()
+                .filter(i -> i.getExternalId() != null
+                        && i.getUpdatedAt() != null
+                        && i.getUpdatedAt().isAfter(since))
+                .toList();
+    }
+
+    @Override
+    public Optional<Incident> findByExternalId(String externalId) {
+        return data.values().stream()
+                .filter(i -> externalId.equals(i.getExternalId()))
+                .findFirst();
+    }
+
+    @Override
     public Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end) {
         return 0L;
     }
