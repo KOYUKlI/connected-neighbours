@@ -28,3 +28,7 @@ Thumbs.db
 build/
 out/
 *.class
+
+# H2 database files
+*.mv.db
+*.trace.db
