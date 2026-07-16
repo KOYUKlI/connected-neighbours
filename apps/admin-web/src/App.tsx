@@ -12,6 +12,7 @@ const navigationItems = [
   { path: 'incidents', label: 'Incidents' },
   { path: 'sync', label: 'Synchronisation' },
   { path: 'users', label: 'Utilisateurs' },
+  { path: 'install', label: 'Application Desktop' },
 ] as const
 
 const demoEmail = 'admin@connected-neighbours.local'

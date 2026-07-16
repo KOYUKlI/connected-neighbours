@@ -53,6 +53,7 @@ public class AlertManagementTest {
                 "Test message",
                 AlertSeverity.MEDIUM
         );
+        alert.setReporter(reporterRepo.save(new Reporter("first", "last")));
         alertService.open(alert);
         return alertRepo.save(alert);
     }
@@ -249,10 +250,12 @@ public class AlertManagementTest {
         incidentRepo.save(incident);
 
         var alert1 = new Alert(incident, "A1", AlertSeverity.CRITICAL);
+        alert1.setReporter(new Reporter("first", "last"));
         alertService.open(alert1);
         alertRepo.save(alert1);
 
         var alert2 = new Alert(incident, "A2", AlertSeverity.LOW);
+        alert2.setReporter(new Reporter("first", "last"));
         alertService.open(alert2);
         alertRepo.save(alert2);
 
@@ -266,6 +269,7 @@ public class AlertManagementTest {
         incidentRepo.save(otherIncident);
 
         var alertOther = new Alert(otherIncident, "B1", AlertSeverity.MEDIUM);
+        alertOther.setReporter(new Reporter("x", "y"));
         alertService.open(alertOther);
         alertRepo.save(alertOther);
 
