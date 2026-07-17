@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.TextFlow?>
+<?import javafx.scene.control.ScrollPane?>
+<fx:root type="AnchorPane"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         prefWidth="409" prefHeight="140"
+         maxWidth="Infinity" maxHeight="Infinity"
+         minWidth="280"
+         styleClass="widget-alert-container"
+         stylesheets="@widget-alert.css">
+
+    <AnchorPane fx:id="widgetHeaderContainer"
+                prefHeight="40" maxHeight="40"
+                AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"
+                styleClass="widget-alert-header">
+        <Pane fx:id="warningSymbolContainer"
+              AnchorPane.leftAnchor="12" AnchorPane.topAnchor="8"/>
+
+        <Label fx:id="titleLabel"
+               layoutX="40" layoutY="10"
+               styleClass="widget-alert-title"/>
+    </AnchorPane>
+
+    <HBox spacing="10"
+          AnchorPane.topAnchor="50" AnchorPane.leftAnchor="12"
+          AnchorPane.rightAnchor="12" AnchorPane.bottomAnchor="12">
+
+        <ImageView fx:id="avatarImage"
+                   fitWidth="48"
+                   fitHeight="48"
+                   preserveRatio="true"
+                   smooth="true"/>
+
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+
+            <Label fx:id="reporterLabel"
+                   styleClass="widget-alert-reporter" text="TEST"/>
+
+            <TextFlow fx:id="createdAtFlow"/>
+            <TextFlow fx:id="statusFlow"/>
+
+            <ScrollPane styleClass="details-scroll" VBox.vgrow="ALWAYS" fitToWidth="true">
+                <content>
+                    <TextFlow fx:id="detailsFlow"/>
+                </content>
+            </ScrollPane>
+
+        </VBox>
+    </HBox>
+
+</fx:root>

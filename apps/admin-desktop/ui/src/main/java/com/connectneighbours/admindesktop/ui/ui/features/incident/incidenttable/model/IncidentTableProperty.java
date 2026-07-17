@@ -25,4 +25,6 @@ public interface IncidentTableProperty extends ReadOnlyIncidentTableProperty {
 
     IntegerProperty alertsCountProperty();
 
+    StringProperty severityProperty();
+
 }

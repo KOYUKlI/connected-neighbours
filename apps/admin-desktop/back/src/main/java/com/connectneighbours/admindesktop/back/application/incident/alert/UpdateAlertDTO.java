@@ -1,12 +1,12 @@
 package com.connectneighbours.admindesktop.back.application.incident.alert;
 
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record UpdateAlertDTO(
         @NotNull String message,
-        @NotBlank Severity severity
+        @NotBlank AlertSeverity severity
 ) {
 }
 

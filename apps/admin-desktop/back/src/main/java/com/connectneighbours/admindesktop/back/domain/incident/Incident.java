@@ -2,17 +2,20 @@ package com.connectneighbours.admindesktop.back.domain.incident;
 
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Entity(name = "incident")
 public class Incident {
@@ -34,6 +37,10 @@ public class Incident {
     @Column(length = 1000)
     private String description;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private IncidentSeverity severity;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private IncidentType type;
@@ -42,8 +49,12 @@ public class Incident {
     @Column(nullable = false)
     private IncidentStatus status;
 
-    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
     private List<Alert> alerts = new ArrayList<>();
+
+    @UpdateTimestamp
+    @Column
+    private Instant updatedAt;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
@@ -52,16 +63,52 @@ public class Incident {
     @Column
     private LocalDateTime resolvedAt;
 
+    @Column
+    private String externalId;
+
+    @Transient
+    private static AtomicLong counter = new AtomicLong(1);
+
     public Incident() {
     }
 
+    public Incident(Reporter reporter, String title, String description, IncidentType type,IncidentSeverity severity) {
+        this.reporter = reporter;
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.status = IncidentStatus.CREATED;
+        this.severity = severity;
+        this.displayId = generateDisplayId();
+    }
+
+    public Incident(Reporter reporter,
+                    String title,
+                    String description,
+                    IncidentType type,
+                    IncidentSeverity severity,
+                    LocalDateTime createdAt) {
+
+        this.reporter = reporter;
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.severity = severity;
+        this.status = IncidentStatus.CREATED;
+        this.displayId = generateDisplayId();
+        this.createdAt = createdAt;
+    }
+
+
     public Incident(Reporter reporter, String title, String description, IncidentType type) {
+        this.incidentId = UUID.randomUUID();
         this.reporter = reporter;
         this.title = title;
         this.description = description;
         this.type = type;
         this.status = IncidentStatus.CREATED;
         this.displayId = generateDisplayId();
+        this.createdAt = LocalDateTime.now();
     }
 
     public Incident(Reporter reporter, String title, String description, IncidentType type, Clock clock) {
@@ -115,6 +162,22 @@ public class Incident {
         return resolvedAt;
     }
 
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public IncidentSeverity getSeverity() {
+        return severity;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -127,6 +190,10 @@ public class Incident {
         this.type = type;
     }
 
+    public void setSeverity(IncidentSeverity severity) {
+        this.severity = severity;
+    }
+
     public void resolve() {
         this.status = IncidentStatus.RESOLVED;
         this.resolvedAt = LocalDateTime.now();
@@ -134,6 +201,7 @@ public class Incident {
 
     public void open() {
         this.status = IncidentStatus.OPEN;
+        if (this.resolvedAt != null) this.resolvedAt = null;
     }
 
     public void close() {
@@ -143,10 +211,11 @@ public class Incident {
 
     public void inProgress() {
         this.status = IncidentStatus.IN_PROGRESS;
+        if (this.resolvedAt != null) this.resolvedAt = null;
     }
 
     public boolean hasCriticalOpenAlerts() {
-        return alerts.stream().anyMatch(a -> a.getSeverity().equals(Severity.CRITICAL) && !a.isResolved() && a.getStatus().equals(AlertStatus.OPEN));
+        return alerts.stream().anyMatch(a -> a.getSeverity().equals(AlertSeverity.CRITICAL) && !a.isResolved() && a.getStatus().equals(AlertStatus.OPEN) || a.getStatus().equals(AlertStatus.IN_PROGRESS));
     }
 
     public boolean isResolved() {
@@ -160,6 +229,8 @@ public class Incident {
     public boolean isInProgress() {
         return status.equals(IncidentStatus.IN_PROGRESS);
     }
+
+    public boolean isClosed() {return status.equals(IncidentStatus.CLOSED);}
 
     @Override
     public boolean equals(Object o) {
@@ -175,8 +246,10 @@ public class Incident {
     }
 
     private String generateDisplayId() {
-        long number = System.currentTimeMillis() % 100000; // simple, unique
-        return "INC-" + String.format("%05d", number);
+        long number = System.currentTimeMillis() % 100000;
+        long inc = counter.getAndIncrement();
+        return "INC-" + String.format("%05d", number) + "-" + String.format("%04d",inc);
     }
+
 
 }

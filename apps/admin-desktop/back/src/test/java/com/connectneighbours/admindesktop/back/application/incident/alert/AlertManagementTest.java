@@ -1,7 +1,11 @@
 package com.connectneighbours.admindesktop.back.application.incident.alert;
 
+import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentMapper;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterMapper;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.domain.alert.*;
 import com.connectneighbours.admindesktop.back.domain.exception.alert.AlertNotFoundException;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
@@ -9,6 +13,7 @@ import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepositor
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentService;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +28,8 @@ public class AlertManagementTest {
     private AlertRepository alertRepo;
     private AlertService alertService;
     private IncidentRepository incidentRepo;
+    private IncidentService incidentService;
+    private ReporterRepository reporterRepo;
     private AlertManagement management;
 
     @BeforeEach
@@ -30,17 +37,127 @@ public class AlertManagementTest {
         alertRepo = new AlertRepositoryInMemory();
         alertService = new AlertService();
         incidentRepo = new IncidentRepositoryInMemory();
-        management = new AlertManagement(alertRepo, alertService, incidentRepo);
+        incidentService = new IncidentService();
+        reporterRepo = new ReporterRepositoryInMemory();
+        management = new AlertManagement(alertRepo, alertService, incidentRepo, incidentService, reporterRepo);
+    }
+
+    private ReporterDTO createReporterDTO() {
+        Reporter reporter = reporterRepo.save(new Reporter("first", "last"));
+        return ReporterMapper.toDTO(reporter);
     }
 
     private Alert createSampleAlert() {
         Alert alert = new Alert(
                 null,
                 "Test message",
-                Severity.MEDIUM
+                AlertSeverity.MEDIUM
         );
+        alert.setReporter(reporterRepo.save(new Reporter("first", "last")));
         alertService.open(alert);
         return alertRepo.save(alert);
+    }
+
+    private IncidentDTO createIncidentDTO() {
+        var incident = new Incident(new Reporter("first", "last"), "Leak", "Water leak", IncidentType.MAINTENANCE);
+        incidentService.open(incident);
+        incidentRepo.save(incident);
+        return IncidentMapper.toDTO(incident);
+    }
+
+    @Test
+    void addAlertToIncident_shouldAttachAlert() {
+        var incident = createIncidentDTO();
+
+        var alert = management.addAlertToIncident(
+                incident.id(),
+                new CreationAlertDTO(createReporterDTO(), "Broken pipe", "Pipe broken", AlertSeverity.CRITICAL)
+        );
+
+        assertEquals("Pipe broken", alert.details());
+        assertEquals(1, incidentRepo.findById(incident.id()).get().getAlerts().size());
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenIncidentIdIsNull() {
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", "msg", AlertSeverity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(null, dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenDtoIsNull() {
+        var incident = createIncidentDTO();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), null));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenMessageIsNull() {
+        var incident = createIncidentDTO();
+
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", null, AlertSeverity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenMessageIsBlank() {
+        var incident = createIncidentDTO();
+
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", "", AlertSeverity.CRITICAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void addAlertToIncident_shouldThrow_whenSeverityIsNull() {
+        var incident = createIncidentDTO();
+
+        var dto = new CreationAlertDTO(createReporterDTO(), "title", "msg", null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.addAlertToIncident(incident.id(), dto));
+    }
+
+    @Test
+    void detachAlert_shouldRemoveAlertFromIncident() {
+        var incident = createIncidentDTO();
+        var incidentEntity = incidentRepo.findById(incident.id()).get();
+
+        var alertEntity = new Alert(incidentEntity, "Pipe broken", AlertSeverity.CRITICAL);
+        alertService.open(alertEntity);
+        incidentService.attachAlert(incidentEntity, alertEntity);
+        alertRepo.save(alertEntity);
+        incidentRepo.save(incidentEntity);
+
+        alertService.resolve(alertEntity);
+        alertRepo.save(alertEntity);
+
+        management.detachAlertFromIncident(incident.id(), alertEntity.getAlertId());
+
+        var updated = incidentRepo.findById(incident.id()).get();
+        assertEquals(0, updated.getAlerts().size());
+    }
+
+    @Test
+    void detachAlert_shouldThrow_whenIncidentIdIsNull() {
+        var alertId = UUID.randomUUID();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.detachAlertFromIncident(null, alertId));
+    }
+
+    @Test
+    void detachAlert_shouldThrow_whenAlertIdIsNull() {
+        var incident = createIncidentDTO();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> management.detachAlertFromIncident(incident.id(), null));
     }
 
     @Test
@@ -63,18 +180,18 @@ public class AlertManagementTest {
     void updateAlert_shouldModifyMessageAndSeverity() {
         Alert alert = createSampleAlert();
 
-        UpdateAlertDTO dto = new UpdateAlertDTO("Updated message", Severity.CRITICAL);
+        UpdateAlertDTO dto = new UpdateAlertDTO("Updated message", AlertSeverity.CRITICAL);
 
         AlertDTO updated = management.updateAlert(alert.getAlertId(), dto);
 
         assertEquals("Updated message", updated.details());
-        assertEquals(Severity.CRITICAL, updated.severity());
+        assertEquals(AlertSeverity.CRITICAL, updated.severity());
     }
 
     @Test
     void updateAlert_shouldThrowIfNotFound() {
         UUID unknown = UUID.randomUUID();
-        UpdateAlertDTO dto = new UpdateAlertDTO("msg", Severity.LOW);
+        UpdateAlertDTO dto = new UpdateAlertDTO("msg", AlertSeverity.LOW);
 
         assertThrows(AlertNotFoundException.class, () -> management.updateAlert(unknown, dto));
     }
@@ -94,16 +211,16 @@ public class AlertManagementTest {
         Alert a1 = createSampleAlert();
         Alert a2 = createSampleAlert();
 
-        a1.setSeverity(Severity.CRITICAL);
+        a1.setSeverity(AlertSeverity.CRITICAL);
         alertRepo.save(a1);
 
-        a2.setSeverity(Severity.LOW);
+        a2.setSeverity(AlertSeverity.LOW);
         alertRepo.save(a2);
 
-        List<AlertDTO> critical = management.listBySeverity(Severity.CRITICAL);
+        List<AlertDTO> critical = management.listBySeverity(AlertSeverity.CRITICAL);
 
         assertEquals(1, critical.size());
-        assertEquals(Severity.CRITICAL, critical.get(0).severity());
+        assertEquals(AlertSeverity.CRITICAL, critical.get(0).severity());
     }
 
     @Test
@@ -132,11 +249,13 @@ public class AlertManagementTest {
         incidentService.open(incident);
         incidentRepo.save(incident);
 
-        var alert1 = new Alert(incident, "A1", Severity.CRITICAL);
+        var alert1 = new Alert(incident, "A1", AlertSeverity.CRITICAL);
+        alert1.setReporter(new Reporter("first", "last"));
         alertService.open(alert1);
         alertRepo.save(alert1);
 
-        var alert2 = new Alert(incident, "A2", Severity.LOW);
+        var alert2 = new Alert(incident, "A2", AlertSeverity.LOW);
+        alert2.setReporter(new Reporter("first", "last"));
         alertService.open(alert2);
         alertRepo.save(alert2);
 
@@ -149,7 +268,8 @@ public class AlertManagementTest {
         incidentService.open(otherIncident);
         incidentRepo.save(otherIncident);
 
-        var alertOther = new Alert(otherIncident, "B1", Severity.MEDIUM);
+        var alertOther = new Alert(otherIncident, "B1", AlertSeverity.MEDIUM);
+        alertOther.setReporter(new Reporter("x", "y"));
         alertService.open(alertOther);
         alertRepo.save(alertOther);
 
@@ -189,17 +309,17 @@ public class AlertManagementTest {
                 "Smith"
         );
 
-        var a1 = new Alert(null, "msg", Severity.HIGH);
+        var a1 = new Alert(null, "msg", AlertSeverity.HIGH);
         a1.setReporter(reporter1);
         a1.setCreatedAt(LocalDateTime.now());
         a1.setResolvedAt(LocalDateTime.now());
 
-        var a2 = new Alert(null, "msg", Severity.LOW);
+        var a2 = new Alert(null, "msg", AlertSeverity.LOW);
         a2.setReporter(reporter1);
         a2.setCreatedAt(LocalDateTime.now());
         a2.setResolvedAt(LocalDateTime.now());
 
-        var a3 = new Alert(null, "msg", Severity.MEDIUM);
+        var a3 = new Alert(null, "msg", AlertSeverity.MEDIUM);
         a3.setReporter(reporter2);
         a3.setCreatedAt(LocalDateTime.now());
         a3.setResolvedAt(LocalDateTime.now());
@@ -232,7 +352,7 @@ public class AlertManagementTest {
                 "Smith"
         );
 
-        var a1 = new Alert(null, "msg", Severity.HIGH);
+        var a1 = new Alert(null, "msg", AlertSeverity.HIGH);
         a1.setReporter(reporter1);
         a1.setCreatedAt(LocalDateTime.now());
         a1.setResolvedAt(LocalDateTime.now());
@@ -260,12 +380,12 @@ public class AlertManagementTest {
                 "Smith"
         );
 
-        var a1 = new Alert(null, "msg", Severity.HIGH);
+        var a1 = new Alert(null, "msg", AlertSeverity.HIGH);
         a1.setReporter(reporter1);
         a1.setCreatedAt(LocalDateTime.now());
         a1.setResolvedAt(LocalDateTime.now());
 
-        var a2 = new Alert(null, "msg", Severity.HIGH);
+        var a2 = new Alert(null, "msg", AlertSeverity.HIGH);
         a2.setReporter(reporter2);
         a2.setCreatedAt(LocalDateTime.now());
         a2.setResolvedAt(LocalDateTime.now());

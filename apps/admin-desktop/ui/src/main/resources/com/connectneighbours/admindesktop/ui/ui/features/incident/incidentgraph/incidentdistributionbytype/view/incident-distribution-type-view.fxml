@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Group?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Separator?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="15"
+         alignment="TOP_LEFT"
+         styleClass="distribution-card"
+         stylesheets="@incident-distribution-type.css"
+         fillWidth="true">
+
+    <Text text="Répartition par Type"
+          styleClass="distribution-title"/>
+
+    <Separator/>
+
+    <HBox spacing="30" alignment="CENTER_LEFT">
+
+        <StackPane prefWidth="220" prefHeight="220" maxWidth="220" maxHeight="220">
+            <Group fx:id="graphDistribution"/>
+        </StackPane>
+
+        <VBox spacing="12" alignment="CENTER_LEFT">
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#0098C8"/>
+                <Text text="Sécurité" styleClass="legend-label"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#FA9D03"/>
+                <Text text="Nuisances" styleClass="legend-label"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#30AB41"/>
+                <Text text="Propreté" styleClass="legend-label"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#EA5F3B"/>
+                <Text text="Maintenance" styleClass="legend-label"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#7831A7"/>
+                <Text text="Circulation" styleClass="legend-label"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Circle radius="6" fill="#4357D1"/>
+                <Text text="Autres" styleClass="legend-label"/>
+            </HBox>
+
+        </VBox>
+
+    </HBox>
+
+</fx:root>

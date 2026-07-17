@@ -271,6 +271,42 @@
   gap: 10px;
 }
 
+.section-header-row {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.section-header-row h2 {
+  color: var(--text-strong);
+  font-size: 20px;
+  margin: 0;
+}
+
+.section-header-row > button:last-child {
+  margin-left: auto;
+}
+
+.create-button {
+  align-items: center;
+  background: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  justify-content: center;
+  padding: 8px 14px;
+  transition: transform 0.16s ease;
+  white-space: nowrap;
+}
+
+.create-button:hover {
+  transform: translateY(-1px);
+}
+
 .panel,
 .service-card {
   padding: 18px;
@@ -310,6 +346,13 @@
 .card-heading p {
   color: var(--text);
   margin: 8px 0 0;
+}
+
+.card-heading-badges {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .details-grid {
@@ -507,19 +550,35 @@ tbody tr:last-child td {
   color: var(--warning);
 }
 
-.badge.danger,
-.badge.severity-high,
-.badge.severity-critical {
+.badge.danger {
   background: var(--danger-soft);
   color: var(--danger);
 }
 
 .badge.neutral,
-.badge.severity-low,
-.badge.severity-medium,
 .badge.severity-unknown {
   background: var(--neutral-soft);
   color: var(--neutral);
+}
+
+.badge.severity-low {
+  background: var(--severity-low-soft);
+  color: var(--severity-low);
+}
+
+.badge.severity-medium {
+  background: var(--severity-medium-soft);
+  color: var(--severity-medium);
+}
+
+.badge.severity-high {
+  background: var(--severity-high-soft);
+  color: var(--severity-high);
+}
+
+.badge.severity-critical {
+  background: var(--severity-critical-soft);
+  color: var(--severity-critical);
 }
 
 .mono-value {

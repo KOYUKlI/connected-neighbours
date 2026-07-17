@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="15"
+         maxWidth="Infinity"
+         VBox.vgrow="ALWAYS"
+         stylesheets="@theme-view.css"
+         styleClass="card-container">
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Thèmes" styleClass="section-title"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+
+        <Button text="Créer" fx:id="createTheme" styleClass="filter-button"/>
+    </HBox>
+
+    <VBox fx:id="themeList" spacing="8"/>
+
+</fx:root>

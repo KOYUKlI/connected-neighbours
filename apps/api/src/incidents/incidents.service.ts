@@ -7,8 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import type { AuthenticatedUser } from '../auth/authenticated-user.type';
-import { Role } from '../auth/role.enum';
+import { User, UserDocument } from '../auth/schemas/user.schema';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import {
@@ -39,6 +38,8 @@ export class IncidentsService {
   constructor(
     @InjectModel(Incident.name)
     private readonly incidentModel: Model<IncidentDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
   async create(dto: CreateIncidentDto, currentUser?: IncidentActor) {
@@ -67,7 +68,38 @@ export class IncidentsService {
   }
 
   async findAll() {
-    return this.incidentModel.find().sort({ createdAt: -1 }).exec();
+    const incidents = await this.incidentModel
+      .find()
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    const reporterIds = Array.from(
+      new Set(
+        incidents
+          .map((incident) => incident.reportedById)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    const reporters = reporterIds.length
+      ? await this.userModel
+          .find({ _id: { $in: reporterIds } })
+          .select('displayName')
+          .lean()
+          .exec()
+      : [];
+
+    const reporterNameById = new Map(
+      reporters.map((user) => [String(user._id), user.displayName]),
+    );
+
+    return incidents.map((incident) => ({
+      ...incident,
+      reporterName: incident.reportedById
+        ? (reporterNameById.get(incident.reportedById) ?? null)
+        : null,
+    }));
   }
 
   async findOne(id: string) {

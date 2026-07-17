@@ -3,7 +3,9 @@ package com.connectneighbours.admindesktop.back.infrastructure.theme;
 import com.connectneighbours.admindesktop.back.application.theme.ThemeDTO;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ThemeContext {
 
     private final ObjectProperty<ThemeDTO> activeTheme = new SimpleObjectProperty<>();

@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.back.application.incident;
 
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
+import com.connectneighbours.admindesktop.back.domain.incident.IncidentSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentStatus;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
@@ -20,6 +21,7 @@ public record IncidentDTO(
         @NotBlank String description,
         @NotNull IncidentType type,
         @NotNull IncidentStatus status,
+        @NotNull IncidentSeverity severity,
         List<AlertDTO> alerts,
         @NotNull LocalDateTime createdAt,
         LocalDateTime resolvedAt

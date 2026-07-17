@@ -3,7 +3,6 @@ package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
-import com.connectneighbours.admindesktop.back.infrastructure.plugins.exceptions.PluginAlreadyExistException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,23 +48,17 @@ public class PluginContext {
             throw new IllegalArgumentException("fileName cannot be empty or null");
 
         try {
-            var pluginDir = new File("/plugins/output/" + pluginName);
+            var pluginDir = new File(PluginPaths.pluginsDirectory(), pluginName);
 
             if (!pluginDir.exists()) pluginDir.mkdirs();
 
             var pluginFile = new File(pluginDir.getPath(), fileName);
 
-            if (pluginFile.exists()) {
-                var message = "File already exist : " + fileName;
-                loggerPlugin.error(message);
-                throw new PluginAlreadyExistException(message);
-            }
-
             try (FileOutputStream fos = new FileOutputStream(pluginFile)) {
                 fos.write(content);
             }
 
-            loggerPlugin.info("File saved " + fileName);
+            loggerPlugin.info("File saved " + pluginFile.getAbsolutePath());
 
         } catch (IOException e) {
             loggerPlugin.error(e.getMessage());
