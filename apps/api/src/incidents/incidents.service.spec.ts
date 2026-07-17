@@ -1,5 +1,10 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
+import { Role } from '../auth/role.enum';
 import { IncidentsService } from './incidents.service';
 import {
   IncidentSeverity,
@@ -49,7 +54,7 @@ describe('IncidentsService', () => {
         severity: IncidentSeverity.HIGH,
         neighborhoodId: 'quartier-centre',
       },
-      'user_1',
+      user('user_1'),
     );
 
     expect(incidentModelMock.create).toHaveBeenCalledWith({
@@ -67,7 +72,7 @@ describe('IncidentsService', () => {
     expect(result).toEqual(incident);
   });
 
-  it('should resolve an incident', async () => {
+  it('should allow an admin to resolve an incident', async () => {
     const incident = {
       id: 'incident_1',
       status: IncidentStatus.RESOLVED,
@@ -75,7 +80,7 @@ describe('IncidentsService', () => {
 
     incidentModelMock.findByIdAndUpdate.mockReturnValue(execResult(incident));
 
-    const result = await service.resolve('incident_1');
+    const result = await service.resolve('incident_1', user('admin', Role.ADMIN));
 
     expect(incidentModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'incident_1',
@@ -85,15 +90,75 @@ describe('IncidentsService', () => {
     expect(result).toEqual(incident);
   });
 
-  it('should close an incident', async () => {
+  it('should reject resolving an incident as a resident', async () => {
+    await expect(
+      service.resolve('incident_1', user('resident')),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should allow the reporter to update simple incident fields', async () => {
     const incident = incidentDocument({
       id: 'incident_1',
+      reportedById: 'reporter',
+      status: IncidentStatus.REPORTED,
+    });
+    const updatedIncident = {
+      ...incident,
+      title: 'Nouveau titre',
+    };
+
+    incidentModelMock.findById.mockReturnValue(execResult(incident));
+    incidentModelMock.findByIdAndUpdate.mockReturnValue(
+      execResult(updatedIncident),
+    );
+
+    const result = await service.update(
+      'incident_1',
+      { title: 'Nouveau titre' },
+      user('reporter'),
+    );
+
+    expect(incidentModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
+      'incident_1',
+      { title: 'Nouveau titre' },
+      { returnDocument: 'after', runValidators: true },
+    );
+    expect(result).toEqual(updatedIncident);
+  });
+
+  it('should reject sensitive updates by the reporter', async () => {
+    incidentModelMock.findById.mockReturnValue(
+      execResult(
+        incidentDocument({
+          id: 'incident_1',
+          reportedById: 'reporter',
+          status: IncidentStatus.REPORTED,
+        }),
+      ),
+    );
+
+    await expect(
+      service.update(
+        'incident_1',
+        { status: IncidentStatus.RESOLVED },
+        user('reporter'),
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should allow a moderator to close an incident', async () => {
+    const incident = incidentDocument({
+      id: 'incident_1',
+      reportedById: 'reporter',
       status: IncidentStatus.OPEN,
     });
 
     incidentModelMock.findById.mockReturnValue(execResult(incident));
 
-    const result = await service.close('incident_1');
+    const result = await service.close(
+      'incident_1',
+      user('moderator', Role.MODERATOR),
+    );
 
     expect(incident.status).toBe(IncidentStatus.CLOSED);
     expect(incident.save).toHaveBeenCalled();
@@ -105,14 +170,15 @@ describe('IncidentsService', () => {
       execResult(
         incidentDocument({
           id: 'incident_1',
+          reportedById: 'reporter',
           status: IncidentStatus.REJECTED,
         }),
       ),
     );
 
-    await expect(service.close('incident_1')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(
+      service.close('incident_1', user('admin', Role.ADMIN)),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('should enrich incidents with the reporter display name', async () => {
@@ -171,13 +237,25 @@ function execResult<T>(value: T) {
   };
 }
 
-function incidentDocument(input: { id: string; status: IncidentStatus }) {
+function incidentDocument(input: {
+  id: string;
+  reportedById?: string;
+  status: IncidentStatus;
+}) {
   const incident = {
     id: input.id,
+    reportedById: input.reportedById ?? null,
     status: input.status,
     save: jest.fn(),
   };
 
   incident.save.mockResolvedValue(incident);
   return incident;
+}
+
+function user(sub: string, role = Role.RESIDENT) {
+  return {
+    sub,
+    role,
+  };
 }

@@ -12,6 +12,9 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Role } from '../auth/role.enum';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
 import { IncidentsService } from './incidents.service';
@@ -29,7 +32,7 @@ export class IncidentsController {
     @Body() dto: CreateIncidentDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.incidentsService.create(dto, user.sub);
+    return this.incidentsService.create(dto, user);
   }
 
   @Get()
@@ -46,19 +49,27 @@ export class IncidentsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Modifier un incident' })
-  update(@Param('id') id: string, @Body() dto: UpdateIncidentDto) {
-    return this.incidentsService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateIncidentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.incidentsService.update(id, dto, user);
   }
 
   @Post(':id/resolve')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ summary: 'Resoudre un incident' })
-  resolve(@Param('id') id: string) {
-    return this.incidentsService.resolve(id);
+  resolve(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.incidentsService.resolve(id, user);
   }
 
   @Post(':id/close')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
   @ApiOperation({ summary: 'Fermer un incident' })
-  close(@Param('id') id: string) {
-    return this.incidentsService.close(id);
+  close(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.incidentsService.close(id, user);
   }
 }
