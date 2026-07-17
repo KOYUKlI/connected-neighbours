@@ -7,6 +7,11 @@ export class CreateConversationDto {
   @IsString({ each: true })
   participantIds: string[];
 
+  @ApiPropertyOptional({ example: 'Voisins du 12 rue des Lilas' })
+  @IsOptional()
+  @IsString()
+  title?: string;
+
   @ApiPropertyOptional({ example: 'service' })
   @IsOptional()
   @IsString()

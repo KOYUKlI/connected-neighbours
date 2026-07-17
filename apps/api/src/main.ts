@@ -4,6 +4,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
 import fastifyCookie from '@fastify/cookie';
@@ -35,6 +36,8 @@ async function bootstrap() {
   await app.register(fastifyCookie, {
     secret: cookieSecret,
   });
+
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   // Préfixe global de l'API
   app.setGlobalPrefix('api');

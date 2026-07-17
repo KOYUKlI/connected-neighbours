@@ -36,3 +36,7 @@ export function login(input: LoginInput) {
 export function getMe() {
   return apiRequest<AuthUser>('/api/auth/me');
 }
+
+export function getNeighbours() {
+  return apiRequest<AuthUser[]>('/api/auth/neighbours');
+}

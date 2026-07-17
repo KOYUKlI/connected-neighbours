@@ -54,4 +54,13 @@ export class AuthService {
 
     return this.usersService.toPublicUser(user);
   }
+
+  async neighbours(userId: string, neighborhoodId: string) {
+    const users = await this.usersService.findByNeighborhood(
+      neighborhoodId,
+      userId,
+    );
+
+    return users.map((user) => this.usersService.toPublicUser(user));
+  }
 }

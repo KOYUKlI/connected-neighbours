@@ -21,6 +21,26 @@ services:
       retries: 5
       start_period: 10s
 
+  minio:
+    image: minio/minio:latest
+    container_name: cn-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio-password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   api:
     build:
       context: .
@@ -29,6 +49,8 @@ services:
     restart: unless-stopped
     depends_on:
       mongodb:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       NODE_ENV: production
@@ -80,3 +102,4 @@ services:
 
 volumes:
   mongodb_data:
+  minio_data:
