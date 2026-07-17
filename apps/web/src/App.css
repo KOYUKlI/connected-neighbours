@@ -324,6 +324,18 @@
   margin-bottom: 16px;
 }
 
+.services-filter-panel {
+  padding: 14px;
+}
+
+.services-filter-panel label {
+  color: var(--text-strong);
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+}
+
 .card-heading {
   align-items: start;
   display: flex;

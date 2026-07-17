@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { randomUUID } from 'crypto';
 import { Model } from 'mongoose';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { Role } from '../auth/role.enum';
 import { AnswerVoteDto } from './dto/answer-vote.dto';
 import { CreateVoteDto } from './dto/create-vote.dto';
 import { VoteAnswer, VoteAnswerDocument } from './schemas/vote-answer.schema';
@@ -16,6 +19,8 @@ import {
   VoteOption,
   VoteStatus,
 } from './schemas/vote.schema';
+
+type VoteActor = Pick<AuthenticatedUser, 'sub' | 'role'>;
 
 @Injectable()
 export class VotesService {
@@ -111,9 +116,16 @@ export class VotesService {
     };
   }
 
-  async close(id: string) {
+  async close(id: string, currentUser: VoteActor) {
+    const existingVote = await this.findOne(id);
+    this.assertCanClose(existingVote, currentUser);
+
     const vote = await this.voteModel
-      .findByIdAndUpdate(id, { status: VoteStatus.CLOSED }, { returnDocument: 'after' })
+      .findByIdAndUpdate(
+        id,
+        { status: VoteStatus.CLOSED },
+        { returnDocument: 'after' },
+      )
       .exec();
 
     if (!vote) {
@@ -121,5 +133,19 @@ export class VotesService {
     }
 
     return vote;
+  }
+
+  private assertCanClose(
+    vote: Pick<Vote, 'createdById'>,
+    currentUser: VoteActor,
+  ) {
+    if (
+      vote.createdById === currentUser.sub ||
+      [Role.ADMIN, Role.MODERATOR].includes(currentUser.role)
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException('Seul le createur ou un moderateur peut agir');
   }
 }

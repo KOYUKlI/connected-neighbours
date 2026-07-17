@@ -20,30 +20,6 @@ export class UsersService implements OnModuleInit {
     }
 
     await this.ensureDevUser({
-      email: 'resident@connected.local',
-      displayName: 'Resident Demo',
-      role: Role.RESIDENT,
-      neighborhoodId: 'quartier-centre',
-      password: 'resident123',
-    });
-
-    await this.ensureDevUser({
-      email: 'alice@connected.local',
-      displayName: 'Alice Martin',
-      role: Role.RESIDENT,
-      neighborhoodId: 'quartier-centre',
-      password: 'alice123',
-    });
-
-    await this.ensureDevUser({
-      email: 'bob@connected.local',
-      displayName: 'Bob Dupont',
-      role: Role.RESIDENT,
-      neighborhoodId: 'quartier-centre',
-      password: 'bob123',
-    });
-
-    await this.ensureDevUser({
       email: 'alice@connected-neighbours.local',
       displayName: 'Alice Martin',
       role: Role.RESIDENT,
@@ -57,22 +33,6 @@ export class UsersService implements OnModuleInit {
       role: Role.RESIDENT,
       neighborhoodId: 'quartier-centre',
       password: 'bob123',
-    });
-
-    await this.ensureDevUser({
-      email: 'moderator@connected.local',
-      displayName: 'Moderator Demo',
-      role: Role.MODERATOR,
-      neighborhoodId: 'quartier-centre',
-      password: 'moderator123',
-    });
-
-    await this.ensureDevUser({
-      email: 'admin@connected.local',
-      displayName: 'Admin Demo',
-      role: Role.ADMIN,
-      neighborhoodId: 'quartier-centre',
-      password: 'admin123',
     });
 
     await this.ensureDevUser({

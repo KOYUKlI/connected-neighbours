@@ -66,7 +66,7 @@ export class VotesController {
 
   @Patch(':id/close')
   @ApiOperation({ summary: 'Clôturer un vote' })
-  close(@Param('id') id: string) {
-    return this.votesService.close(id);
+  close(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.votesService.close(id, user);
   }
 }
