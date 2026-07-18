@@ -32,7 +32,9 @@ export default function App() {
     const success = await login(email, password);
 
     if (success) {
-      navigate('/dashboard');
+      const target =
+        location.pathname !== '/' ? `${location.pathname}${location.search}` : '/dashboard';
+      navigate(target);
     }
 
     return success;

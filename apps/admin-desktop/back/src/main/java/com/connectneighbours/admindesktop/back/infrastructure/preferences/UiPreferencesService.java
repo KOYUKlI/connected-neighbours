@@ -36,7 +36,7 @@ public class UiPreferencesService {
         try {
             return mapper.readValue(PREFERENCES_FILE, UiPreferences.class);
         } catch (IOException e) {
-            throw new RuntimeException("Impossible de lire les préférences UI : " + PREFERENCES_FILE, e);
+            throw new RuntimeException("Unable to read the UI preferences: " + PREFERENCES_FILE, e);
         }
     }
 
@@ -46,7 +46,7 @@ public class UiPreferencesService {
             if (!dir.exists()) dir.mkdirs();
             mapper.writeValue(PREFERENCES_FILE, preferences);
         } catch (IOException e) {
-            throw new RuntimeException("Impossible d'écrire les préférences UI : " + PREFERENCES_FILE, e);
+            throw new RuntimeException("Unable to write the UI preferences: " + PREFERENCES_FILE, e);
         }
     }
 }

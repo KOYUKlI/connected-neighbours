@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.back.infrastructure.auth;
 
+import com.connectneighbours.admindesktop.back.application.auth.ExchangeSsoCodeRequestBody;
 import com.connectneighbours.admindesktop.back.application.auth.LoginRequestBody;
 import com.connectneighbours.admindesktop.back.application.auth.LoginResponseBody;
 import com.connectneighbours.admindesktop.back.domain.auth.AuthClient;
@@ -27,10 +28,27 @@ public class AuthHttpClient implements AuthClient {
 
     @Override
     public AuthenticatedSession login(String email, String password) {
+        return postForSession(
+                "/auth/login",
+                new LoginRequestBody(email, password),
+                "Invalid credentials"
+        );
+    }
+
+    @Override
+    public AuthenticatedSession exchangeSsoCode(String code, String codeVerifier) {
+        return postForSession(
+                "/auth/sso/token",
+                new ExchangeSsoCodeRequestBody(code, codeVerifier),
+                "Invalid or expired SSO code"
+        );
+    }
+
+    private AuthenticatedSession postForSession(String path, Object body, String invalidCredentialsMessage) {
         try {
             var response = restTemplate.postForObject(
-                    baseUrl + "/auth/login",
-                    new LoginRequestBody(email, password),
+                    baseUrl + path,
+                    body,
                     LoginResponseBody.class
             );
 
@@ -46,7 +64,7 @@ public class AuthHttpClient implements AuthClient {
                     false
             );
         } catch (HttpClientErrorException e) {
-            throw new AuthenticationFailedException("Invalid credentials");
+            throw new AuthenticationFailedException(invalidCredentialsMessage);
         } catch (RestClientException e) {
             throw new AuthServerUnavailableException("Unable to reach the central server");
         }
