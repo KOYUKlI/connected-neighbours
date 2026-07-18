@@ -169,8 +169,14 @@ public class Alert {
 
     public void inProgress() { this.status = AlertStatus.IN_PROGRESS; }
 
+    public void close() { this.status = AlertStatus.CLOSED; }
+
     public boolean isResolved() {
         return status.equals(AlertStatus.RESOLVED);
+    }
+
+    public boolean isClosed() {
+        return status.equals(AlertStatus.CLOSED);
     }
 
     public boolean isCritical() {

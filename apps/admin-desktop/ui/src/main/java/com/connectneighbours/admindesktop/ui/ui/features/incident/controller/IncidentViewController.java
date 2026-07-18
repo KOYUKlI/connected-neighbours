@@ -12,6 +12,7 @@ import com.connectneighbours.admindesktop.back.application.statistics.IncidentDi
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentPerDayByTypeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.StatisticsManagement;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentSeverity;
+import com.connectneighbours.admindesktop.back.infrastructure.preferences.UiPreferencesService;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.createalert.controller.CreateAlertController;
@@ -56,6 +57,8 @@ public class IncidentViewController extends VBox {
     private AdminDesktopController parent;
 
     private IncidentTableController tableController;
+    private IncidentPerDayController incidentPerDay;
+    private IncidentDistributionByTypeController incidentDistribution;
     private IncidentAverageSolutionTimeController incidentAverageSolutionTime;
 
     private List<IncidentDTO> currentIncidents = List.of();
@@ -199,7 +202,27 @@ public class IncidentViewController extends VBox {
         item.setOnAction(e -> {
             target.setText(item.getText());
             onSelect.accept(item.getText());
+            persistIncidentFilters();
         });
+    }
+
+    private void persistIncidentFilters() {
+        var service = getUiPreferencesService();
+        var prefs = service.get();
+        prefs.setIncidentType(selectedType);
+        prefs.setIncidentStatus(selectedStatus);
+        prefs.setIncidentGravity(selectedGravity);
+        service.save(prefs);
+    }
+
+    private void restoreIncidentFilters() {
+        var prefs = getUiPreferencesService().get();
+        selectedType = prefs.getIncidentType();
+        selectedStatus = prefs.getIncidentStatus();
+        selectedGravity = prefs.getIncidentGravity();
+        typeValue.setText(selectedType);
+        statusValue.setText(selectedStatus);
+        gravityValue.setText(selectedGravity);
     }
 
     private void refreshFilter() {
@@ -312,17 +335,7 @@ public class IncidentViewController extends VBox {
         List<IncidentDTO> incidents = page.getContent();
         currentIncidents = incidents;
 
-        List<IncidentTableViewModel> models = incidents.stream()
-                .map(dto -> {
-//                    var newDto = getIncidentManagement().startIncidentProgress(dto.id());
-                    var vm = new IncidentTableViewModel();
-                    vm.setDto(dto);
-                    vm.setIncidentTable(mapToProperty(dto));
-                    return vm;
-                })
-                .toList();
-
-        tableController.getIncidentTable().getItems().setAll(models);
+        refreshFilter();
 
         List<IncidentPerDayByTypeDTO> incidentPerDayByTypeDTOList = getStatisticsManagement().listIncidentPerDayByType(7);
 
@@ -350,45 +363,67 @@ public class IncidentViewController extends VBox {
     }
 
     public void loadIncidentDistribution(List<IncidentDistributionByTypeProperty> list) {
-
-        IncidentDistributionByTypeController distribution = new IncidentDistributionByTypeController();
-        distribution.setPrefWidth(250);
-        distribution.setMaxWidth(250);
+        if (incidentDistribution == null) {
+            incidentDistribution = new IncidentDistributionByTypeController();
+            incidentDistribution.setPrefWidth(250);
+            incidentDistribution.setMaxWidth(250);
+            graphIncident.getChildren().add(incidentDistribution);
+        }
 
         List<IncidentDistributionByTypeViewModel> viewModelList = list.stream()
-                .map(distribution::toIncidentDistributionByTypeViewModel)
+                .map(incidentDistribution::toIncidentDistributionByTypeViewModel)
                 .toList();
 
-        distribution.bindGraph(viewModelList);
-
-        graphIncident.getChildren().add(distribution);
+        incidentDistribution.bindGraph(viewModelList);
     }
 
     public void loadIncidentPerDay(List<IncidentPerDayProperty> list) {
-        graphIncident.getChildren().clear();
-
-        IncidentPerDayController incidentPerDay = new IncidentPerDayController();
+        if (incidentPerDay == null) {
+            incidentPerDay = new IncidentPerDayController();
+            incidentPerDay.applyYAxisUpperBound(getUiPreferencesService().get().getIncidentPerDayYAxisUpperBound());
+            incidentPerDay.setOnUpperBoundChanged(bound -> {
+                var prefs = getUiPreferencesService().get();
+                prefs.setIncidentPerDayYAxisUpperBound(bound);
+                getUiPreferencesService().save(prefs);
+            });
+            graphIncident.getChildren().addFirst(incidentPerDay);
+        }
 
         List<IncidentPerDayViewModel> viewModelList = list.stream()
                 .map(incidentPerDay::toIncidentPerDayViewModel)
                 .toList();
 
         incidentPerDay.bind(viewModelList);
-
-        graphIncident.getChildren().addFirst(incidentPerDay);
     }
 
 
     public void loadIncidentAverageSolutionTime(List<IncidentAverageSolutionTimeProperty> list) {
-       incidentAverageSolutionTime = new IncidentAverageSolutionTimeController();
+        if (incidentAverageSolutionTime == null) {
+            incidentAverageSolutionTime = new IncidentAverageSolutionTimeController();
+
+            var prefs = getUiPreferencesService().get();
+            incidentAverageSolutionTime.applyYAxisUpperBound(prefs.getAverageSolutionTimeYAxisUpperBound());
+            incidentAverageSolutionTime.setTimeUnit(prefs.getAverageSolutionTimeUnit());
+
+            incidentAverageSolutionTime.setOnUpperBoundChanged(bound -> {
+                var p = getUiPreferencesService().get();
+                p.setAverageSolutionTimeYAxisUpperBound(bound);
+                getUiPreferencesService().save(p);
+            });
+            incidentAverageSolutionTime.setOnTimeUnitChanged(unit -> {
+                var p = getUiPreferencesService().get();
+                p.setAverageSolutionTimeUnit(unit);
+                getUiPreferencesService().save(p);
+            });
+
+            graphIncident.getChildren().addLast(incidentAverageSolutionTime);
+        }
 
         List<IncidentAverageSolutionTimeViewModel> viewModelList = list.stream()
                 .map(incidentAverageSolutionTime::toIncidentAverageSolutionTimeViewModel)
                 .toList();
 
         incidentAverageSolutionTime.bind(viewModelList);
-
-        graphIncident.getChildren().addLast(incidentAverageSolutionTime);
     }
 
     private ReadOnlyIncidentTableProperty mapToProperty(IncidentDTO dto) {
@@ -458,12 +493,17 @@ public class IncidentViewController extends VBox {
         return parent.getReporterManagement();
     }
 
+    public UiPreferencesService getUiPreferencesService() {
+        return parent.getUiPreferencesService();
+    }
+
     public void goBackToIncidents() {
         parent.showHome();
     }
 
     public void setParent(AdminDesktopController parent) {
         this.parent = parent;
+        restoreIncidentFilters();
     }
 }
 

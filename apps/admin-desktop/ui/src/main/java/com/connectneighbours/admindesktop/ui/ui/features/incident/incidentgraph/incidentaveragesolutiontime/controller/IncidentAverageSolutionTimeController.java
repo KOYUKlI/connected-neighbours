@@ -19,6 +19,8 @@ import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 public class IncidentAverageSolutionTimeController extends VBox {
 
@@ -41,6 +43,10 @@ public class IncidentAverageSolutionTimeController extends VBox {
 
     private TimeUnit currentUnit = TimeUnit.HOURS;
     private List<IncidentAverageSolutionTimeViewModel> currentList = List.of();
+    private IntConsumer onUpperBoundChanged;
+    private Consumer<String> onTimeUnitChanged;
+    private RadioMenuItem minutesItem;
+    private RadioMenuItem hoursItem;
 
     public IncidentAverageSolutionTimeController() {
         FXMLLoader loader = new FXMLLoader(
@@ -83,12 +89,12 @@ public class IncidentAverageSolutionTimeController extends VBox {
 
         ToggleGroup unitGroup = new ToggleGroup();
 
-        RadioMenuItem minutesItem = new RadioMenuItem("Minutes");
+        minutesItem = new RadioMenuItem("Minutes");
         minutesItem.setToggleGroup(unitGroup);
         minutesItem.setSelected(currentUnit == TimeUnit.MINUTES);
         minutesItem.setOnAction(e -> applyTimeUnit(TimeUnit.MINUTES));
 
-        RadioMenuItem hoursItem = new RadioMenuItem("Heures");
+        hoursItem = new RadioMenuItem("Heures");
         hoursItem.setToggleGroup(unitGroup);
         hoursItem.setSelected(currentUnit == TimeUnit.HOURS);
         hoursItem.setOnAction(e -> applyTimeUnit(TimeUnit.HOURS));
@@ -103,6 +109,23 @@ public class IncidentAverageSolutionTimeController extends VBox {
     private void applyTimeUnit(TimeUnit unit) {
         currentUnit = unit;
         renderChart();
+
+        if (minutesItem != null) {
+            minutesItem.setSelected(unit == TimeUnit.MINUTES);
+            hoursItem.setSelected(unit == TimeUnit.HOURS);
+        }
+
+        if (onTimeUnitChanged != null) {
+            onTimeUnitChanged.accept(unit.name());
+        }
+    }
+
+    public void setTimeUnit(String unit) {
+        applyTimeUnit(TimeUnit.valueOf(unit));
+    }
+
+    public void setOnTimeUnitChanged(Consumer<String> onTimeUnitChanged) {
+        this.onTimeUnitChanged = onTimeUnitChanged;
     }
 
     private void promptCustomYAxisUpperBound() {
@@ -122,9 +145,17 @@ public class IncidentAverageSolutionTimeController extends VBox {
         });
     }
 
-    private void applyYAxisUpperBound(int upperBound) {
+    public void applyYAxisUpperBound(int upperBound) {
         yAxis.setUpperBound(upperBound);
         yAxis.setTickUnit(Math.max(1, upperBound / 4));
+
+        if (onUpperBoundChanged != null) {
+            onUpperBoundChanged.accept(upperBound);
+        }
+    }
+
+    public void setOnUpperBoundChanged(IntConsumer onUpperBoundChanged) {
+        this.onUpperBoundChanged = onUpperBoundChanged;
     }
 
     public void bind(List<IncidentAverageSolutionTimeViewModel> list) {

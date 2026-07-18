@@ -19,12 +19,15 @@ import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 public class IncidentPerDayController extends VBox {
 
     @FXML private StackedBarChart<String, Number> chart;
     @FXML private CategoryAxis xAxis;
     @FXML private NumberAxis yAxis;
+
+    private IntConsumer onUpperBoundChanged;
 
     public IncidentPerDayController() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(
@@ -94,12 +97,21 @@ public class IncidentPerDayController extends VBox {
         });
     }
 
-    private void applyYAxisUpperBound(int upperBound) {
+    public void applyYAxisUpperBound(int upperBound) {
         yAxis.setUpperBound(upperBound);
         yAxis.setTickUnit(Math.max(1, upperBound / 4));
+
+        if (onUpperBoundChanged != null) {
+            onUpperBoundChanged.accept(upperBound);
+        }
+    }
+
+    public void setOnUpperBoundChanged(IntConsumer onUpperBoundChanged) {
+        this.onUpperBoundChanged = onUpperBoundChanged;
     }
 
     public void bind(List<IncidentPerDayViewModel> list) {
+        chart.getData().clear();
 
         List<String> dates = list.stream()
                 .map(vm -> vm.incidentPerDayProperty().dateTimeProperty().get().toLocalDate().toString())
@@ -113,6 +125,7 @@ public class IncidentPerDayController extends VBox {
 
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName(IncidentFormatting.format(type.toString()));
+            String color = IncidentFormatting.colorHex(type);
 
             for (String date : dates) {
                 long count = list.stream()
@@ -122,6 +135,11 @@ public class IncidentPerDayController extends VBox {
                         .sum();
 
                 XYChart.Data<String, Number> data = new XYChart.Data<>(date, count);
+                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                    if (newNode != null) {
+                        newNode.setStyle("-fx-bar-fill: " + color + ";");
+                    }
+                });
                 series.getData().add(data);
             }
 

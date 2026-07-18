@@ -3,6 +3,7 @@ package com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.model.ReadOnlyIncidentDistributionByTypeProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.incidentgraph.incidentdistributionbytype.viewmodel.IncidentDistributionByTypeViewModel;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.utils.IncidentFormatting;
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -72,14 +73,7 @@ public class IncidentDistributionByTypeController extends VBox {
     }
 
     private Paint colorFor(IncidentType type) {
-        return switch (type) {
-            case SECURITY -> Color.web("#0098C8");
-            case NUISANCE -> Color.web("#FA9D03");
-            case CLEANLINESS -> Color.web("#30AB41");
-            case MAINTENANCE -> Color.web("#EA5F3B");
-            case TRAFFIC -> Color.web("#7831A7");
-            case OTHER -> Color.web("#4357D1");
-        };
+        return Color.web(IncidentFormatting.colorHex(type));
     }
 
     public IncidentDistributionByTypeViewModel toIncidentDistributionByTypeViewModel(ReadOnlyIncidentDistributionByTypeProperty property) {

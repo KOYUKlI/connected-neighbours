@@ -2,9 +2,11 @@ package com.connectneighbours.admindesktop.ui.ui.features.alert.controller;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.statistics.AlertDistributionBySeverityDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
+import com.connectneighbours.admindesktop.back.infrastructure.preferences.UiPreferencesService;
 import com.connectneighbours.admindesktop.ui.ui.AdminDesktopController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.controller.AlertDistributionByGravityController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.alertdistributiongravity.model.AlertDistributionByGravityProperty;
@@ -125,20 +127,36 @@ public class AlertViewController extends VBox {
 
     public void setParent(IncidentViewController parent) {
         this.parent = parent;
+        restoreAlertFilters();
     }
 
     public void loadIncident(IncidentDTO incident) {
         currentIncident = incident;
         titleIncident.textProperty().set("Incident #" + incident.displayId() + " - " + incident.title());
-        alertsContainer.getChildren().clear();
-        var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverityAndIncident(incident);
-        for (AlertDTO alert : incident.alerts()) {
-            WidgetAlertController widget = new WidgetAlertController();
-            widget.setAlert(toWidgetProperty(alert));
-            alertsContainer.getChildren().add(widget);
-        }
-        loadStats(incident);
 
+        refreshFilter();
+        refreshStatsAndDistribution();
+    }
+
+    public AlertManagement getAlertManagement() {
+        return parent.getAlertManagement();
+    }
+
+    public UiPreferencesService getUiPreferencesService() {
+        return parent.getUiPreferencesService();
+    }
+
+    public void refreshAfterAlertUpdate() {
+        if (currentIncident == null) return;
+
+        currentIncident = parent.getIncidentManagement().getIncident(currentIncident.id());
+        refreshStatsAndDistribution();
+    }
+
+    private void refreshStatsAndDistribution() {
+        loadStats(currentIncident);
+
+        var distributionList = parent.getStatisticsManagement().listAlertDistributionBySeverityAndIncident(currentIncident);
 
         List<AlertDistributionByGravityProperty> list = distributionList.stream()
                 .map(this::toAlertDistributionByGravityProperty)
@@ -172,7 +190,7 @@ public class AlertViewController extends VBox {
         alertDistribution.getChildren().addFirst(distribution);
     }
 
-    private WidgetAlertProperty toWidgetProperty(AlertDTO dto) {
+    public WidgetAlertProperty toWidgetProperty(AlertDTO dto) {
         SimpleWidgetAlertProperty p = new SimpleWidgetAlertProperty();
         p.titleProperty().set(dto.title());
         p.detailsProperty().set(dto.details());
@@ -231,7 +249,27 @@ public class AlertViewController extends VBox {
         item.setOnAction(e -> {
             target.setText(item.getText());
             onSelect.accept(item.getText());
+            persistAlertFilters();
         });
+    }
+
+    private void persistAlertFilters() {
+        var service = getUiPreferencesService();
+        var prefs = service.get();
+        prefs.setAlertGravity(selectedGravity);
+        prefs.setAlertStatus(selectedStatus);
+        prefs.setAlertDate(selectedDate);
+        service.save(prefs);
+    }
+
+    private void restoreAlertFilters() {
+        var prefs = getUiPreferencesService().get();
+        selectedGravity = prefs.getAlertGravity();
+        selectedStatus = prefs.getAlertStatus();
+        selectedDate = prefs.getAlertDate();
+        gravityValue.setText(selectedGravity);
+        statusValue.setText(selectedStatus);
+        dateValue.setText(selectedDate);
     }
 
     private void refreshFilter() {
@@ -252,6 +290,8 @@ public class AlertViewController extends VBox {
 
             if (matchGravity && matchStatus && matchDate) {
                 WidgetAlertController widget = new WidgetAlertController();
+                widget.setParent(this);
+                widget.setDto(alert);
                 widget.setAlert(toWidgetProperty(alert));
                 alertsContainer.getChildren().add(widget);
             }
