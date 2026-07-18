@@ -19,6 +19,10 @@ public class AdminDesktopApplication extends Application {
 
     @Override
     public void start(Stage stage) {
+        showLogin(stage);
+    }
+
+    public static void showLogin(Stage stage) {
         LoginController loginController = new LoginController();
         loginController.setOnLoginSuccess(() -> showAdminDesktop(stage));
 
@@ -28,7 +32,7 @@ public class AdminDesktopApplication extends Application {
         stage.show();
     }
 
-    private void showAdminDesktop(Stage stage) {
+    private static void showAdminDesktop(Stage stage) {
         try {
             FXMLLoader loader = new FXMLLoader(
                     AdminDesktopApplication.class.getResource("admin-desktop-view.fxml")

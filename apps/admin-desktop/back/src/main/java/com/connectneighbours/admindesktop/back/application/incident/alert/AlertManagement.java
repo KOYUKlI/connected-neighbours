@@ -86,6 +86,20 @@ public class AlertManagement {
         return AlertMapper.toDTO(savedAlert);
     }
 
+    public AlertDTO openAlert(UUID alertId) {
+        Alert alert = loadAlert(alertId);
+        alertService.open(alert);
+        var savedAlert = alertRepository.save(alert);
+        return AlertMapper.toDTO(savedAlert);
+    }
+
+    public AlertDTO closeAlert(UUID alertId) {
+        Alert alert = loadAlert(alertId);
+        alertService.close(alert);
+        var savedAlert = alertRepository.save(alert);
+        return AlertMapper.toDTO(savedAlert);
+    }
+
     public AlertDTO updateAlert(UUID alertId, UpdateAlertDTO dto) {
         Alert alert = loadAlert(alertId);
 

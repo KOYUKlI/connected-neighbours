@@ -7,6 +7,8 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { Role } from '../auth/role.enum';
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';

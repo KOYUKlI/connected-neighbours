@@ -37,6 +37,6 @@ import type { SignOptions } from 'jsonwebtoken';
   ],
   controllers: [AuthController],
   providers: [AuthService, UsersService, PasswordService, JwtStrategy],
-  exports: [AuthService, UsersService],
+  exports: [AuthService, UsersService, JwtModule],
 })
 export class AuthModule {}

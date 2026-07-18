@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from './auth/useAuth';
+import { ChatWidget } from './features/messaging/ChatWidget';
 import './App.css';
 
 const navigationItems = [
@@ -31,7 +32,9 @@ export default function App() {
     const success = await login(email, password);
 
     if (success) {
-      navigate('/dashboard');
+      const target =
+        location.pathname !== '/' ? `${location.pathname}${location.search}` : '/dashboard';
+      navigate(target);
     }
 
     return success;
@@ -98,6 +101,8 @@ export default function App() {
           <Outlet key={`${location.pathname}-${refreshKey}`} />
         </section>
       </main>
+
+      <ChatWidget />
     </div>
   );
 }

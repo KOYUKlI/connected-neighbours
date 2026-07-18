@@ -2,6 +2,8 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { Role } from '../auth/role.enum';
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import {
   Incident,

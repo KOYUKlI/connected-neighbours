@@ -19,6 +19,7 @@ import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
 import { RgpdModule } from './rgpd/rgpd.module';
 import { ServicesModule } from './services/services.module';
+import { SsoModule } from './sso/sso.module';
 import { SyncModule } from './sync/sync.module';
 import { VotesModule } from './votes/votes.module';
 
@@ -47,6 +48,9 @@ import { VotesModule } from './votes/votes.module';
         MINIO_ENDPOINT: Joi.string().required(),
         MINIO_PORT: Joi.number().port().required(),
         MINIO_USE_SSL: Joi.boolean().required(),
+        MINIO_PUBLIC_ENDPOINT: Joi.string().optional(),
+        MINIO_PUBLIC_PORT: Joi.number().port().optional(),
+        MINIO_PUBLIC_USE_SSL: Joi.boolean().optional(),
         MINIO_ACCESS_KEY: Joi.string().required(),
         MINIO_SECRET_KEY: Joi.string().required(),
         MINIO_BUCKET: Joi.string().required(),
@@ -95,6 +99,7 @@ import { VotesModule } from './votes/votes.module';
     DocumentsModule,
     MessagingModule,
     RgpdModule,
+    SsoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

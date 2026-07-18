@@ -3,6 +3,7 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'short',
   timeStyle: 'short',
 });
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' });
 
 export function formatNumber(value: number) {
   return numberFormatter.format(value);
@@ -20,6 +21,20 @@ export function formatDate(value?: string | Date | null) {
   }
 
   return dateFormatter.format(date);
+}
+
+export function formatTime(value?: string | Date | null) {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return timeFormatter.format(date);
 }
 
 export function getStatusTone(status: string) {

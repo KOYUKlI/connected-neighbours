@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import type { AuthenticatedUser } from './authenticated-user.type';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
@@ -34,6 +35,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Récupérer l’utilisateur connecté' })
   me(@CurrentUser() user: { sub: string }) {
     return this.authService.me(user.sub);
+  }
+
+  @Get('neighbours')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lister les voisins de mon quartier' })
+  neighbours(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.neighbours(user.sub, user.neighborhoodId);
   }
 
   @Get('admin-only')

@@ -1,12 +1,16 @@
 package com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.controller;
 
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
+import com.connectneighbours.admindesktop.ui.ui.features.alert.controller.AlertViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.utils.AlertFormatting;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.alertsymbol.controller.WarningSymbolController;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.ReadOnlyWidgetAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.viewmodel.WidgetAlertViewModel;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
@@ -15,9 +19,12 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 public class WidgetAlertController extends AnchorPane {
     private WarningSymbolController symbol;
+    private AlertViewController parent;
+    private AlertDTO dto;
 
     @FXML
     private AnchorPane widgetHeaderContainer;
@@ -61,6 +68,48 @@ public class WidgetAlertController extends AnchorPane {
         reporterLabel.textProperty().bind(viewModelWidget.alertProperty().reporterNameProperty());
         detailsFlow.setPrefWidth(300);
         detailsFlow.setMaxWidth(300);
+        setupContextMenu();
+    }
+
+    private void setupContextMenu() {
+        ContextMenu menu = new ContextMenu();
+
+        MenuItem open = new MenuItem("Marquer comme Ouverte");
+        MenuItem startProgress = new MenuItem("Marquer comme En cours");
+        MenuItem resolve = new MenuItem("Marquer comme Résolue");
+        MenuItem close = new MenuItem("Marquer comme Fermée");
+
+        open.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().openAlert(dto.id())));
+        startProgress.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().startAlertProgress(dto.id())));
+        resolve.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().resolveAlert(dto.id())));
+        close.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().closeAlert(dto.id())));
+
+        menu.getItems().addAll(open, startProgress, resolve, close);
+
+        this.setOnContextMenuRequested(event -> {
+            if (dto != null && parent != null) {
+                menu.show(this, event.getScreenX(), event.getScreenY());
+            }
+        });
+    }
+
+    private void applyStatusChange(Supplier<AlertDTO> action) {
+        AlertDTO updated = action.get();
+        setDto(updated);
+        setAlert(parent.toWidgetProperty(updated));
+        parent.refreshAfterAlertUpdate();
+    }
+
+    public void setParent(AlertViewController parent) {
+        this.parent = parent;
+    }
+
+    public AlertDTO getDto() {
+        return dto;
+    }
+
+    public void setDto(AlertDTO dto) {
+        this.dto = dto;
     }
 
     public void setAlert(ReadOnlyWidgetAlertProperty alert) {

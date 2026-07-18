@@ -4,7 +4,8 @@ public record AuthenticatedSession(
         String accessToken,
         String email,
         String displayName,
-        String role
+        String role,
+        boolean offline
 ) {
     public boolean isAdmin() {
         return "admin".equalsIgnoreCase(role);
