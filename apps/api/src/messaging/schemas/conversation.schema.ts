@@ -27,6 +27,9 @@ export class Conversation {
 
   @Prop({ type: String, trim: true, default: null })
   contextId: string | null;
+
+  @Prop({ type: Map, of: Date, default: {} })
+  lastReadAt: Map<string, Date>;
 }
 
 export const ConversationSchema = SchemaFactory.createForClass(Conversation);

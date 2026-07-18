@@ -7,10 +7,15 @@ import {
   getMessages,
   getMyConversations,
   getUploadUrl,
+  markConversationRead,
   sendMessage,
   uploadFile,
 } from '../../../api/messaging';
-import type { ConversationItem, MessageItem } from '../../../api/messaging';
+import type {
+  ConversationItem,
+  ConversationReadPayload,
+  MessageItem,
+} from '../../../api/messaging';
 import { useAuth } from '../../../auth/useAuth';
 import { getErrorMessage } from '../../../shared/utils/errors';
 import { useMessagingSocket } from './useMessagingSocket';
@@ -32,6 +37,22 @@ export function useMessagingWidget() {
   const [error, setError] = useState<string | null>(null);
 
   const unreadCount = 0;
+
+  const applyReadPayload = useCallback((payload: ConversationReadPayload) => {
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === payload.conversationId
+          ? {
+              ...conversation,
+              lastReadAt: {
+                ...conversation.lastReadAt,
+                [payload.userId]: payload.readAt,
+              },
+            }
+          : conversation,
+      ),
+    );
+  }, []);
 
   const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
@@ -91,6 +112,14 @@ export function useMessagingWidget() {
         }
       });
 
+    markConversationRead(selectedConversationId)
+      .then((payload) => {
+        if (!ignore) {
+          applyReadPayload(payload);
+        }
+      })
+      .catch(() => undefined);
+
     const socket = socketRef.current;
     socket?.emit('conversation:join', selectedConversationId);
 
@@ -98,7 +127,7 @@ export function useMessagingWidget() {
       ignore = true;
       socket?.emit('conversation:leave', selectedConversationId);
     };
-  }, [selectedConversationId, socketRef]);
+  }, [selectedConversationId, socketRef, applyReadPayload]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -108,6 +137,12 @@ export function useMessagingWidget() {
     }
 
     function handleNewMessage(message: MessageItem) {
+      if (message.conversationId === selectedConversationId) {
+        markConversationRead(selectedConversationId)
+          .then(applyReadPayload)
+          .catch(() => undefined);
+      }
+
       setConversations((prev) => {
         const next = prev.map((conversation) =>
           conversation.id === message.conversationId
@@ -136,11 +171,13 @@ export function useMessagingWidget() {
     }
 
     socket.on('message:new', handleNewMessage);
+    socket.on('conversation:read', applyReadPayload);
 
     return () => {
       socket.off('message:new', handleNewMessage);
+      socket.off('conversation:read', applyReadPayload);
     };
-  }, [socketRef, selectedConversationId]);
+  }, [socketRef, selectedConversationId, applyReadPayload]);
 
   const openWidget = useCallback(() => setIsOpen(true), []);
   const closeWidget = useCallback(() => {
@@ -190,6 +227,8 @@ export function useMessagingWidget() {
         return;
       }
 
+      setError(null);
+
       try {
         const message = await sendMessage(selectedConversationId, { body });
         setMessages((prev) =>
@@ -207,6 +246,8 @@ export function useMessagingWidget() {
       if (!selectedConversationId) {
         return;
       }
+
+      setError(null);
 
       try {
         const fileName = `vocal-${Date.now()}.webm`;

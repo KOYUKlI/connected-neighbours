@@ -31,8 +31,15 @@ export type ConversationItem = {
   contextId: string | null;
   participants: AuthUser[];
   lastMessage: MessageItem | null;
+  lastReadAt: Record<string, string>;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type ConversationReadPayload = {
+  conversationId: string;
+  userId: string;
+  readAt: string;
 };
 
 export type CreateConversationInput = {
@@ -84,6 +91,13 @@ export function sendMessage(conversationId: string, input: SendMessageInput) {
       method: 'POST',
       body: JSON.stringify(input),
     },
+  );
+}
+
+export function markConversationRead(conversationId: string) {
+  return apiRequest<ConversationReadPayload>(
+    `/api/messaging/conversations/${conversationId}/read`,
+    { method: 'POST' },
   );
 }
 

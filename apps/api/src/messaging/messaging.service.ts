@@ -118,6 +118,21 @@ export class MessagingService {
     return Promise.all(messages.map((message) => this.enrichMessage(message)));
   }
 
+  async markAsRead(conversationId: string, userId: string) {
+    await this.assertParticipant(conversationId, userId);
+
+    const readAt = new Date();
+
+    await this.conversationModel
+      .updateOne(
+        { _id: conversationId },
+        { $set: { [`lastReadAt.${userId}`]: readAt } },
+      )
+      .exec();
+
+    return { conversationId, userId, readAt };
+  }
+
   async createUploadUrl(dto: CreateUploadUrlDto) {
     const objectKey = this.storageService.buildObjectKey(
       'messaging/vocal',
@@ -158,6 +173,7 @@ export class MessagingService {
       title: conversation.title,
       contextType: conversation.contextType,
       contextId: conversation.contextId,
+      lastReadAt: Object.fromEntries(conversation.lastReadAt ?? new Map()),
       createdAt: (conversation as unknown as { createdAt?: Date }).createdAt,
       updatedAt: (conversation as unknown as { updatedAt?: Date }).updatedAt,
       participants: participants.map((user) =>

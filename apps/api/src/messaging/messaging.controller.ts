@@ -62,6 +62,22 @@ export class MessagingController {
     return this.messagingService.findMessages(conversationId, user.sub);
   }
 
+  @Post('conversations/:conversationId/read')
+  @ApiOperation({ summary: 'Marquer une conversation comme lue' })
+  async markAsRead(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const payload = await this.messagingService.markAsRead(
+      conversationId,
+      user.sub,
+    );
+
+    this.messagingGateway.broadcastRead(conversationId, payload);
+
+    return payload;
+  }
+
   @Post('uploads/presign')
   @ApiOperation({ summary: 'Obtenir une URL présignée pour uploader un vocal' })
   createUploadUrl(@Body() dto: CreateUploadUrlDto) {

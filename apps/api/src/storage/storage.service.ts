@@ -15,6 +15,7 @@ const PRESIGN_EXPIRY_SECONDS = 300;
 @Injectable()
 export class StorageService implements OnModuleInit {
   private readonly client: S3Client;
+  private readonly publicClient: S3Client;
   private readonly bucket: string;
   private readonly logger = new Logger(StorageService.name);
 
@@ -23,17 +24,33 @@ export class StorageService implements OnModuleInit {
     const port = this.configService.getOrThrow<number>('MINIO_PORT');
     const useSsl = this.configService.getOrThrow<boolean>('MINIO_USE_SSL');
 
+    const publicEndpoint =
+      this.configService.get<string>('MINIO_PUBLIC_ENDPOINT') ?? endpoint;
+    const publicPort =
+      this.configService.get<number>('MINIO_PUBLIC_PORT') ?? port;
+    const publicUseSsl =
+      this.configService.get<boolean>('MINIO_PUBLIC_USE_SSL') ?? useSsl;
+
     this.bucket = this.configService.getOrThrow<string>('MINIO_BUCKET');
+
+    const credentials = {
+      accessKeyId: this.configService.getOrThrow<string>('MINIO_ACCESS_KEY'),
+      secretAccessKey:
+        this.configService.getOrThrow<string>('MINIO_SECRET_KEY'),
+    };
 
     this.client = new S3Client({
       endpoint: `${useSsl ? 'https' : 'http'}://${endpoint}:${port}`,
       region: 'us-east-1',
       forcePathStyle: true,
-      credentials: {
-        accessKeyId: this.configService.getOrThrow<string>('MINIO_ACCESS_KEY'),
-        secretAccessKey:
-          this.configService.getOrThrow<string>('MINIO_SECRET_KEY'),
-      },
+      credentials,
+    });
+
+    this.publicClient = new S3Client({
+      endpoint: `${publicUseSsl ? 'https' : 'http'}://${publicEndpoint}:${publicPort}`,
+      region: 'us-east-1',
+      forcePathStyle: true,
+      credentials,
     });
   }
 
@@ -67,7 +84,7 @@ export class StorageService implements OnModuleInit {
       ContentType: mimeType,
     });
 
-    const url = await getSignedUrl(this.client, command, {
+    const url = await getSignedUrl(this.publicClient, command, {
       expiresIn: PRESIGN_EXPIRY_SECONDS,
     });
 
@@ -80,7 +97,7 @@ export class StorageService implements OnModuleInit {
       Key: objectKey,
     });
 
-    return getSignedUrl(this.client, command, {
+    return getSignedUrl(this.publicClient, command, {
       expiresIn: PRESIGN_EXPIRY_SECONDS,
     });
   }

@@ -85,4 +85,8 @@ export class MessagingGateway
   broadcastMessage(conversationId: string, message: unknown) {
     this.server.to(conversationId).emit('message:new', message);
   }
+
+  broadcastRead(conversationId: string, payload: unknown) {
+    this.server.to(conversationId).emit('conversation:read', payload);
+  }
 }
