@@ -4,9 +4,10 @@ import { formatTime } from '../../../shared/utils/format';
 type MessageBubbleProps = {
   message: MessageItem;
   isMine: boolean;
+  seen?: boolean;
 };
 
-export function MessageBubble({ message, isMine }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, seen }: MessageBubbleProps) {
   const attachment = message.attachments[0];
 
   return (
@@ -16,7 +17,10 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
       ) : (
         <p>{message.body}</p>
       )}
-      <span className="chat-bubble-time">{formatTime(message.createdAt)}</span>
+      <span className="chat-bubble-time">
+        {formatTime(message.createdAt)}
+        {isMine && seen ? <span className="chat-bubble-seen"> · Vu</span> : null}
+      </span>
     </div>
   );
 }

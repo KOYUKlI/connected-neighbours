@@ -32,6 +32,17 @@ export function ConversationThread({
 }: ConversationThreadProps) {
   const [draft, setDraft] = useState('');
 
+  const isPrivate = conversation.type === 'private';
+  const otherParticipant = isPrivate
+    ? conversation.participants.find((participant) => participant.id !== currentUserId)
+    : undefined;
+  const otherParticipantLastReadAt = otherParticipant
+    ? conversation.lastReadAt[otherParticipant.id]
+    : undefined;
+  const lastOwnMessageId = isPrivate
+    ? [...messages].reverse().find((message) => message.senderId === currentUserId)?.id
+    : undefined;
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -61,6 +72,12 @@ export function ConversationThread({
               isMine={message.senderId === currentUserId}
               key={message.id}
               message={message}
+              seen={
+                message.id === lastOwnMessageId &&
+                Boolean(otherParticipantLastReadAt) &&
+                new Date(otherParticipantLastReadAt as string) >=
+                  new Date(message.createdAt ?? 0)
+              }
             />
           ))
         )}
