@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.ui.ui;
 
+import com.connectneighbours.admindesktop.back.application.auth.AuthManagement;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterManagement;
@@ -8,6 +9,7 @@ import com.connectneighbours.admindesktop.back.application.sync.SyncManagement;
 import com.connectneighbours.admindesktop.back.application.theme.ThemeDTO;
 import com.connectneighbours.admindesktop.back.application.theme.ThemeManagement;
 import com.connectneighbours.admindesktop.back.infrastructure.plugins.PluginManagement;
+import com.connectneighbours.admindesktop.back.infrastructure.preferences.UiPreferencesService;
 import com.connectneighbours.admindesktop.back.infrastructure.theme.ThemeContext;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.plugin.controller.PluginViewController;
@@ -15,8 +17,11 @@ import com.connectneighbours.admindesktop.ui.ui.features.sync.controller.SyncHis
 import com.connectneighbours.admindesktop.ui.ui.features.theme.controller.ThemeViewController;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
@@ -55,6 +60,12 @@ public class AdminDesktopController {
     private ThemeContext themeContext;
 
     @Autowired
+    private UiPreferencesService uiPreferencesService;
+
+    @Autowired
+    private AuthManagement authManagement;
+
+    @Autowired
     private ApplicationContext context;
 
     private List<Node> homeContent;
@@ -75,15 +86,33 @@ public class AdminDesktopController {
     private MenuItem navSync;
 
     @FXML
+    private Button btnLogout;
+
+    @FXML
+    private Label offlineBadge;
+
+    @FXML
     public void initialize() {
         homeContent = new ArrayList<>(mainContainer.getChildren());
+
+        var session = authManagement.getCurrentSession();
+        boolean offline = session != null && session.offline();
+        offlineBadge.setVisible(offline);
+        offlineBadge.setManaged(offline);
 
         navIncidents.setOnAction(e -> showIncidents());
         navPlugins.setOnAction(e -> showPlugins());
         navThemes.setOnAction(e -> showThemes());
         navSync.setOnAction(e -> showSyncHistory());
+        btnLogout.setOnAction(e -> logout());
 
         showIncidents();
+    }
+
+    public void logout() {
+        authManagement.logout();
+        Stage stage = (Stage) mainContainer.getScene().getWindow();
+        AdminDesktopApplication.showLogin(stage);
     }
 
     public void showIncidents() {
@@ -173,5 +202,9 @@ public class AdminDesktopController {
 
     public SyncManagement getSyncManagement() {
         return syncManagement;
+    }
+
+    public UiPreferencesService getUiPreferencesService() {
+        return uiPreferencesService;
     }
 }

@@ -70,6 +70,27 @@
     -fx-background-color: #006400
 }
 
+.logout-button {
+    -fx-background-color: #DC2626;
+    -fx-background-radius: 6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 6 16;
+}
+
+.logout-button:hover {
+    -fx-background-color: #8B1A1A;
+}
+
+.offline-badge {
+    -fx-background-color: #EA7F0F;
+    -fx-background-radius: 12;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 10;
+}
+
 .details-scroll {
     -fx-background-color: white;
     -fx-background: white;

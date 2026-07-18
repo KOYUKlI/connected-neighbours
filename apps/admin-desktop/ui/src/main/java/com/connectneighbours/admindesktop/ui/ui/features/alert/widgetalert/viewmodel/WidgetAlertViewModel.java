@@ -33,7 +33,7 @@ public class WidgetAlertViewModel {
         alert.reporterProperty().avatarProperty().set(source.reporterProperty().avatarProperty().get());
         alert.reporterNameProperty().set(source.reporterNameProperty().get());
         alert.createdAtProperty().set(source.createdAtProperty().get());
-        alert.resolvedAtProperty().set(source.createdAtProperty().get());
+        alert.resolvedAtProperty().set(source.resolvedAtProperty().get());
 
     }
 

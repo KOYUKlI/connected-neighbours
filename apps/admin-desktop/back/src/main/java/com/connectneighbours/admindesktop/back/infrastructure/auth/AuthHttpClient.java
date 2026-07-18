@@ -4,6 +4,7 @@ import com.connectneighbours.admindesktop.back.application.auth.LoginRequestBody
 import com.connectneighbours.admindesktop.back.application.auth.LoginResponseBody;
 import com.connectneighbours.admindesktop.back.domain.auth.AuthClient;
 import com.connectneighbours.admindesktop.back.domain.auth.AuthenticatedSession;
+import com.connectneighbours.admindesktop.back.domain.exception.auth.AuthServerUnavailableException;
 import com.connectneighbours.admindesktop.back.domain.exception.auth.AuthenticationFailedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -41,12 +42,13 @@ public class AuthHttpClient implements AuthClient {
                     response.accessToken(),
                     response.user().email(),
                     response.user().displayName(),
-                    response.user().role()
+                    response.user().role(),
+                    false
             );
         } catch (HttpClientErrorException e) {
             throw new AuthenticationFailedException("Invalid credentials");
         } catch (RestClientException e) {
-            throw new AuthenticationFailedException("Unable to reach the central server");
+            throw new AuthServerUnavailableException("Unable to reach the central server");
         }
     }
 }
