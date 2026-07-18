@@ -1,4 +1,6 @@
 spring:
+  main:
+    headless: false
   datasource:
     url: jdbc:h2:file:./data/db
     username: sa
@@ -14,3 +16,6 @@ spring:
 
 api:
   base-url: ${API_BASE_URL:http://localhost:3000/api}
+
+web:
+  base-url: ${WEB_BASE_URL:http://localhost:5173}

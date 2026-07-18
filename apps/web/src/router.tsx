@@ -10,6 +10,7 @@ import { IncidentsPage } from './features/incidents/IncidentsPage';
 import { PointsPage } from './features/points/PointsPage';
 import { RgpdPage } from './features/rgpd/RgpdPage';
 import { ServicesPage } from './features/services/ServicesPage';
+import { DesktopLoginPage } from './features/sso/DesktopLoginPage';
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: 'incidents/:incidentId/alerts', element: <IncidentAlertsPage /> },
       { path: 'incidents/:incidentId/alerts/new', element: <CreateAlertPage /> },
       { path: 'rgpd', element: <RgpdPage /> },
+      { path: 'desktop-login', element: <DesktopLoginPage /> },
     ],
   },
 ]);

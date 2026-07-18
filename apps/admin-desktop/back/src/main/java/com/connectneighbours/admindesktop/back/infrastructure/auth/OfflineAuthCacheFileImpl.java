@@ -36,7 +36,7 @@ public class OfflineAuthCacheFileImpl extends OfflineAuthCacheImpl {
             );
             data.putAll(stored);
         } catch (IOException e) {
-            throw new RuntimeException("Impossible de lire le cache d'authentification : " + CACHE_FILE, e);
+            throw new RuntimeException("Unable to read the authentication cache: " + CACHE_FILE, e);
         }
     }
 
@@ -46,7 +46,7 @@ public class OfflineAuthCacheFileImpl extends OfflineAuthCacheImpl {
             if (!dir.exists()) dir.mkdirs();
             mapper.writeValue(CACHE_FILE, data);
         } catch (IOException e) {
-            throw new RuntimeException("Impossible d'écrire le cache d'authentification : " + CACHE_FILE, e);
+            throw new RuntimeException("Unable to write the authentication cache: " + CACHE_FILE, e);
         }
     }
 }

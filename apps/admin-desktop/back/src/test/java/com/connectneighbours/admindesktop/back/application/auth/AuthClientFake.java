@@ -34,4 +34,13 @@ public class AuthClientFake implements AuthClient {
 
         return session;
     }
+
+    @Override
+    public AuthenticatedSession exchangeSsoCode(String code, String codeVerifier) {
+        if (unavailable) {
+            throw new AuthServerUnavailableException("Unable to reach the central server");
+        }
+
+        throw new AuthenticationFailedException("Invalid or expired SSO code");
+    }
 }

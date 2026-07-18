@@ -19,6 +19,7 @@ import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
 import { RgpdModule } from './rgpd/rgpd.module';
 import { ServicesModule } from './services/services.module';
+import { SsoModule } from './sso/sso.module';
 import { SyncModule } from './sync/sync.module';
 import { VotesModule } from './votes/votes.module';
 
@@ -98,6 +99,7 @@ import { VotesModule } from './votes/votes.module';
     DocumentsModule,
     MessagingModule,
     RgpdModule,
+    SsoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
