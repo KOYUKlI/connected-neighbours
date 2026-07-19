@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.StackedBarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         alignment="CENTER"
+         styleClass="per-day-card"
+         stylesheets="@incident-per-day.css"
+         spacing="10">
+
+    <StackedBarChart fx:id="chart"
+                     prefWidth="500"
+                     prefHeight="300"
+                     animated="false"
+                     legendSide="BOTTOM"
+                     legendVisible="true"
+                     categoryGap="80"
+                     verticalGridLinesVisible="false"
+                     horizontalGridLinesVisible="true">
+
+        <xAxis>
+            <CategoryAxis fx:id="xAxis" animated="false"/>
+        </xAxis>
+        <yAxis>
+            <NumberAxis fx:id="yAxis"
+                        autoRanging="false"
+                        lowerBound="0"
+                        upperBound="10"
+                        tickUnit="1"
+                        forceZeroInRange="true"
+                        animated="false"/>
+        </yAxis>
+    </StackedBarChart>
+
+</fx:root>

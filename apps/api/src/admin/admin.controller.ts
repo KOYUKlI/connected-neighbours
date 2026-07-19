@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -37,6 +37,18 @@ export class AdminController {
   @ApiOperation({ summary: 'Lister les incidents recents pour le back-office' })
   getIncidents() {
     return this.adminService.getRecentIncidents();
+  }
+
+  @Get('incidents/:id')
+  @ApiOperation({ summary: 'Recuperer un incident par son identifiant' })
+  getIncident(@Param('id') id: string) {
+    return this.adminService.getIncidentById(id);
+  }
+
+  @Get('incidents/:id/alerts')
+  @ApiOperation({ summary: 'Lister les alertes rattachees a un incident' })
+  getIncidentAlerts(@Param('id') id: string) {
+    return this.adminService.getIncidentAlerts(id);
   }
 
   @Get('sync/status')

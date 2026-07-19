@@ -1,7 +1,9 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.statistics.IncidentAverageSolutionTime;
 import com.connectneighbours.admindesktop.back.domain.statistics.StatisticsService;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +45,7 @@ public class StatisticsManagement {
                 .toList();
     }
 
-    public AlertDistributionBySeverityDTO alertDistributionBySeverity(Severity severity) {
+    public AlertDistributionBySeverityDTO alertDistributionBySeverity(AlertSeverity severity) {
         var alertDistributionBySeverity = service.alertDistributionBySeverity(severity);
         return StatisticsMapper.toAlertDistributionBySeverityDTO(alertDistributionBySeverity);
     }
@@ -51,6 +53,34 @@ public class StatisticsManagement {
     public List<AlertDistributionBySeverityDTO> listAlertDistributionBySeverity() {
         return service.listAlertDistributionBySeverity().stream()
                 .map(StatisticsMapper::toAlertDistributionBySeverityDTO)
+                .toList();
+    }
+
+    public List<AlertDistributionBySeverityDTO> listAlertDistributionBySeverityAndIncident(IncidentDTO incidentDTO) {
+        return service.listAlertDistributionBySeverityAndIncident(incidentDTO.id()).stream()
+                .map(StatisticsMapper::toAlertDistributionBySeverityDTO)
+                .toList();
+    }
+
+    public IncidentPerDayByTypeDTO incidentPerDayByType(IncidentType type) {
+        var incident = service.incidentPerDayByType(type);
+        return StatisticsMapper.toIncidentPerDayByTypeDTO(incident);
+    }
+
+    public List<IncidentPerDayByTypeDTO> listIncidentPerDayByType(int day) {
+        return service.listIncidentPerDayByType(day).stream()
+                .map(StatisticsMapper::toIncidentPerDayByTypeDTO)
+                .toList();
+    }
+
+    public IncidentAverageSolutionTimeDTO incidentAverageSolutionTime() {
+        var incident = service.incidentAverageSolutionTime();
+        return StatisticsMapper.toIncidentAverageSolutionTimeDTO(incident);
+    }
+
+    public List<IncidentAverageSolutionTimeDTO> listIncidentAverageSolutionTime(int days) {
+        return service.listIncidentAverageSolutionTime(days).stream()
+                .map(StatisticsMapper::toIncidentAverageSolutionTimeDTO)
                 .toList();
     }
 }

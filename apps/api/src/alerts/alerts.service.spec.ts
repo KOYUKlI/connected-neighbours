@@ -27,12 +27,17 @@ describe('AlertsService', () => {
     findById: jest.fn(),
   };
 
+  const userModelMock = {
+    find: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     service = new AlertsService(
       alertModelMock as never,
       incidentModelMock as never,
+      userModelMock as never,
     );
   });
 
@@ -55,7 +60,7 @@ describe('AlertsService', () => {
         details: 'La serrure est abimee.',
         severity: AlertSeverity.HIGH,
       },
-      user('reporter'),
+      'user_1',
     );
 
     expect(alertModelMock.create).toHaveBeenCalledWith({
@@ -66,9 +71,65 @@ describe('AlertsService', () => {
       status: AlertStatus.CREATED,
       source: AlertSource.WEB,
       externalId: null,
+      reportedById: 'user_1',
       resolvedAt: null,
     });
     expect(result).toEqual(alert);
+  });
+
+  it('should enrich alerts with the reporter display name', async () => {
+    incidentModelMock.findById.mockReturnValue(execResult(incidentDocument()));
+
+    const alertsExec = jest.fn().mockResolvedValue([
+      {
+        id: 'alert_1',
+        incidentId: 'incident_1',
+        title: 'Porte forcee',
+        reportedById: 'user_1',
+      },
+      {
+        id: 'alert_2',
+        incidentId: 'incident_1',
+        title: 'Alerte anonyme',
+        reportedById: null,
+      },
+    ]);
+    alertModelMock.find.mockReturnValue({
+      sort: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({ exec: alertsExec }),
+      }),
+    });
+
+    const usersExec = jest
+      .fn()
+      .mockResolvedValue([{ _id: 'user_1', displayName: 'Alice Martin' }]);
+    userModelMock.find.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({ exec: usersExec }),
+      }),
+    });
+
+    const result = await service.findForIncident('incident_1');
+
+    expect(userModelMock.find).toHaveBeenCalledWith({
+      _id: { $in: ['user_1'] },
+    });
+    expect(result).toEqual([
+      {
+        id: 'alert_1',
+        incidentId: 'incident_1',
+        title: 'Porte forcee',
+        reportedById: 'user_1',
+        reporterName: 'Alice Martin',
+      },
+      {
+        id: 'alert_2',
+        incidentId: 'incident_1',
+        title: 'Alerte anonyme',
+        reportedById: null,
+        reporterName: null,
+      },
+    ]);
   });
 
   it('should reject alert creation when the incident does not exist', async () => {

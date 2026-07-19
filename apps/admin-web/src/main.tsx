@@ -1,11 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import 'leaflet/dist/leaflet.css'
+import { RouterProvider } from 'react-router-dom'
 import './index.css'
-import App from './App.tsx'
+import { AdminAuthProvider } from './auth/AdminAuthProvider'
+import { router } from './router'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AdminAuthProvider>
+      <RouterProvider router={router} />
+    </AdminAuthProvider>
   </StrictMode>,
 )

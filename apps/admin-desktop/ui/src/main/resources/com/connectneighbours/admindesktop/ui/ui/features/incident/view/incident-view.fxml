@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="15"
+         alignment="CENTER">
+    <Label text="Incidents" fx:id="pageTitle" styleClass="section-title"/>
+
+    <HBox spacing="12" alignment="CENTER" fx:id="menuBtn" styleClass="filter-bar">
+
+        <HBox spacing="6" alignment="CENTER_LEFT" styleClass="hbox-filter">
+            <MenuBar styleClass="menu-bar">
+                <Menu fx:id="menuType" text="Type">
+                    <MenuItem fx:id="typeAll" text="Tous"/>
+                    <MenuItem fx:id="typeSecurity" text="Sécurité"/>
+                    <MenuItem fx:id="typeNuisance" text="Nuisances"/>
+                    <MenuItem fx:id="typeCleanliness" text="Propreté"/>
+                    <MenuItem fx:id="typeMaintenance" text="Maintenance"/>
+                    <MenuItem fx:id="typeTraffic" text="Circulation"/>
+                    <MenuItem fx:id="typeOther" text="Autres..."/>
+                </Menu>
+            </MenuBar>
+            <Label fx:id="typeValue" text="Tous" styleClass="filter-value-label"/>
+        </HBox>
+
+        <HBox spacing="6" alignment="CENTER_LEFT" styleClass="hbox-filter">
+            <MenuBar styleClass="menu-bar">
+                <Menu fx:id="menuStatus" text="Statut">
+                    <MenuItem fx:id="statusAll" text="Tous"/>
+                    <MenuItem fx:id="statusCreated" text="Signalé"/>
+                    <MenuItem fx:id="statusOpen" text="Ouvert"/>
+                    <MenuItem fx:id="statusInProgress" text="En cours"/>
+                    <MenuItem fx:id="statusResolved" text="Résolu"/>
+                    <MenuItem fx:id="statusClosed" text="Fermé"/>
+                </Menu>
+            </MenuBar>
+            <Label fx:id="statusValue" text="Tous" styleClass="filter-value-label"/>
+        </HBox>
+
+        <HBox spacing="6" alignment="CENTER_LEFT" styleClass="hbox-filter">
+            <MenuBar styleClass="menu-bar">
+                <Menu fx:id="menuGravity" text="Gravité">
+                    <MenuItem fx:id="gravityAll" text="Toutes"/>
+                    <MenuItem fx:id="gravityLow" text="Mineure"/>
+                    <MenuItem fx:id="gravityMedium" text="Moyenne"/>
+                    <MenuItem fx:id="gravityHigh" text="Haute"/>
+                    <MenuItem fx:id="gravityCritical" text="Critique"/>
+                </Menu>
+            </MenuBar>
+            <Label fx:id="gravityValue" text="Toutes" styleClass="filter-value-label"/>
+        </HBox>
+
+        <Region HBox.hgrow="ALWAYS"/>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button text="Filtrer" fx:id="btnFilter" styleClass="filter-button"/>
+            <Button text="Créer" fx:id="createIncident" styleClass="filter-button"/>
+        </HBox>
+
+    </HBox>
+
+    <HBox fx:id="graphIncident" alignment="CENTER" spacing="20"/>
+
+    <HBox spacing="10" alignment="CENTER" fx:id="paginationBar">
+        <Button fx:id="btnPrevPage" styleClass="return-button">
+            <graphic>
+                <Label text="◀" styleClass="return-icon"/>
+            </graphic>
+        </Button>
+
+        <Label fx:id="pageNumberLabel" text="0" styleClass="filter-value-label"/>
+
+        <Button fx:id="btnNextPage" styleClass="return-button">
+            <graphic>
+                <Label text="▶" styleClass="return-icon"/>
+            </graphic>
+        </Button>
+    </HBox>
+
+    <VBox fx:id="container" spacing="10" alignment="CENTER">
+    </VBox>
+
+</fx:root>

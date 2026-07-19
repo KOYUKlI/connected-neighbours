@@ -1,6 +1,6 @@
 package com.connectneighbours.admindesktop.back.application.statistics;
 
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.back.domain.statistics.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,17 +99,17 @@ public class StatisticsManagementTest {
     @Test
     void alertDistributionBySeverity_returnsMappedDTO() {
         var domain = new AlertDistributionBySeverity(
-                Severity.CRITICAL,
+                AlertSeverity.CRITICAL,
                 5L,
                 0.5
         );
 
-        Mockito.when(service.alertDistributionBySeverity(Severity.CRITICAL))
+        Mockito.when(service.alertDistributionBySeverity(AlertSeverity.CRITICAL))
                 .thenReturn(domain);
 
-        var dto = management.alertDistributionBySeverity(Severity.CRITICAL);
+        var dto = management.alertDistributionBySeverity(AlertSeverity.CRITICAL);
 
-        assertEquals(Severity.CRITICAL, dto.severity());
+        assertEquals(AlertSeverity.CRITICAL, dto.severity());
         assertEquals(5L, dto.count());
         assertEquals("50%", dto.percentage());
     }
@@ -117,8 +117,8 @@ public class StatisticsManagementTest {
     @Test
     void listAlertDistributionBySeverity_returnsMappedDTOList() {
         var domainList = List.of(
-                new AlertDistributionBySeverity(Severity.CRITICAL, 2L, 0.2),
-                new AlertDistributionBySeverity(Severity.LOW, 3L, 0.3)
+                new AlertDistributionBySeverity(AlertSeverity.CRITICAL, 2L, 0.2),
+                new AlertDistributionBySeverity(AlertSeverity.LOW, 3L, 0.3)
         );
 
         Mockito.when(service.listAlertDistributionBySeverity())
@@ -129,12 +129,12 @@ public class StatisticsManagementTest {
         assertEquals(2, dtoList.size());
 
         var d1 = dtoList.get(0);
-        assertEquals(Severity.CRITICAL, d1.severity());
+        assertEquals(AlertSeverity.CRITICAL, d1.severity());
         assertEquals(2L, d1.count());
         assertEquals("20%", d1.percentage());
 
         var d2 = dtoList.get(1);
-        assertEquals(Severity.LOW, d2.severity());
+        assertEquals(AlertSeverity.LOW, d2.severity());
         assertEquals(3L, d2.count());
         assertEquals("30%", d2.percentage());
     }

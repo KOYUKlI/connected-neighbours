@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         alignment="CENTER"
+         maxWidth="Infinity"
+         maxHeight="Infinity"
+         stylesheets="@login-view.css"
+         styleClass="login-page">
+
+    <VBox alignment="CENTER" spacing="16" maxWidth="360" prefWidth="360" styleClass="login-card">
+        <Label text="Connect Neighbours" styleClass="login-title"/>
+        <Label text="Connexion à l'administration" styleClass="login-subtitle"/>
+
+        <VBox spacing="6">
+            <Label text="Email" styleClass="form-label"/>
+            <TextField fx:id="emailField" styleClass="form-field" promptText="admin@connected-neighbours.local"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Mot de passe" styleClass="form-label"/>
+            <PasswordField fx:id="passwordField" styleClass="form-field" promptText="Mot de passe"/>
+        </VBox>
+
+        <Label fx:id="errorLabel" text="Identifiants incorrects" styleClass="error-label" visible="false" managed="false"/>
+
+        <Button fx:id="btnLogin" text="Se connecter" styleClass="login-button" maxWidth="Infinity"/>
+
+        <Button fx:id="btnSso" text="Se connecter avec SSO" styleClass="sso-button" maxWidth="Infinity"/>
+
+        <Label fx:id="ssoStatusLabel" text="En attente de confirmation dans le navigateur..." styleClass="sso-status-label" wrapText="true" visible="false" managed="false"/>
+
+        <Button fx:id="btnCancelSso" text="Annuler" styleClass="cancel-sso-button" maxWidth="Infinity" visible="false" managed="false"/>
+    </VBox>
+
+</fx:root>

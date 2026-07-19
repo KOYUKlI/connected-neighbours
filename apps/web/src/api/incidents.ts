@@ -28,6 +28,7 @@ export type IncidentItem = {
   severity: IncidentSeverity;
   neighborhoodId: string;
   reportedById?: string | null;
+  reporterName?: string | null;
   source: 'web' | 'admin_web' | 'javafx';
   externalId?: string | null;
   lastSyncedAt?: string | null;
@@ -52,4 +53,8 @@ export function createIncident(input: CreateIncidentInput) {
 
 export function getIncidents() {
   return apiRequest<IncidentItem[]>('/api/incidents');
+}
+
+export function getIncident(id: string) {
+  return apiRequest<IncidentItem | null>(`/api/incidents/${id}`);
 }

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         fx:id="mainCreateThemeContainer"
+         spacing="20"
+         maxWidth="Infinity"
+         prefWidth="750"
+         VBox.vgrow="ALWAYS"
+         stylesheets="@create-theme-view.css"
+         styleClass="create-theme-container">
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button text="Retour"
+                fx:id="btnReturn" styleClass="return-button">
+            <graphic>
+                <Label text="◀" styleClass="return-icon"/>
+            </graphic>
+        </Button>
+
+        <Label text="Créer un thème"
+               fx:id="formTitle"
+               styleClass="form-title"/>
+    </HBox>
+
+    <VBox spacing="16" styleClass="form-card">
+        <VBox spacing="6">
+            <Label text="Nom du thème" styleClass="form-label"/>
+            <TextField fx:id="nameField" promptText="Nom du thème" styleClass="form-field"/>
+            <Label fx:id="nameError" styleClass="error-label" visible="false" managed="false"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Couleur" styleClass="form-label"/>
+            <ColorPicker fx:id="colorPicker"/>
+        </VBox>
+    </VBox>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Annuler" fx:id="btnCancel" styleClass="return-button"/>
+        <Button text="Enregistrer" fx:id="btnSave" styleClass="filter-button"/>
+    </HBox>
+</fx:root>

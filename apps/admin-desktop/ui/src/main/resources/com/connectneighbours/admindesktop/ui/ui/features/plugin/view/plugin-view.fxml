@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="0"
+         maxWidth="Infinity"
+         VBox.vgrow="ALWAYS"
+         stylesheets="@plugin-view.css"
+         styleClass="plugin-page">
+
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="plugin-header">
+        <Label text="Gestion des Plugins" styleClass="plugin-header-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Charger un plugin (.jar)" fx:id="btnLoadPlugin" styleClass="filter-button"/>
+    </HBox>
+
+    <HBox spacing="20" alignment="TOP_LEFT" styleClass="plugin-body" VBox.vgrow="ALWAYS">
+        <VBox spacing="10" prefWidth="260" minWidth="260" styleClass="plugin-sidebar">
+            <Label text="Plugins Disponibles" styleClass="plugin-sidebar-title"/>
+            <VBox fx:id="pluginList" spacing="4"/>
+        </VBox>
+
+        <VBox fx:id="detailContainer" HBox.hgrow="ALWAYS" alignment="CENTER" styleClass="plugin-detail-placeholder">
+            <Label text="Sélectionnez un plugin" styleClass="plugin-placeholder-text"/>
+        </VBox>
+    </HBox>
+
+</fx:root>

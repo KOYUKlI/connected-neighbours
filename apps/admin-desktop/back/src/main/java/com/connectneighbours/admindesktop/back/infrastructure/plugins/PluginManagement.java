@@ -1,21 +1,33 @@
 package com.connectneighbours.admindesktop.back.infrastructure.plugins;
 
+import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterManagement;
 import com.connectneighbours.admindesktop.back.infrastructure.plugins.exceptions.PluginNotFoundException;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.UUID;
 
 public class PluginManagement {
     private final PluginRepository pluginRepository;
-    private final PluginContext pluginContext;
     private final PluginLoader pluginLoader;
+    private final IncidentManagement incidentManagement;
+    private final AlertManagement alertManagement;
+    private final ReporterManagement reporterManagement;
 
-    public PluginManagement(PluginRepository pluginRepository, PluginContext pluginContext, PluginLoader pluginLoader) {
+    private PluginContext lastContext;
+
+    public PluginManagement(PluginRepository pluginRepository, PluginLoader pluginLoader,
+                             IncidentManagement incidentManagement, AlertManagement alertManagement,
+                             ReporterManagement reporterManagement) {
         this.pluginRepository = pluginRepository;
-        this.pluginContext = pluginContext;
         this.pluginLoader = pluginLoader;
+        this.incidentManagement = incidentManagement;
+        this.alertManagement = alertManagement;
+        this.reporterManagement = reporterManagement;
     }
 
     public PluginDTO install(File jarFile) {
@@ -43,7 +55,10 @@ public class PluginManagement {
         var plugin = pluginLoader.load(new File(pluginDto.path()));
         var running = new PluginDTO(pluginDto.uuid(), pluginDto.name(), pluginDto.version(), pluginDto.author(), pluginDto.description(), pluginDto.path(), pluginDto.mainClass(), StatePlugin.RUNNING);
         pluginRepository.save(running);
-        plugin.execute(pluginContext);
+
+        lastContext = buildContext(pluginDto.name());
+        plugin.execute(lastContext);
+
         var finished = new PluginDTO(pluginDto.uuid(), pluginDto.name(), pluginDto.version(), pluginDto.author(), pluginDto.description(), pluginDto.path(), pluginDto.mainClass(), StatePlugin.ACTIVATE);
         return pluginRepository.save(finished);
     }
@@ -56,5 +71,20 @@ public class PluginManagement {
 
     public void delete(UUID uuid) {
         pluginRepository.delete(uuid);
+    }
+
+    public List<PluginDTO> listPlugins() {
+        return pluginRepository.findAll();
+    }
+
+    public List<String> getLogs() {
+        return lastContext == null ? List.of() : lastContext.getLoggerPlugin().getLogs();
+    }
+
+    private PluginContext buildContext(String pluginName) {
+        var incidents = incidentManagement.listIncidents(0, Integer.MAX_VALUE);
+        var alerts = alertManagement.listAlerts();
+        var reporters = reporterManagement.listReporters();
+        return new PluginContext(pluginName, incidents, alerts, reporters);
     }
 }

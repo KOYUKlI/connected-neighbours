@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Group?>
+<?import javafx.scene.layout.StackPane ?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+
+<?import javafx.scene.layout.HBox?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="12" fillWidth="false" alignment="TOP_CENTER">
+
+    <Text text="Répartition par Gravité"
+          styleClass="legend-label"/>
+
+    <StackPane prefWidth="180" prefHeight="180" maxWidth="180" maxHeight="180">
+        <Group fx:id="graphDistribution"/>
+    </StackPane>
+
+    <VBox spacing="8" alignment="CENTER_LEFT">
+
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#F03B3D"/>
+            <Text text="Critique" styleClass="legend-label"/>
+        </HBox>
+
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#2E6BE6"/>
+            <Text text="Haute" styleClass="legend-label"/>
+        </HBox>
+
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#F7B500"/>
+            <Text text="Moyenne" styleClass="legend-label"/>
+        </HBox>
+
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Circle radius="7" fill="#69B561"/>
+            <Text text="Mineure" styleClass="legend-label"/>
+        </HBox>
+
+    </VBox>
+</fx:root>

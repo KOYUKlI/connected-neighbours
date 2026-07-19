@@ -15,6 +15,7 @@ public class SimpleIncidentTableProperty implements IncidentTableProperty {
     private final ObjectProperty<LocalDateTime> createdAt = new SimpleObjectProperty<>();
     private final ObjectProperty<LocalDateTime> resolvedAt = new SimpleObjectProperty<>();
     private final IntegerProperty alertCount = new SimpleIntegerProperty();
+    private final StringProperty severity = new SimpleStringProperty();
 
 
     @Override
@@ -55,5 +56,10 @@ public class SimpleIncidentTableProperty implements IncidentTableProperty {
     @Override
     public IntegerProperty alertsCountProperty() {
         return alertCount;
+    }
+
+    @Override
+    public StringProperty severityProperty() {
+        return severity;
     }
 }

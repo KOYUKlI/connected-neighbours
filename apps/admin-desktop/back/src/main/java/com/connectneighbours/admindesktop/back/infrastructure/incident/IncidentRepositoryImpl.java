@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +59,31 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     }
 
     @Override
+    public List<Incident> findByUpdatedAtAfter(Instant since) {
+        return incidentDAO.findByUpdatedAtAfter(since);
+    }
+
+    @Override
+    public List<Incident> findByExternalIdIsNull() {
+        return incidentDAO.findByExternalIdIsNull();
+    }
+
+    @Override
+    public Optional<Incident> findByExternalId(String externalId) {
+        return incidentDAO.findByExternalId(externalId);
+    }
+
+    @Override
+    public List<Incident> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since) {
+        return incidentDAO.findByExternalIdIsNotNullAndUpdatedAtAfter(since);
+    }
+
+    @Override
+    public Long countByTypeAndCreatedAtBetween(IncidentType type, LocalDateTime start, LocalDateTime end) {
+        return incidentDAO.countByTypeAndCreatedAtBetween(type,start,end);
+    }
+
+    @Override
     public void delete(Incident incident) {
         incidentDAO.delete(incident);
     }
@@ -70,5 +96,10 @@ public class IncidentRepositoryImpl implements IncidentRepository {
     @Override
     public long count() {
         return incidentDAO.count();
+    }
+
+    @Override
+    public void flush() {
+        incidentDAO.flush();
     }
 }

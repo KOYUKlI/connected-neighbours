@@ -198,6 +198,89 @@ export class AdminService {
     );
   }
 
+  async getIncidentById(id: string) {
+    const incident = await this.incidentModel
+      .findById(id)
+      .select(
+        'title type status severity neighborhoodId source externalId lastSyncedAt createdAt updatedAt',
+      )
+      .lean()
+      .exec();
+
+    if (!incident) {
+      return null;
+    }
+
+    return this.pickDocument(incident as unknown as AdminDocument, [
+      'title',
+      'type',
+      'status',
+      'severity',
+      'neighborhoodId',
+      'source',
+      'externalId',
+      'lastSyncedAt',
+      'createdAt',
+      'updatedAt',
+    ]);
+  }
+
+  async getIncidentAlerts(incidentId: string) {
+    const alerts = await this.alertModel
+      .find({ incidentId })
+      .sort({ createdAt: -1 })
+      .limit(ADMIN_LIST_LIMIT)
+      .select(
+        'incidentId title details severity status source externalId reportedById createdAt resolvedAt',
+      )
+      .lean()
+      .exec();
+
+    const reporterIds = Array.from(
+      new Set(
+        alerts
+          .map((alert) => alert.reportedById as string | null)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    const reporters = reporterIds.length
+      ? await this.userModel
+          .find({ _id: { $in: reporterIds } })
+          .select('displayName')
+          .lean()
+          .exec()
+      : [];
+
+    const reporterNameById = new Map(
+      reporters.map((user) => [String(user._id), user.displayName]),
+    );
+
+    return alerts.map((alert) => {
+      const picked = this.pickDocument(alert as unknown as AdminDocument, [
+        'incidentId',
+        'title',
+        'details',
+        'severity',
+        'status',
+        'source',
+        'externalId',
+        'reportedById',
+        'createdAt',
+        'resolvedAt',
+      ]);
+
+      const reportedById = alert.reportedById as string | null;
+
+      return {
+        ...picked,
+        reporterName: reportedById
+          ? (reporterNameById.get(reportedById) ?? null)
+          : null,
+      };
+    });
+  }
+
   async getSyncStatus() {
     const states = await this.syncStateModel
       .find()

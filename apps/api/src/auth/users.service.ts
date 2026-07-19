@@ -125,6 +125,21 @@ export class UsersService implements OnModuleInit {
     return this.userModel.findById(id).exec();
   }
 
+  async findByIds(ids: string[]) {
+    return this.userModel.find({ _id: { $in: ids } }).exec();
+  }
+
+  async findByNeighborhood(neighborhoodId: string, excludeUserId: string) {
+    return this.userModel
+      .find({
+        neighborhoodId,
+        isActive: true,
+        _id: { $ne: excludeUserId },
+      })
+      .sort({ displayName: 1 })
+      .exec();
+  }
+
   toPublicUser(user: UserDocument) {
     return {
       id: user.id,

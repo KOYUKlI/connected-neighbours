@@ -1,12 +1,11 @@
 package com.connectneighbours.admindesktop.back.infrastructure;
 
 import com.connectneighbours.admindesktop.back.application.incident.IncidentRepositoryInMemory;
-import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterRepositoryInMemory;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentRepository;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
@@ -104,8 +103,8 @@ public class StatisticsServiceImplTest {
 
     @Test
     void reporterActivity_returnsCorrectCounts() {
-        var r1 = new Reporter(LocalDateTime.now(), LocalDateTime.now(), "John", "Doe");
-        var r2 = new Reporter(LocalDateTime.now(), LocalDateTime.now(), "Alice", "Smith");
+        var r1 = new Reporter("John", "Doe");
+        var r2 = new Reporter("Alice", "Smith");
 
         reporterRepo.save(r1);
         reporterRepo.save(r2);
@@ -115,7 +114,7 @@ public class StatisticsServiceImplTest {
         incidentRepo.save(i1);
         incidentRepo.save(i2);
 
-        var a1 = new Alert(i1, "msg", Severity.HIGH);
+        var a1 = new Alert(i1, "msg", AlertSeverity.HIGH);
         a1.setReporter(r1);
         alertRepo.save(a1);
 
@@ -180,9 +179,9 @@ public class StatisticsServiceImplTest {
 
     @Test
     void alertDistributionBySeverity_returnsZero_whenNoAlerts() {
-        var result = service.alertDistributionBySeverity(Severity.CRITICAL);
+        var result = service.alertDistributionBySeverity(AlertSeverity.CRITICAL);
 
-        assertEquals(Severity.CRITICAL, result.severity());
+        assertEquals(AlertSeverity.CRITICAL, result.severity());
         assertEquals(0L, result.count());
         assertEquals(0.0, result.rate());
     }
@@ -197,22 +196,22 @@ public class StatisticsServiceImplTest {
         incidentRepo.save(i1);
         incidentRepo.save(i2);
 
-        var a1 = new Alert(i1, "msg1", Severity.CRITICAL);
+        var a1 = new Alert(i1, "msg1", AlertSeverity.CRITICAL);
         a1.setReporter(r);
 
-        var a2 = new Alert(i2, "msg2", Severity.CRITICAL);
+        var a2 = new Alert(i2, "msg2", AlertSeverity.CRITICAL);
         a2.setReporter(r);
 
-        var a3 = new Alert(i1, "msg3", Severity.LOW);
+        var a3 = new Alert(i1, "msg3", AlertSeverity.LOW);
         a3.setReporter(r);
 
         alertRepo.save(a1);
         alertRepo.save(a2);
         alertRepo.save(a3);
 
-        var result = service.alertDistributionBySeverity(Severity.CRITICAL);
+        var result = service.alertDistributionBySeverity(AlertSeverity.CRITICAL);
 
-        assertEquals(Severity.CRITICAL, result.severity());
+        assertEquals(AlertSeverity.CRITICAL, result.severity());
         assertEquals(2L, result.count());
         assertEquals(2.0 / 3.0, result.rate());
     }
@@ -220,14 +219,14 @@ public class StatisticsServiceImplTest {
     @Test
     void listAlertDistributionBySeverity_returnsAllSeverities() {
         var list = service.listAlertDistributionBySeverity();
-        assertEquals(Severity.values().length, list.size());
+        assertEquals(AlertSeverity.values().length, list.size());
     }
 
     @Test
     void listAlertDistributionBySeverity_valuesMatchIndividualCalls() {
         var list = service.listAlertDistributionBySeverity();
 
-        for (var severity : Severity.values()) {
+        for (var severity : AlertSeverity.values()) {
             var single = service.alertDistributionBySeverity(severity);
             var fromList = list.stream()
                     .filter(d -> d.severity().equals(severity))

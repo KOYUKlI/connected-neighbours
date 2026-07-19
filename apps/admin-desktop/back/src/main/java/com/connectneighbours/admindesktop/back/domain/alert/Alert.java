@@ -4,9 +4,12 @@ import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Entity(name = "alert")
 public class Alert {
@@ -14,6 +17,9 @@ public class Alert {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
     private UUID alertId;
+
+    @Column(nullable = false, unique = true)
+    private String displayId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "incident_id")
@@ -31,17 +37,28 @@ public class Alert {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Severity severity;
+    private AlertSeverity severity;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AlertStatus status;
 
+    @UpdateTimestamp
+    @Column
+    private Instant updatedAt;
+
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @Column
     private LocalDateTime resolvedAt;
+
+    @Column
+    private String externalId;
+
+    @Transient
+    private static AtomicLong counter = new AtomicLong(1);
 
     public Alert() {
     }
@@ -50,17 +67,18 @@ public class Alert {
                  Reporter reporter,
                  String title,
                  String details,
-                 Severity severity) {
+                 AlertSeverity severity) {
         this.incident = incident;
         this.reporter = reporter;
         this.title = title;
         this.details = details;
         this.severity = severity;
         this.status = AlertStatus.CREATED;
+        this.displayId = generateDisplayId();
     }
 
 
-    public Alert(Incident incident, String message, Severity severity) {
+    public Alert(Incident incident, String message, AlertSeverity severity) {
         this.alertId = UUID.randomUUID();
         this.incident = incident;
         this.details = message;
@@ -71,6 +89,10 @@ public class Alert {
 
     public UUID getAlertId() {
         return alertId;
+    }
+
+    public String getDisplayId() {
+        return displayId;
     }
 
     public Reporter getReporter() {
@@ -89,7 +111,7 @@ public class Alert {
         return title;
     }
 
-    public Severity getSeverity() {
+    public AlertSeverity getSeverity() {
         return severity;
     }
 
@@ -105,11 +127,23 @@ public class Alert {
         return resolvedAt;
     }
 
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
     public void setDetails(String details) {
         this.details = details;
     }
 
-    public void setSeverity(Severity severity) {
+    public void setSeverity(AlertSeverity severity) {
         this.severity = severity;
     }
 
@@ -135,12 +169,18 @@ public class Alert {
 
     public void inProgress() { this.status = AlertStatus.IN_PROGRESS; }
 
+    public void close() { this.status = AlertStatus.CLOSED; }
+
     public boolean isResolved() {
         return status.equals(AlertStatus.RESOLVED);
     }
 
+    public boolean isClosed() {
+        return status.equals(AlertStatus.CLOSED);
+    }
+
     public boolean isCritical() {
-        return severity.equals(Severity.CRITICAL);
+        return severity.equals(AlertSeverity.CRITICAL);
     }
 
     public boolean isOpen() {
@@ -148,5 +188,11 @@ public class Alert {
     }
 
     public boolean isInProgress() { return  status.equals(AlertStatus.IN_PROGRESS);}
+
+    private String generateDisplayId() {
+        long number = System.currentTimeMillis() % 100000;
+        long inc = counter.getAndIncrement();
+        return "ALT-" + String.format("%05d", number) + "-" + String.format("%04d",inc);
+    }
 }
 

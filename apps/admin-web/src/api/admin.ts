@@ -60,6 +60,29 @@ export type AdminIncidentRow = {
   updatedAt?: string;
 };
 
+export type AdminAlertRow = {
+  id: string | null;
+  incidentId?: string;
+  title?: string;
+  details?: string;
+  severity?: string;
+  status?: string;
+  source?: string;
+  externalId?: string | null;
+  reportedById?: string | null;
+  reporterName?: string | null;
+  createdAt?: string;
+  resolvedAt?: string | null;
+};
+
+export type AlertSeverityInput = 'low' | 'medium' | 'high' | 'critical';
+
+export type CreateAlertInput = {
+  title: string;
+  details: string;
+  severity: AlertSeverityInput;
+};
+
 export type AdminSyncStateRow = {
   id: string | null;
   clientId?: string;
@@ -97,6 +120,21 @@ export function fetchContracts() {
 
 export function fetchIncidents() {
   return apiRequest<AdminIncidentRow[]>('/api/admin/incidents');
+}
+
+export function fetchIncident(id: string) {
+  return apiRequest<AdminIncidentRow | null>(`/api/admin/incidents/${id}`);
+}
+
+export function fetchIncidentAlerts(id: string) {
+  return apiRequest<AdminAlertRow[]>(`/api/admin/incidents/${id}/alerts`);
+}
+
+export function createIncidentAlert(incidentId: string, input: CreateAlertInput) {
+  return apiRequest<AdminAlertRow>(`/api/incidents/${incidentId}/alerts`, {
+    method: 'POST',
+    body: JSON.stringify({ ...input, source: 'admin_web' }),
+  });
 }
 
 export function fetchSyncStates() {

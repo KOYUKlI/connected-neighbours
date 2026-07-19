@@ -1,10 +1,11 @@
 package com.connectneighbours.admindesktop.back.domain.statistics;
 
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public interface StatisticsService {
     IncidentCountByPeriod countIncidents(LocalDate start, LocalDate end);
@@ -17,7 +18,17 @@ public interface StatisticsService {
 
     List<IncidentDistributionByType> listIncidentDistributedByType();
 
-    AlertDistributionBySeverity alertDistributionBySeverity(Severity severity);
+    AlertDistributionBySeverity alertDistributionBySeverity(AlertSeverity severity);
 
     List<AlertDistributionBySeverity> listAlertDistributionBySeverity();
+
+    List<AlertDistributionBySeverity> listAlertDistributionBySeverityAndIncident(UUID incident);
+
+    IncidentPerDayByType incidentPerDayByType(IncidentType type);
+
+    List<IncidentPerDayByType> listIncidentPerDayByType(int day);
+
+    IncidentAverageSolutionTime incidentAverageSolutionTime();
+
+    List<IncidentAverageSolutionTime> listIncidentAverageSolutionTime(int days);
 }

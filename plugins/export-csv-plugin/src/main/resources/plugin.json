@@ -1,0 +1,7 @@
+{
+  "name": "Export CSV",
+  "version": "1.0",
+  "description": "Permet d'exporter les incidents au format CSV.",
+  "author": "Plugin Solutions",
+  "main": "com.connectneighbours.plugins.exportcsv.ExportCsvPlugin"
+}

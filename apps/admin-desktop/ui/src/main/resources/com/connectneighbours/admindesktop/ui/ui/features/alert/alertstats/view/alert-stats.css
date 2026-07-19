@@ -1,0 +1,37 @@
+.alert-stats-container {
+    -fx-background-radius: 8;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8;
+}
+
+.alert-stats-card {
+    -fx-background-color: #F8F8F8;
+    -fx-background-radius: 8;
+}
+
+.alert-stats-card-critical {
+    -fx-background-color: #FDEEEE;
+    -fx-background-radius: 8;
+}
+
+.alert-stats-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A1A1A;
+}
+
+.alert-stats-value {
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1A1A1A;
+}
+
+.alert-stats-label-critical {
+    -fx-font-weight: bold;
+    -fx-text-fill: #D91E25;
+}
+
+.alert-stats-value-critical {
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+    -fx-text-fill: #D91E25;
+}

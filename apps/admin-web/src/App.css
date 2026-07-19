@@ -423,19 +423,35 @@ tbody tr:last-child td {
   color: var(--warning);
 }
 
-.badge.danger,
-.badge.severity-high,
-.badge.severity-critical {
+.badge.danger {
   background: var(--danger-soft);
   color: var(--danger);
 }
 
 .badge.neutral,
-.badge.severity-low,
-.badge.severity-medium,
 .badge.severity-unknown {
   background: var(--neutral-soft);
   color: var(--neutral);
+}
+
+.badge.severity-low {
+  background: var(--severity-low-soft);
+  color: var(--severity-low);
+}
+
+.badge.severity-medium {
+  background: var(--severity-medium-soft);
+  color: var(--severity-medium);
+}
+
+.badge.severity-high {
+  background: var(--severity-high-soft);
+  color: var(--severity-high);
+}
+
+.badge.severity-critical {
+  background: var(--severity-critical-soft);
+  color: var(--severity-critical);
 }
 
 .mono-value {
@@ -475,6 +491,50 @@ tbody tr:last-child td {
 
 .error-banner.compact {
   margin: 0;
+}
+
+.install-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.install-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.install-card h2,
+.install-card h3 {
+  margin: 0 0 8px;
+}
+
+.install-card p {
+  color: var(--text-muted);
+  margin: 0 0 16px;
+}
+
+.install-card .primary-button {
+  display: inline-block;
+}
+
+.install-steps {
+  color: var(--text);
+  margin: 0;
+  padding-left: 20px;
+}
+
+.install-steps li {
+  margin-bottom: 8px;
+}
+
+.install-steps code {
+  background: var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
 }
 
 .login-page {
@@ -537,6 +597,210 @@ tbody tr:last-child td {
 .primary-button:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: var(--surface-muted);
+}
+
+.incident-alerts-page {
+  display: grid;
+  gap: 18px;
+}
+
+.incident-alerts-header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.incident-alerts-header h2 {
+  color: var(--text-strong);
+  font-size: 20px;
+  margin: 0;
+}
+
+.alert-widget-list {
+  display: grid;
+  gap: 12px;
+}
+
+.alert-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.alert-widget-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.alert-widget-header h3 {
+  color: var(--text-strong);
+  font-size: 15px;
+  margin: 0;
+}
+
+.alert-widget-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.alert-widget-details {
+  color: var(--text);
+  font-size: 14px;
+  margin: 10px 0 0;
+}
+
+.alert-widget-footer {
+  color: var(--text-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.alert-graph {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.alert-graph-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 90px minmax(0, 1fr) 90px;
+}
+
+.alert-graph-label {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.alert-graph-track {
+  background: var(--surface-muted);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.alert-graph-bar {
+  border-radius: 999px;
+  height: 100%;
+}
+
+.alert-graph-bar.severity-low {
+  background: var(--severity-low);
+}
+
+.alert-graph-bar.severity-medium {
+  background: var(--severity-medium);
+}
+
+.alert-graph-bar.severity-high {
+  background: var(--severity-high);
+}
+
+.alert-graph-bar.severity-critical {
+  background: var(--severity-critical);
+}
+
+.alert-graph-bar.severity-unknown {
+  background: var(--neutral);
+}
+
+.alert-graph-value {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.create-alert-link {
+  margin-left: auto;
+  text-decoration: none;
+}
+
+.create-alert-page {
+  display: grid;
+  gap: 18px;
+  max-width: 560px;
+}
+
+.create-alert-page .login-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.create-alert-page textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-strong);
+  font: inherit;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.severity-toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.severity-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+
+.severity-toggle.active.severity-low {
+  background: var(--severity-low-soft);
+  border-color: var(--severity-low);
+  color: var(--severity-low);
+}
+
+.severity-toggle.active.severity-medium {
+  background: var(--severity-medium-soft);
+  border-color: var(--severity-medium);
+  color: var(--severity-medium);
+}
+
+.severity-toggle.active.severity-high {
+  background: var(--severity-high-soft);
+  border-color: var(--severity-high);
+  color: var(--severity-high);
+}
+
+.severity-toggle.active.severity-critical {
+  background: var(--severity-critical-soft);
+  border-color: var(--severity-critical);
+  color: var(--severity-critical);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 @media (max-width: 980px) {

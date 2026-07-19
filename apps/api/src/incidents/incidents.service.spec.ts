@@ -23,10 +23,17 @@ describe('IncidentsService', () => {
     findByIdAndUpdate: jest.fn(),
   };
 
+  const userModelMock = {
+    find: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new IncidentsService(incidentModelMock as never);
+    service = new IncidentsService(
+      incidentModelMock as never,
+      userModelMock as never,
+    );
   });
 
   it('should create an incident with web source and reported status by default', async () => {
@@ -172,6 +179,47 @@ describe('IncidentsService', () => {
     await expect(
       service.close('incident_1', user('admin', Role.ADMIN)),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should enrich incidents with the reporter display name', async () => {
+    const incidentsExec = jest.fn().mockResolvedValue([
+      { id: 'incident_1', title: 'Vol de velo', reportedById: 'user_1' },
+      { id: 'incident_2', title: 'Incident anonyme', reportedById: null },
+    ]);
+    incidentModelMock.find.mockReturnValue({
+      sort: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({ exec: incidentsExec }),
+      }),
+    });
+
+    const usersExec = jest
+      .fn()
+      .mockResolvedValue([{ _id: 'user_1', displayName: 'Alice Martin' }]);
+    userModelMock.find.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({ exec: usersExec }),
+      }),
+    });
+
+    const result = await service.findAll();
+
+    expect(userModelMock.find).toHaveBeenCalledWith({
+      _id: { $in: ['user_1'] },
+    });
+    expect(result).toEqual([
+      {
+        id: 'incident_1',
+        title: 'Vol de velo',
+        reportedById: 'user_1',
+        reporterName: 'Alice Martin',
+      },
+      {
+        id: 'incident_2',
+        title: 'Incident anonyme',
+        reportedById: null,
+        reporterName: null,
+      },
+    ]);
   });
 
   it('should throw when the incident does not exist', async () => {

@@ -3,14 +3,15 @@ package com.connectneighbours.admindesktop.back.application.incident.alert;
 import com.connectneighbours.admindesktop.back.domain.alert.Alert;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertRepository;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertStatus;
-import com.connectneighbours.admindesktop.back.domain.alert.Severity;
+import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.Incident;
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 
+import java.time.Instant;
 import java.util.*;
 
 public class AlertRepositoryInMemory implements AlertRepository {
-    private final Map<UUID, Alert> data = new HashMap<>();
+    private final Map<UUID, Alert> data = new LinkedHashMap<>();
 
     @Override
     public Alert save(Alert alert) {
@@ -36,7 +37,7 @@ public class AlertRepositoryInMemory implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findBySeverity(Severity severity) {
+    public List<Alert> findBySeverity(AlertSeverity severity) {
         return data.values().stream()
                 .filter(a -> a.getSeverity() == severity)
                 .toList();
@@ -57,7 +58,7 @@ public class AlertRepositoryInMemory implements AlertRepository {
     }
 
     @Override
-    public List<Alert> findByIncidentAndSeverity(Incident incident, Severity severity) {
+    public List<Alert> findByIncidentAndSeverity(Incident incident, AlertSeverity severity) {
         return List.of();
     }
 
@@ -69,5 +70,33 @@ public class AlertRepositoryInMemory implements AlertRepository {
     @Override
     public long count() {
         return 0;
+    }
+
+    @Override
+    public List<Alert> findByUpdatedAtAfter(Instant since) {
+        return List.of();
+    }
+
+    @Override
+    public List<Alert> findByExternalIdIsNull() {
+        return data.values().stream()
+                .filter(a -> a.getExternalId() == null)
+                .toList();
+    }
+
+    @Override
+    public List<Alert> findByExternalIdIsNotNullAndUpdatedAtAfter(Instant since) {
+        return data.values().stream()
+                .filter(a -> a.getExternalId() != null
+                        && a.getUpdatedAt() != null
+                        && a.getUpdatedAt().isAfter(since))
+                .toList();
+    }
+
+    @Override
+    public Optional<Alert> findByExternalId(String externalId) {
+        return data.values().stream()
+                .filter(a -> externalId.equals(a.getExternalId()))
+                .findFirst();
     }
 }

@@ -16,10 +16,18 @@ public class StatisticsMapper {
     }
 
     public static IncidentDistributionByTypeDTO toIncidentDistributionByTypeDTO(IncidentDistributionByType incidentDistributionByType) {
-        return new IncidentDistributionByTypeDTO(incidentDistributionByType.type(), incidentDistributionByType.count(), FormatPercentage.formatPercentage(incidentDistributionByType.rate()));
+        return new IncidentDistributionByTypeDTO(incidentDistributionByType.type(), incidentDistributionByType.count(), incidentDistributionByType.rate(),FormatPercentage.formatPercentage(incidentDistributionByType.rate()));
     }
 
     public static AlertDistributionBySeverityDTO toAlertDistributionBySeverityDTO(AlertDistributionBySeverity alertDistributionBySeverity) {
-        return new AlertDistributionBySeverityDTO(alertDistributionBySeverity.severity(), alertDistributionBySeverity.count(), FormatPercentage.formatPercentage(alertDistributionBySeverity.rate()));
+        return new AlertDistributionBySeverityDTO(alertDistributionBySeverity.severity(), alertDistributionBySeverity.count(), alertDistributionBySeverity.rate(), FormatPercentage.formatPercentage(alertDistributionBySeverity.rate()));
+    }
+
+    public static IncidentPerDayByTypeDTO toIncidentPerDayByTypeDTO(IncidentPerDayByType type) {
+        return new IncidentPerDayByTypeDTO(type.count(),type.type(),type.dateTime());
+    }
+
+    public static IncidentAverageSolutionTimeDTO toIncidentAverageSolutionTimeDTO(IncidentAverageSolutionTime averageSolutionTime) {
+        return new IncidentAverageSolutionTimeDTO(averageSolutionTime.count(), averageSolutionTime.dateTime(),averageSolutionTime.duration());
     }
 }
