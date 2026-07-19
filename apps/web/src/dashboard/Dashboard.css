@@ -15,8 +15,10 @@
 
 .brand {
   align-items: center;
+  color: inherit;
   display: flex;
   gap: 12px;
+  text-decoration: none;
 }
 
 .brand strong,
@@ -38,11 +40,12 @@
 
 .brand-mark {
   align-items: center;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  color: white;
   display: inline-flex;
+  font-family: var(--heading-font);
   font-weight: 800;
   height: 42px;
   justify-content: center;
@@ -58,7 +61,7 @@
 .primary-button,
 .secondary-button,
 .ghost-button {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font: inherit;
   transition:
@@ -159,7 +162,13 @@
 .primary-button {
   background: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 10px 20px rgba(226, 103, 46, 0.25);
   color: white;
+}
+
+.primary-button:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
 }
 
 .secondary-button {
@@ -174,7 +183,7 @@
 }
 
 .ghost-button.danger {
-  border-color: rgba(185, 28, 28, 0.28);
+  border-color: var(--danger-soft);
   color: var(--danger);
 }
 
@@ -211,7 +220,7 @@
 .info-banner,
 .success-banner,
 .error-banner {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .metric-card,
@@ -223,6 +232,7 @@
 .info-banner {
   background: var(--surface);
   border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(74, 48, 20, 0.06);
 }
 
 .metric-card {
@@ -321,7 +331,7 @@
 
 .details-grid div {
   background: var(--surface-muted);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px;
 }
 
@@ -359,7 +369,7 @@
 .application-row {
   align-items: start;
   background: var(--surface-muted);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -418,7 +428,7 @@ select,
 textarea {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text-strong);
   font: inherit;
   min-height: 40px;
@@ -550,14 +560,14 @@ tbody tr:last-child td {
 
 .success-banner {
   background: var(--success-soft);
-  border: 1px solid rgba(4, 120, 87, 0.25);
+  border: 1px solid var(--secondary-border);
   color: var(--success);
   font-weight: 800;
 }
 
 .error-banner {
   background: var(--danger-soft);
-  border: 1px solid rgba(185, 28, 28, 0.28);
+  border: 1px solid rgba(196, 67, 46, 0.28);
   color: var(--danger);
   font-weight: 800;
 }
@@ -574,15 +584,21 @@ tbody tr:last-child td {
   padding: 24px;
 }
 
+.login-page {
+  background: radial-gradient(circle at top left, var(--accent-soft), transparent 45%),
+    radial-gradient(circle at bottom right, var(--secondary-soft), transparent 45%),
+    var(--background);
+}
+
 .login-panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   display: grid;
   gap: 22px;
   max-width: 520px;
-  padding: 28px;
+  padding: 32px;
   width: 100%;
 }
 
@@ -600,7 +616,7 @@ tbody tr:last-child td {
 .demo-grid button {
   background: var(--surface-muted);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   cursor: pointer;
   display: grid;
@@ -643,8 +659,8 @@ tbody tr:last-child td {
 }
 
 .json-panel pre {
-  background: #0f172a;
-  border-radius: 8px;
+  background: #2e2620;
+  border-radius: var(--radius-sm);
   color: #e2e8f0;
   font-family: var(--mono);
   font-size: 12px;
