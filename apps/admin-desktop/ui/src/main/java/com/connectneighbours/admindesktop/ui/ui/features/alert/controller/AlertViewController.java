@@ -339,5 +339,9 @@ public class AlertViewController extends VBox {
     protected void goToCreateAlert() {
         if (parent != null) parent.goToCreateAlert(this, currentIncident);
     }
+
+    public void goToEditAlert(AlertDTO alert) {
+        if (parent != null) parent.goToEditAlert(this, currentIncident, alert);
+    }
 }
 

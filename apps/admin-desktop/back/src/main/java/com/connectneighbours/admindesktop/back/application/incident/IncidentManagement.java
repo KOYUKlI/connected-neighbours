@@ -78,6 +78,7 @@ public class IncidentManagement {
         incident.setTitle(dto.title());
         incident.setDescription(dto.description());
         incident.setType(dto.type());
+        incident.setSeverity(dto.severity());
 
         var saved = incidentRepository.save(incident);
         return IncidentMapper.toDTO(saved);
@@ -144,6 +145,7 @@ public class IncidentManagement {
         if (dto.title() == null || dto.title().isBlank()) throw new IllegalArgumentException("Title cannot be null or empty");
         if (dto.description() == null || dto.description().isBlank()) throw new IllegalArgumentException("Description cannot be null or empty");
         if (dto.type() == null) throw new IllegalArgumentException("Type cannot be null");
+        if (dto.severity() == null) throw new IllegalArgumentException("Severity cannot be null");
     }
 
 }

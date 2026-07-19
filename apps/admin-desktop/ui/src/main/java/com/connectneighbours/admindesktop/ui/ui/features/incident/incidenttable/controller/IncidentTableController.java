@@ -124,11 +124,19 @@ public class IncidentTableController extends VBox {
 
             ContextMenu menu = new ContextMenu();
 
+            MenuItem edit = new MenuItem("Modifier");
             MenuItem open = new MenuItem("Marquer comme Ouvert");
             MenuItem startProgress = new MenuItem("Marquer comme En cours");
             MenuItem resolve = new MenuItem("Marquer comme Résolu");
             MenuItem close = new MenuItem("Marquer comme Clos");
             MenuItem delete = new MenuItem("Supprimer");
+
+            edit.setOnAction(e -> {
+                var vm = row.getItem();
+                if (vm != null) {
+                    parent.goToEditIncident(vm.getDto());
+                }
+            });
 
             open.setOnAction(e -> {
                 var vm = row.getItem();
@@ -187,7 +195,7 @@ public class IncidentTableController extends VBox {
                 }
             });
 
-            menu.getItems().addAll(open, startProgress, resolve, close,delete);
+            menu.getItems().addAll(edit, open, startProgress, resolve, close, delete);
 
             row.setOnMouseClicked(event -> {
                 if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 1 && !row.isEmpty()) {
