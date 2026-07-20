@@ -319,7 +319,7 @@ export default function DashboardApp() {
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" to="/">
-          <span className="brand-mark">CN</span>
+          <span className="landing-brand-mark">CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Espace habitant</span>
@@ -497,7 +497,7 @@ function LoginScreen({
     <main className="login-page">
       <section className="login-panel" aria-labelledby="login-title">
         <Link className="brand" to="/">
-          <span className="brand-mark">CN</span>
+          <span className="landing-brand-mark">CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Espace habitant</span>

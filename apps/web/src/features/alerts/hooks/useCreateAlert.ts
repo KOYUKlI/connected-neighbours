@@ -24,7 +24,7 @@ export function useCreateAlert() {
 
     try {
       await createAlert(incidentId, input);
-      navigate(`/incidents/${incidentId}/alerts`);
+      navigate(`/app/incidents/${incidentId}/alerts`);
     } catch (err) {
       if (handleSessionError(err)) {
         return;
@@ -38,7 +38,7 @@ export function useCreateAlert() {
 
   function cancel() {
     if (incidentId) {
-      navigate(`/incidents/${incidentId}/alerts`);
+      navigate(`/app/incidents/${incidentId}/alerts`);
     }
   }
 

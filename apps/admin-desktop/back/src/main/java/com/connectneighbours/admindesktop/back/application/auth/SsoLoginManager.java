@@ -82,7 +82,7 @@ public class SsoLoginManager {
 
         try {
             Desktop.getDesktop().browse(URI.create(
-                    webBaseUrl + "/desktop-login"
+                    webBaseUrl + "/app/desktop-login"
                             + "?state=" + urlEncode(state)
                             + "&callback=" + urlEncode(callbackUrl)
                             + "&codeChallenge=" + urlEncode(codeChallenge)
