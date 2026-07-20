@@ -19,35 +19,34 @@
   gap: 12px;
 }
 
-.brand-block strong,
-.brand-block span {
+.brand-block > div > strong,
+.brand-block > div > span {
   display: block;
 }
 
-.brand-block strong {
+.brand-block > div > strong {
   color: var(--text-strong);
   font-size: 15px;
   line-height: 1.2;
 }
 
-.brand-block span {
+.brand-block > div > span {
   color: var(--text-muted);
   font-size: 13px;
   margin-top: 2px;
 }
 
-.brand-mark {
+.landing-brand-mark {
   align-items: center;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  border-radius: var(--radius-sm);
+  color: white;
   display: inline-flex;
-  font-size: 13px;
+  font-family: var(--heading-font);
   font-weight: 800;
-  height: 42px;
+  height: 38px;
   justify-content: center;
-  width: 42px;
+  width: 38px;
 }
 
 .nav-list {

@@ -37,7 +37,7 @@ export function IncidentsPage() {
     const incidentId = getEntityId(incident);
 
     if (incidentId) {
-      navigate(`/incidents/${incidentId}/alerts`);
+      navigate(`/app/incidents/${incidentId}/alerts`);
     }
   }
 

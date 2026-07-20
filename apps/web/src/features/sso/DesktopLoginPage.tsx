@@ -22,7 +22,7 @@ export function DesktopLoginPage() {
     <main className="login-page">
       <section className="login-panel" aria-labelledby="desktop-login-title">
         <div className="brand">
-          <span className="brand-mark">CN</span>
+          <span className="landing-brand-mark">CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Connexion application Bureau</span>

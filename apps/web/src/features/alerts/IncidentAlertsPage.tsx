@@ -23,7 +23,7 @@ export function IncidentAlertsPage() {
   return (
     <div className="incident-alerts-page">
       <div className="incident-alerts-header">
-        <Link className="secondary-button" to="/incidents">
+        <Link className="secondary-button" to="/app/incidents">
           Retour aux incidents
         </Link>
         <h2>Alertes - {incident.title}</h2>
