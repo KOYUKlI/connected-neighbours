@@ -43,7 +43,7 @@ function App() {
     <div className="admin-shell">
       <aside className="sidebar">
         <div className="brand-block">
-          <span className="brand-mark">CN</span>
+          <span className="landing-brand-mark">CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Back-office P0</span>
@@ -124,7 +124,7 @@ function LoginScreen({ error, onSubmit }: LoginScreenProps) {
     <main className="login-page">
       <section className="login-panel" aria-labelledby="login-title">
         <div className="brand-block login-brand">
-          <span className="brand-mark">CN</span>
+          <span className="landing-brand-mark">CN</span>
           <div>
             <strong>Connected Neighbours</strong>
             <span>Back-office admin</span>
