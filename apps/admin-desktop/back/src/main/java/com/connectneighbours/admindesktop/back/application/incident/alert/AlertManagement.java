@@ -103,6 +103,7 @@ public class AlertManagement {
     public AlertDTO updateAlert(UUID alertId, UpdateAlertDTO dto) {
         Alert alert = loadAlert(alertId);
 
+        alert.setTitle(dto.title());
         alert.setDetails(dto.message());
         alert.setSeverity(dto.severity());
 

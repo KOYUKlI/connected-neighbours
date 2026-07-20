@@ -5,8 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record UpdateAlertDTO(
+        @NotBlank String title,
         @NotNull String message,
-        @NotBlank AlertSeverity severity
+        @NotNull AlertSeverity severity
 ) {
 }
 

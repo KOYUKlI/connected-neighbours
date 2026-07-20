@@ -19,6 +19,7 @@ import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.contr
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.SimpleWidgetAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.widgetalert.model.WidgetAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
+import com.connectneighbours.admindesktop.ui.ui.features.incident.utils.IncidentFormatting;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
@@ -53,6 +54,9 @@ public class AlertViewController extends VBox {
 
     @FXML
     private Label titleIncident;
+
+    @FXML
+    private Label statusIncident;
 
     @FXML
     private VBox alertsContainer;
@@ -133,9 +137,16 @@ public class AlertViewController extends VBox {
     public void loadIncident(IncidentDTO incident) {
         currentIncident = incident;
         titleIncident.textProperty().set("Incident #" + incident.displayId() + " - " + incident.title());
+        refreshIncidentStatus();
 
         refreshFilter();
         refreshStatsAndDistribution();
+    }
+
+    private void refreshIncidentStatus() {
+        String status = currentIncident.status().toString();
+        statusIncident.setText(IncidentFormatting.format(status));
+        statusIncident.setStyle(IncidentFormatting.statusBadgeStyle(status) + "-fx-padding:4 10 4 10;");
     }
 
     public AlertManagement getAlertManagement() {
@@ -150,6 +161,7 @@ public class AlertViewController extends VBox {
         if (currentIncident == null) return;
 
         currentIncident = parent.getIncidentManagement().getIncident(currentIncident.id());
+        refreshIncidentStatus();
         refreshStatsAndDistribution();
     }
 
@@ -338,6 +350,10 @@ public class AlertViewController extends VBox {
     @FXML
     protected void goToCreateAlert() {
         if (parent != null) parent.goToCreateAlert(this, currentIncident);
+    }
+
+    public void goToEditAlert(AlertDTO alert) {
+        if (parent != null) parent.goToEditAlert(this, currentIncident, alert);
     }
 }
 

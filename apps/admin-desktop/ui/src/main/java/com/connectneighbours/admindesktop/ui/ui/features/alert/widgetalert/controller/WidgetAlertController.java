@@ -74,17 +74,19 @@ public class WidgetAlertController extends AnchorPane {
     private void setupContextMenu() {
         ContextMenu menu = new ContextMenu();
 
+        MenuItem edit = new MenuItem("Modifier");
         MenuItem open = new MenuItem("Marquer comme Ouverte");
         MenuItem startProgress = new MenuItem("Marquer comme En cours");
         MenuItem resolve = new MenuItem("Marquer comme Résolue");
         MenuItem close = new MenuItem("Marquer comme Fermée");
 
+        edit.setOnAction(e -> parent.goToEditAlert(dto));
         open.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().openAlert(dto.id())));
         startProgress.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().startAlertProgress(dto.id())));
         resolve.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().resolveAlert(dto.id())));
         close.setOnAction(e -> applyStatusChange(() -> parent.getAlertManagement().closeAlert(dto.id())));
 
-        menu.getItems().addAll(open, startProgress, resolve, close);
+        menu.getItems().addAll(edit, open, startProgress, resolve, close);
 
         this.setOnContextMenuRequested(event -> {
             if (dto != null && parent != null) {

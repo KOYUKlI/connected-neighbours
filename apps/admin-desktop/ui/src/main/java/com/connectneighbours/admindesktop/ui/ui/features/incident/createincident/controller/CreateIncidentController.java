@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.ui.ui.features.incident.createincident.controller;
 
+import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.createincident.model.CreateIncidentProperty;
@@ -103,6 +104,23 @@ public class CreateIncidentController extends VBox {
 
     public void setOnCreate(Consumer<CreateIncidentProperty> onCreate) {
         this.onCreate = onCreate;
+    }
+
+    public void loadForEdit(IncidentDTO dto) {
+        titleField.setText(dto.title());
+        descriptionField.setText(dto.description());
+        typeCombo.setValue(dto.type());
+        selectSeverity(dto.severity());
+        btnCreate.setText("Enregistrer");
+    }
+
+    private void selectSeverity(IncidentSeverity severity) {
+        switch (severity) {
+            case LOW -> severityLow.setSelected(true);
+            case MEDIUM -> severityMedium.setSelected(true);
+            case HIGH -> severityHigh.setSelected(true);
+            case CRITICAL -> severityCritical.setSelected(true);
+        }
     }
 
     private void cancel() {

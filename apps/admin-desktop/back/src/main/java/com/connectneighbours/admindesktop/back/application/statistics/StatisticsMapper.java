@@ -12,7 +12,7 @@ public class StatisticsMapper {
     }
 
     public static ReporterActivityDTO toReporterActivityDTO(ReporterActivity reporterActivity) {
-        return new ReporterActivityDTO(reporterActivity.idReporter(), reporterActivity.firstname(), reporterActivity.lastname(), reporterActivity.incidentCount(), reporterActivity.alertCount());
+        return new ReporterActivityDTO(reporterActivity.idReporter(), reporterActivity.firstname(), reporterActivity.lastname(), reporterActivity.role(), reporterActivity.incidentCount(), reporterActivity.alertCount());
     }
 
     public static IncidentDistributionByTypeDTO toIncidentDistributionByTypeDTO(IncidentDistributionByType incidentDistributionByType) {
