@@ -226,15 +226,7 @@ public class IncidentTableController extends VBox {
 
 
     private static String getString(String status) {
-        String formatted = IncidentFormatting.format(status).trim().toLowerCase();
-
-        return switch (formatted) {
-            case "résolu" -> "-fx-background-color:#1F9338;-fx-text-fill:white;-fx-background-radius:12;";
-            case "en cours" -> "-fx-background-color:#EA7F0F;-fx-text-fill:white;-fx-background-radius:12;";
-            case "ouvert" -> "-fx-background-color:#3B82F6;-fx-text-fill:white;-fx-background-radius:12;";
-            case "fermé" -> "-fx-background-color:#8B1A1A ;-fx-text-fill:white;-fx-background-radius:12;";
-            default -> "-fx-background-color:#253DB3;-fx-text-fill:white;-fx-background-radius:12;";
-        };
+        return IncidentFormatting.statusBadgeStyle(status);
     }
 
     private void loadIncident(IncidentTableViewModel vm, IncidentDTO dto) {
