@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="16"
+         maxWidth="Infinity"
+         VBox.vgrow="ALWAYS"
+         stylesheets="@reporter-table-view.css"
+         styleClass="reporter-table-page">
+
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="reporter-table-header">
+        <Label text="Reporters" styleClass="reporter-table-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Rafraîchir" fx:id="btnRefresh" styleClass="filter-button"/>
+    </HBox>
+
+    <TableView fx:id="reporterTable" VBox.vgrow="ALWAYS">
+        <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+        </columnResizePolicy>
+        <columns>
+            <TableColumn fx:id="nameColumn" text="Nom" prefWidth="220" minWidth="160"/>
+            <TableColumn fx:id="roleColumn" text="Rôle" prefWidth="160" minWidth="130"/>
+            <TableColumn fx:id="incidentCountColumn" text="Incidents créés" prefWidth="160" minWidth="130"/>
+            <TableColumn fx:id="alertCountColumn" text="Alertes créées" prefWidth="160" minWidth="130"/>
+        </columns>
+    </TableView>
+
+</fx:root>

@@ -180,10 +180,11 @@ public class AlertManagementTest {
     void updateAlert_shouldModifyMessageAndSeverity() {
         Alert alert = createSampleAlert();
 
-        UpdateAlertDTO dto = new UpdateAlertDTO("Updated message", AlertSeverity.CRITICAL);
+        UpdateAlertDTO dto = new UpdateAlertDTO("Updated title", "Updated message", AlertSeverity.CRITICAL);
 
         AlertDTO updated = management.updateAlert(alert.getAlertId(), dto);
 
+        assertEquals("Updated title", updated.title());
         assertEquals("Updated message", updated.details());
         assertEquals(AlertSeverity.CRITICAL, updated.severity());
     }
@@ -191,7 +192,7 @@ public class AlertManagementTest {
     @Test
     void updateAlert_shouldThrowIfNotFound() {
         UUID unknown = UUID.randomUUID();
-        UpdateAlertDTO dto = new UpdateAlertDTO("msg", AlertSeverity.LOW);
+        UpdateAlertDTO dto = new UpdateAlertDTO("title", "msg", AlertSeverity.LOW);
 
         assertThrows(AlertNotFoundException.class, () -> management.updateAlert(unknown, dto));
     }

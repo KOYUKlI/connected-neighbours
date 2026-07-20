@@ -1,5 +1,6 @@
 package com.connectneighbours.admindesktop.ui.ui.features.alert.createalert.controller;
 
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.createalert.model.CreateAlertProperty;
 import com.connectneighbours.admindesktop.ui.ui.features.alert.createalert.model.SimpleCreateAlertProperty;
@@ -81,6 +82,22 @@ public class CreateAlertController extends VBox {
 
     public void setOnCreate(Consumer<CreateAlertProperty> onCreate) {
         this.onCreate = onCreate;
+    }
+
+    public void loadForEdit(AlertDTO dto) {
+        titleField.setText(dto.title());
+        descriptionField.setText(dto.details());
+        selectSeverity(dto.severity());
+        btnCreate.setText("Enregistrer");
+    }
+
+    private void selectSeverity(AlertSeverity severity) {
+        switch (severity) {
+            case LOW -> severityLow.setSelected(true);
+            case MEDIUM -> severityMedium.setSelected(true);
+            case HIGH -> severityHigh.setSelected(true);
+            case CRITICAL -> severityCritical.setSelected(true);
+        }
     }
 
     private void cancel() {

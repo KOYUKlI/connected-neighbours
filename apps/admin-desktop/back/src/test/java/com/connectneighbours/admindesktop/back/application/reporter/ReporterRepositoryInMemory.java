@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.back.application.reporter;
 
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -52,6 +53,27 @@ public class ReporterRepositoryInMemory implements ReporterRepository {
         return data.values().stream()
                 .filter(r -> r.getLastname().equals(lastname))
                 .toList();
+    }
+
+    @Override
+    public Optional<Reporter> findByFirstnameAndLastname(String firstname, String lastname) {
+        return data.values().stream()
+                .filter(r -> r.getFirstname().equals(firstname) && r.getLastname().equals(lastname))
+                .findFirst();
+    }
+
+    @Override
+    public List<Reporter> findByRole(ReporterRole role) {
+        return data.values().stream()
+                .filter(r -> r.getRole() == role)
+                .toList();
+    }
+
+    @Override
+    public Optional<Reporter> findByEmail(String email) {
+        return data.values().stream()
+                .filter(r -> email != null && email.equals(r.getEmail()))
+                .findFirst();
     }
 
     @Override

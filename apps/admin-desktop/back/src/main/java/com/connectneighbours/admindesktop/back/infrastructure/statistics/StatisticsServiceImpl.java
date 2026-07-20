@@ -58,7 +58,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .map(r -> {
                     var countIncidentList = incidentRepository.findByReporter(r).size();
                     var countAlertList = alertRepository.findByReporter(r).size();
-                    return new ReporterActivity(r.getIdReporter(), r.getFirstname(), r.getLastname(), (long) countIncidentList, (long) countAlertList);
+                    return new ReporterActivity(r.getIdReporter(), r.getFirstname(), r.getLastname(), r.getRole(), (long) countIncidentList, (long) countAlertList);
                 })
                 .toList();
     }

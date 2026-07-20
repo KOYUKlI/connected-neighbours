@@ -13,6 +13,7 @@ import com.connectneighbours.admindesktop.back.infrastructure.preferences.UiPref
 import com.connectneighbours.admindesktop.back.infrastructure.theme.ThemeContext;
 import com.connectneighbours.admindesktop.ui.ui.features.incident.controller.IncidentViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.plugin.controller.PluginViewController;
+import com.connectneighbours.admindesktop.ui.ui.features.reporter.reportertable.controller.ReporterTableViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.sync.controller.SyncHistoryViewController;
 import com.connectneighbours.admindesktop.ui.ui.features.theme.controller.ThemeViewController;
 import javafx.fxml.FXML;
@@ -77,6 +78,9 @@ public class AdminDesktopController {
     private MenuItem navIncidents;
 
     @FXML
+    private MenuItem navReporters;
+
+    @FXML
     private MenuItem navPlugins;
 
     @FXML
@@ -101,6 +105,7 @@ public class AdminDesktopController {
         offlineBadge.setManaged(offline);
 
         navIncidents.setOnAction(e -> showIncidents());
+        navReporters.setOnAction(e -> showReporters());
         navPlugins.setOnAction(e -> showPlugins());
         navThemes.setOnAction(e -> showThemes());
         navSync.setOnAction(e -> showSyncHistory());
@@ -127,6 +132,14 @@ public class AdminDesktopController {
         incidentView.loadIncidents(page);
 
         mainContainer.getChildren().setAll(incidentView);
+    }
+
+    public void showReporters() {
+        ReporterTableViewController reporterView = new ReporterTableViewController();
+        reporterView.setParent(this);
+        reporterView.loadReporters(statisticsManagement.reporterActivity());
+
+        mainContainer.getChildren().setAll(reporterView);
     }
 
     public void showPlugins() {
@@ -206,5 +219,9 @@ public class AdminDesktopController {
 
     public UiPreferencesService getUiPreferencesService() {
         return uiPreferencesService;
+    }
+
+    public AuthManagement getAuthManagement() {
+        return authManagement;
     }
 }

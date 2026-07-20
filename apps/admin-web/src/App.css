@@ -517,8 +517,19 @@ tbody tr:last-child td {
   margin: 0 0 16px;
 }
 
+.install-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .install-card .primary-button {
   display: inline-block;
+}
+
+.install-downloads .secondary-button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .install-steps {
@@ -535,6 +546,53 @@ tbody tr:last-child td {
   background: var(--border);
   border-radius: 4px;
   padding: 2px 6px;
+}
+
+.install-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.install-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 34px;
+  padding: 6px 14px;
+}
+
+.install-tab:hover {
+  background: var(--surface-muted);
+}
+
+.install-tab-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.install-command {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.install-command pre {
+  background: var(--border);
+  border-radius: 8px;
+  flex: 1;
+  margin: 0;
+  overflow-x: auto;
+  padding: 10px 14px;
+}
+
+.install-command code {
+  color: var(--text-strong);
 }
 
 .login-page {

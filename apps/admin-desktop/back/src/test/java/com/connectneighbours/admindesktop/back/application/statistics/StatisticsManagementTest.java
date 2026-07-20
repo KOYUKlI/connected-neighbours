@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.back.application.statistics;
 
 import com.connectneighbours.admindesktop.back.domain.alert.AlertSeverity;
 import com.connectneighbours.admindesktop.back.domain.incident.IncidentType;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRole;
 import com.connectneighbours.admindesktop.back.domain.statistics.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,8 +55,8 @@ public class StatisticsManagementTest {
     @Test
     void reporterActivity_returnsMappedList() {
         var domainList = List.of(
-                new ReporterActivity(UUID.randomUUID(), "John", "Doe", 3L, 1L),
-                new ReporterActivity(UUID.randomUUID(), "Alice", "Smith", 0L, 2L)
+                new ReporterActivity(UUID.randomUUID(), "John", "Doe", ReporterRole.RESIDENT, 3L, 1L),
+                new ReporterActivity(UUID.randomUUID(), "Alice", "Smith", ReporterRole.MODERATOR, 0L, 2L)
         );
 
         when(service.reporterActivity()).thenReturn(domainList);

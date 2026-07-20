@@ -19,6 +19,7 @@
             <MenuButton fx:id="navMenu" text="☰" styleClass="nav-menu-button">
                 <items>
                     <MenuItem fx:id="navIncidents" text="Incidents"/>
+                    <MenuItem fx:id="navReporters" text="Reporters"/>
                     <MenuItem fx:id="navPlugins" text="Plugins"/>
                     <MenuItem fx:id="navThemes" text="Thèmes"/>
                     <MenuItem fx:id="navSync" text="Historique Synchro"/>

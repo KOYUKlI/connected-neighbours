@@ -138,12 +138,13 @@ class IncidentManagementTest {
 
         var updated = management.updateIncident(
                 incident.getIncidentId(),
-                new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE)
+                new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE, IncidentSeverity.HIGH)
         );
 
         assertEquals("NewTitle", updated.title());
         assertEquals("NewDesc", updated.description());
         assertEquals(IncidentType.MAINTENANCE, updated.type());
+        assertEquals(IncidentSeverity.HIGH, updated.severity());
     }
 
     @Test
@@ -151,7 +152,7 @@ class IncidentManagementTest {
         var incident = new Incident(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE);
         incidentRepo.save(incident);
 
-        var dto = new UpdateIncidentDTO(null, "NewDesc", IncidentType.MAINTENANCE);
+        var dto = new UpdateIncidentDTO(null, "NewDesc", IncidentType.MAINTENANCE, IncidentSeverity.LOW);
 
         assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.getIncidentId(), dto));
     }
@@ -162,16 +163,26 @@ class IncidentManagementTest {
         var incident = new Incident(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE);
         incidentRepo.save(incident);
 
-        var dto = new UpdateIncidentDTO("New", "", IncidentType.MAINTENANCE);
+        var dto = new UpdateIncidentDTO("New", "", IncidentType.MAINTENANCE, IncidentSeverity.LOW);
 
         assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.getIncidentId(), dto));
     }
 
     @Test
     void updateIncident_shouldThrow_whenIdIsNull() {
-        var dto = new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE);
+        var dto = new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE, IncidentSeverity.LOW);
 
         assertThrows(IllegalArgumentException.class, () -> management.updateIncident(null, dto));
+    }
+
+    @Test
+    void updateIncident_shouldThrow_whenSeverityIsNull() {
+        var incident = new Incident(new Reporter("first", "last"), "Old", "Desc", IncidentType.MAINTENANCE);
+        incidentRepo.save(incident);
+
+        var dto = new UpdateIncidentDTO("NewTitle", "NewDesc", IncidentType.MAINTENANCE, null);
+
+        assertThrows(IllegalArgumentException.class, () -> management.updateIncident(incident.getIncidentId(), dto));
     }
 
 

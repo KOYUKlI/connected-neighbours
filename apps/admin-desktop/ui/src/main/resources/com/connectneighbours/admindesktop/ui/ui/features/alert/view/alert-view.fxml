@@ -24,6 +24,8 @@
                fx:id="titleIncident"
                styleClass="section-title"/>
 
+        <Label fx:id="statusIncident"/>
+
         <Region HBox.hgrow="ALWAYS"/>
 
 

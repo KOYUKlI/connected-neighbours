@@ -2,6 +2,7 @@ package com.connectneighbours.admindesktop.back.infrastructure.reporter;
 
 import com.connectneighbours.admindesktop.back.domain.reporter.Reporter;
 import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRepository;
+import com.connectneighbours.admindesktop.back.domain.reporter.ReporterRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -46,6 +47,21 @@ public class ReporterRepositoryImpl implements ReporterRepository {
     @Override
     public List<Reporter> findByLastname(String lastname) {
         return reporterDAO.findByLastname(lastname);
+    }
+
+    @Override
+    public Optional<Reporter> findByFirstnameAndLastname(String firstname, String lastname) {
+        return reporterDAO.findByFirstnameAndLastname(firstname, lastname);
+    }
+
+    @Override
+    public List<Reporter> findByRole(ReporterRole role) {
+        return reporterDAO.findByRole(role);
+    }
+
+    @Override
+    public Optional<Reporter> findByEmail(String email) {
+        return reporterDAO.findByEmail(email);
     }
 
     @Override

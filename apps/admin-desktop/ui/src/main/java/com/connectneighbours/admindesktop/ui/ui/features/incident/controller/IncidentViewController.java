@@ -1,12 +1,17 @@
 package com.connectneighbours.admindesktop.ui.ui.features.incident.controller;
 
+import com.connectneighbours.admindesktop.back.application.auth.AuthManagement;
 import com.connectneighbours.admindesktop.back.application.incident.CreationIncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentDTO;
 import com.connectneighbours.admindesktop.back.application.incident.IncidentManagement;
+import com.connectneighbours.admindesktop.back.application.incident.UpdateIncidentDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.AlertDTO;
 import com.connectneighbours.admindesktop.back.application.incident.alert.AlertManagement;
 import com.connectneighbours.admindesktop.back.application.incident.alert.CreationAlertDTO;
+import com.connectneighbours.admindesktop.back.application.incident.alert.UpdateAlertDTO;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterDTO;
 import com.connectneighbours.admindesktop.back.application.reporter.ReporterManagement;
+import com.connectneighbours.admindesktop.back.application.reporter.ReporterMapper;
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentAverageSolutionTimeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentDistributionByTypeDTO;
 import com.connectneighbours.admindesktop.back.application.statistics.IncidentPerDayByTypeDTO;
@@ -262,7 +267,8 @@ public class IncidentViewController extends VBox {
         createIncidentView.setOnCancel(() -> parent.getMainContainer().getChildren().setAll(this));
 
         createIncidentView.setOnCreate(property -> {
-            var reporter = getReporterManagement().getDefaultReporter();
+            var session = getAuthManagement().getCurrentSession();
+            var reporter = getReporterManagement().getOrCreateReporterFor(session);
             CreationIncidentDTO dto = new CreationIncidentDTO(
                     reporter,
                     property.titleProperty().get(),
@@ -278,6 +284,27 @@ public class IncidentViewController extends VBox {
         parent.getMainContainer().getChildren().setAll(createIncidentView);
     }
 
+    public void goToEditIncident(IncidentDTO incident) {
+        CreateIncidentController editIncidentView = new CreateIncidentController();
+        editIncidentView.loadForEdit(incident);
+
+        editIncidentView.setOnCancel(() -> parent.getMainContainer().getChildren().setAll(this));
+
+        editIncidentView.setOnCreate(property -> {
+            UpdateIncidentDTO dto = new UpdateIncidentDTO(
+                    property.titleProperty().get(),
+                    property.descriptionProperty().get(),
+                    property.typeProperty().get(),
+                    property.severityProperty().get()
+            );
+            getIncidentManagement().updateIncident(incident.id(), dto);
+            loadIncidents(getIncidentManagement().listIncidents(PageRequest.of(0, PAGE_SIZE)));
+            parent.getMainContainer().getChildren().setAll(this);
+        });
+
+        parent.getMainContainer().getChildren().setAll(editIncidentView);
+    }
+
     public void goToAlerts(IncidentDTO incident) {
         AlertViewController alertView = new AlertViewController();
         alertView.setParent(this);
@@ -291,8 +318,10 @@ public class IncidentViewController extends VBox {
         createAlertView.setOnCancel(() -> parent.getMainContainer().getChildren().setAll(previous));
 
         createAlertView.setOnCreate(property -> {
+            var session = getAuthManagement().getCurrentSession();
+            var reporter = getReporterManagement().getOrCreateReporterFor(session);
             CreationAlertDTO dto = new CreationAlertDTO(
-                    incident.reporter(),
+                    ReporterMapper.toDTO(reporter),
                     property.titleProperty().get(),
                     property.descriptionProperty().get(),
                     property.severityProperty().get()
@@ -303,6 +332,26 @@ public class IncidentViewController extends VBox {
         });
 
         parent.getMainContainer().getChildren().setAll(createAlertView);
+    }
+
+    public void goToEditAlert(AlertViewController previous, IncidentDTO incident, AlertDTO alert) {
+        CreateAlertController editAlertView = new CreateAlertController();
+        editAlertView.loadForEdit(alert);
+
+        editAlertView.setOnCancel(() -> parent.getMainContainer().getChildren().setAll(previous));
+
+        editAlertView.setOnCreate(property -> {
+            UpdateAlertDTO dto = new UpdateAlertDTO(
+                    property.titleProperty().get(),
+                    property.descriptionProperty().get(),
+                    property.severityProperty().get()
+            );
+            getAlertManagement().updateAlert(alert.id(), dto);
+            previous.loadIncident(getIncidentManagement().getIncident(incident.id()));
+            parent.getMainContainer().getChildren().setAll(previous);
+        });
+
+        parent.getMainContainer().getChildren().setAll(editAlertView);
     }
 
     public void updateAverageSolutionTimeGraph() {
@@ -491,6 +540,10 @@ public class IncidentViewController extends VBox {
 
     public ReporterManagement getReporterManagement() {
         return parent.getReporterManagement();
+    }
+
+    public AuthManagement getAuthManagement() {
+        return parent.getAuthManagement();
     }
 
     public UiPreferencesService getUiPreferencesService() {

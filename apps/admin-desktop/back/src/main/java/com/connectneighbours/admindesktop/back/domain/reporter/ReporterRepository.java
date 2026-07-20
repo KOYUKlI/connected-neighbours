@@ -20,6 +20,12 @@ public interface ReporterRepository {
 
     List<Reporter> findByLastname(String lastname);
 
+    Optional<Reporter> findByFirstnameAndLastname(String firstname, String lastname);
+
+    List<Reporter> findByRole(ReporterRole role);
+
+    Optional<Reporter> findByEmail(String email);
+
     void delete(Reporter reporter);
 
     long count();
