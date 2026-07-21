@@ -215,7 +215,9 @@ public class Incident {
     }
 
     public boolean hasCriticalOpenAlerts() {
-        return alerts.stream().anyMatch(a -> a.getSeverity().equals(AlertSeverity.CRITICAL) && !a.isResolved() && a.getStatus().equals(AlertStatus.OPEN) || a.getStatus().equals(AlertStatus.IN_PROGRESS));
+        return alerts.stream().anyMatch(a -> a.getSeverity().equals(AlertSeverity.CRITICAL)
+                && !a.isResolved()
+                && (a.getStatus().equals(AlertStatus.OPEN) || a.getStatus().equals(AlertStatus.IN_PROGRESS)));
     }
 
     public boolean isResolved() {
