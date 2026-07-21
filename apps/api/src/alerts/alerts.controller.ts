@@ -33,7 +33,7 @@ export class AlertsController {
     @Body() dto: CreateAlertDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.alertsService.create(incidentId, dto, user.sub);
+    return this.alertsService.create(incidentId, dto, user);
   }
 
   @Get('incidents/:incidentId/alerts')

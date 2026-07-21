@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -31,8 +35,13 @@ export class AlertsService {
     private readonly userModel: Model<UserDocument>,
   ) {}
 
-  async create(incidentId: string, dto: CreateAlertDto, currentUserId?: string) {
-    await this.assertIncidentExists(incidentId);
+  async create(
+    incidentId: string,
+    dto: CreateAlertDto,
+    currentUser: AlertActor,
+  ) {
+    const incident = await this.assertIncidentExists(incidentId);
+    this.assertCanCreateForIncident(incident, currentUser);
 
     return this.alertModel.create({
       incidentId,
@@ -42,7 +51,7 @@ export class AlertsService {
       status: dto.status ?? AlertStatus.CREATED,
       source: dto.source ?? AlertSource.WEB,
       externalId: dto.externalId ?? null,
-      reportedById: currentUserId ?? null,
+      reportedById: currentUser.sub,
       resolvedAt: null,
     });
   }
@@ -98,7 +107,10 @@ export class AlertsService {
     this.assertModeratorOrAdmin(currentUser);
 
     const alert = await this.alertModel
-      .findByIdAndUpdate(id, dto, { returnDocument: 'after', runValidators: true })
+      .findByIdAndUpdate(id, dto, {
+        returnDocument: 'after',
+        runValidators: true,
+      })
       .exec();
 
     if (!alert) {

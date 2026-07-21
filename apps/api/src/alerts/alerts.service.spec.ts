@@ -60,7 +60,7 @@ describe('AlertsService', () => {
         details: 'La serrure est abimee.',
         severity: AlertSeverity.HIGH,
       },
-      'user_1',
+      user('reporter'),
     );
 
     expect(alertModelMock.create).toHaveBeenCalledWith({
@@ -71,7 +71,7 @@ describe('AlertsService', () => {
       status: AlertStatus.CREATED,
       source: AlertSource.WEB,
       externalId: null,
-      reportedById: 'user_1',
+      reportedById: 'reporter',
       resolvedAt: null,
     });
     expect(result).toEqual(alert);
