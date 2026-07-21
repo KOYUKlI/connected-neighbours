@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Publier un service · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="services"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section">
+      <header class="page-heading"><div><span class="eyebrow">Nouvelle annonce</span><h1>Publier un service</h1><p>Décrivez votre besoin en trois étapes. Vous pourrez enregistrer un brouillon à tout moment.</p></div><a class="btn btn-secondary" href="03_services.html">Annuler</a></header>
+
+      <div class="wizard-shell" data-wizard>
+        <section class="card wizard-card">
+          <div class="wizard-progress"><div class="progress-labels"><strong data-progress-copy>Étape 1 sur 3</strong><span>Besoin · Organisation · Vérification</span></div><div class="progress-track"><div class="progress-value" data-progress-value></div></div></div>
+
+          <div class="wizard-step stack" data-wizard-step="1">
+            <div><h2>Quel service souhaitez-vous publier ?</h2><p class="muted">Choisissez le type d’annonce puis décrivez-la avec des mots simples.</p></div>
+            <div class="radio-grid"><label class="radio-card"><input type="radio" name="service-type" checked><span><strong>Je demande de l’aide</strong><span>Un voisin pourra candidater pour vous rendre service.</span></span></label><label class="radio-card"><input type="radio" name="service-type"><span><strong>Je propose mon aide</strong><span>Présentez une compétence disponible dans le quartier.</span></span></label></div>
+            <div class="form-grid"><div class="field"><label for="category">Catégorie</label><select class="select" id="category"><option>Bricolage</option><option>Animaux</option><option>Courses</option><option>Cours</option><option>Jardinage</option></select></div><div class="field"><label for="title">Titre</label><input class="input" id="title" value="Aide pour monter un meuble"><span class="field-hint">Un titre précis obtient des réponses plus pertinentes.</span></div><div class="field full"><label for="description">Description</label><textarea class="textarea" id="description">Je cherche une personne soigneuse pour m’aider à assembler une armoire et la fixer au mur. Les outils principaux sont disponibles sur place.</textarea></div></div>
+          </div>
+
+          <div class="wizard-step stack" data-wizard-step="2" hidden>
+            <div><h2>Quand et dans quelles conditions ?</h2><p class="muted">L’adresse exacte ne sera communiquée qu’au voisin retenu.</p></div>
+            <div class="form-grid"><div class="field"><label for="date">Date souhaitée</label><input class="input" id="date" type="date" value="2026-07-27"></div><div class="field"><label for="availability">Créneau</label><input class="input" id="availability" value="Entre 9 h et 12 h"></div><div class="field"><label for="duration">Durée estimée</label><select class="select" id="duration"><option>Environ 2 heures</option><option>Moins d’une heure</option><option>Une demi-journée</option></select></div><div class="field"><label for="neighborhood">Quartier</label><select class="select" id="neighborhood"><option>Quartier Centre, Paris</option></select></div><div class="field full"><label for="place">Lieu approximatif</label><input class="input" id="place" value="Près de la place des Vosges"></div></div>
+            <div class="radio-grid"><label class="radio-card"><input type="radio" name="payment" value="free"><span><strong>Service gratuit</strong><span>Aucun point ni contrat payant n’est nécessaire.</span></span></label><label class="radio-card"><input type="radio" name="payment" value="paid" checked><span><strong>Service en points</strong><span>Un contrat est créé après acceptation d’une candidature.</span></span></label></div>
+            <div class="form-grid"><div class="field" data-paid-only><label for="points">Nombre de points</label><input class="input" id="points" type="number" value="25" min="1" data-points-input><span class="field-hint">Obligatoire pour un service en points.</span></div><div class="field"><label for="attachment">Pièce jointe facultative</label><input class="input" id="attachment" type="file"></div></div>
+            <label class="checkbox-row"><input type="checkbox"> Cette demande est urgente.</label>
+          </div>
+
+          <div class="wizard-step stack" data-wizard-step="3" hidden>
+            <div><h2>Vérifiez avant de publier</h2><p class="muted">Votre annonce sera visible par les habitants du Quartier Centre.</p></div>
+            <div class="preview-block"><div class="spread"><div class="inline"><span class="badge badge-blue">Demande</span><span class="badge badge-gray">Bricolage</span></div><strong class="price" data-payment-preview>25 points</strong></div><h3 style="margin-top:14px">Aide pour monter un meuble</h3><p class="muted">Je cherche une personne soigneuse pour m’aider à assembler une armoire et la fixer au mur. Les outils principaux sont disponibles sur place.</p><div class="service-meta"><span>Samedi 27 juillet</span><span>Entre 9 h et 12 h</span><span>Environ 2 heures</span><span>Quartier Centre</span></div></div>
+            <div class="alert alert-warning"><span data-contract-notice><strong>Service en points : contrat obligatoire.</strong><br>Après avoir choisi un candidat, un contrat reprendra la date, le prix et les conditions. Les points seront réservés avant l’exécution.</span></div>
+            <label class="checkbox-row"><input type="checkbox" checked> Je confirme que les informations sont exactes et respecte les règles de la communauté.</label>
+          </div>
+
+          <div class="wizard-actions"><button class="btn btn-secondary" type="button" data-wizard-prev>Précédent</button><div class="inline"><button class="btn btn-ghost" type="button" data-toast-message="Brouillon enregistré dans Mes activités.">Enregistrer comme brouillon</button><button class="btn btn-primary" type="button" data-wizard-next>Continuer</button></div></div>
+        </section>
+
+        <aside class="card wizard-help"><span class="badge badge-green">Conseil</span><h3 style="margin-top:10px">Obtenez de bonnes candidatures</h3><ul><li>Décrivez le résultat attendu.</li><li>Proposez un créneau réaliste.</li><li>Indiquez le matériel disponible.</li><li>Choisissez un nombre de points adapté.</li></ul><div class="alert" style="margin-top:16px">Votre quartier filtre automatiquement la visibilité de l’annonce.</div></aside>
+      </div>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true"><h2 data-modal-title></h2><p data-modal-body></p><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Revenir</button><button class="btn btn-primary" type="button" data-modal-confirm-action>Publier</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+  <div data-site-footer></div>
+</body>
+</html>

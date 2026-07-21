@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aide pour monter un meuble · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="services"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section">
+      <div class="inline" style="margin-bottom:14px"><a class="section-link" href="03_services.html">← Retour aux services</a><span class="muted">/</span><span class="muted">Aide pour monter un meuble</span></div>
+      <div class="layout-main-aside">
+        <div class="stack">
+          <section class="card detail-hero">
+            <div class="inline"><span class="badge badge-blue">Demande</span><span class="badge badge-gray">Bricolage</span><span class="badge badge-blue" data-service-status>Candidatures reçues</span></div>
+            <h1>Aide pour monter un meuble</h1>
+            <p>Je cherche une personne soigneuse pour m’aider à assembler une armoire et la fixer au mur. Les outils principaux sont disponibles sur place.</p>
+            <div class="detail-facts">
+              <div class="fact"><span>Date souhaitée</span><strong>Samedi 27 juillet</strong></div>
+              <div class="fact"><span>Durée estimée</span><strong>2 heures</strong></div>
+              <div class="fact"><span>Lieu approximatif</span><strong>Quartier Centre · À moins de 500 m</strong></div>
+              <div class="fact"><span>Rémunération</span><strong>25 points</strong></div>
+            </div>
+          </section>
+
+          <section class="card card-pad" data-tab-scope>
+            <div class="tabs" role="tablist" data-tabs>
+              <button class="tab-button is-active" type="button" data-tab="presentation">Présentation</button>
+              <button class="tab-button" type="button" data-tab="candidatures">Candidatures <span class="badge badge-gray">2</span></button>
+              <button class="tab-button" type="button" data-tab="contract">Contrat</button>
+              <button class="tab-button" type="button" data-tab="chat">Messages</button>
+              <button class="tab-button" type="button" data-tab="history">Historique</button>
+            </div>
+
+            <div class="tab-panel stack" data-tab-panel="presentation">
+              <div><h2>Ce qu’il faut prévoir</h2><p class="muted">L’armoire est livrée en trois colis. Le mur est en béton et la fixation doit être réalisée avec les chevilles fournies. L’intervention se fait en présence d’Alice.</p></div>
+              <div class="grid grid-2"><div class="soft-card card-pad"><h3>Conditions</h3><ul class="muted" style="padding-left:18px;margin-bottom:0"><li>Respecter le créneau convenu.</li><li>Prévenir en cas de retard.</li><li>Valider ensemble la fixation finale.</li></ul></div><div class="soft-card card-pad"><h3>Pièce jointe</h3><p class="muted">notice-montage-armoire.pdf · 1,8 Mo</p><button class="btn btn-secondary btn-small" type="button">Consulter</button></div></div>
+            </div>
+
+            <div class="tab-panel stack" data-tab-panel="candidatures" hidden>
+              <div class="stack" data-selection-before>
+                <div class="alert"><strong>Deux candidatures à comparer.</strong>&nbsp; Accepter un candidat refusera automatiquement les autres candidatures.</div>
+                <article class="candidate-card"><a class="person" href="12_profil_voisin.html"><span class="avatar blue">BD</span><span class="person-copy"><strong>Bob Dupont</strong><span>4,9 · 18 avis · réponse rapide</span></span></a><p class="candidate-message">« Je suis disponible samedi à 9 h 30. J’ai l’habitude de monter ce type de meuble et je peux apporter une perceuse. »<br><strong>Samedi 9 h 30 · 25 points</strong></p><div class="candidate-actions"><button class="btn btn-primary btn-small" type="button" data-modal-open data-modal-title="Accepter la candidature de Bob ?" data-modal-body="Un contrat de 25 points sera généré et la candidature de Claire sera refusée." data-modal-confirm-label="Accepter Bob" data-modal-action="accept-bob">Accepter</button><button class="btn btn-secondary btn-small" type="button" data-toast-message="Une demande de précision a été ajoutée à la conversation avec Bob.">Demander une précision</button><button class="btn btn-ghost btn-small" type="button" data-toast-message="La candidature de Bob reste disponible tant que vous n’avez pas choisi.">Refuser</button></div></article>
+                <article class="candidate-card"><a class="person" href="11_voisins.html#claire"><span class="avatar rose">CB</span><span class="person-copy"><strong>Claire Bernard</strong><span>4,7 · 8 avis</span></span></a><p class="candidate-message">« Disponible samedi après-midi. Je propose 30 points, fixation comprise. »<br><strong>Samedi 14 h · 30 points</strong></p><div class="candidate-actions"><button class="btn btn-secondary btn-small" type="button" data-toast-message="Vous pouvez aussi comparer le profil public de Claire.">Accepter</button><button class="btn btn-secondary btn-small" type="button" data-toast-message="Une demande de précision a été ajoutée à la conversation avec Claire.">Demander une précision</button><button class="btn btn-ghost btn-small" type="button" data-toast-message="La candidature de Claire a été refusée.">Refuser</button></div></article>
+              </div>
+              <div class="stack" data-selection-after hidden>
+                <div class="alert"><strong>Bob a été retenu.</strong>&nbsp; La candidature de Claire a été refusée automatiquement après la sélection.</div>
+                <article class="candidate-card"><a class="person" href="12_profil_voisin.html"><span class="avatar blue">BD</span><span class="person-copy"><strong>Bob Dupont</strong><span>4,9 · 18 avis · réponse rapide</span></span></a><p class="candidate-message">Samedi 9 h 30 · 25 points · candidature retenue.</p><div class="candidate-actions"><span class="badge badge-green">Acceptée</span><a class="btn btn-secondary btn-small" href="08_messages.html?conversation=bob">Écrire</a></div></article>
+                <article class="candidate-card"><a class="person" href="11_voisins.html#claire"><span class="avatar rose">CB</span><span class="person-copy"><strong>Claire Bernard</strong><span>4,7 · 8 avis</span></span></a><p class="candidate-message">Samedi 14 h · 30 points · candidature clôturée après la sélection de Bob.</p><div class="candidate-actions"><span class="badge badge-gray">Refusée</span></div></article>
+              </div>
+            </div>
+
+            <div class="tab-panel stack" data-tab-panel="contract" hidden>
+              <div class="empty-inline" data-contract-before><h2>Aucun contrat généré</h2><p>Choisissez d’abord un candidat. Un contrat sera obligatoire pour cette prestation de 25 points.</p><button class="btn btn-secondary" type="button" data-tab-jump="candidatures">Comparer les candidatures</button></div>
+              <div class="stack" data-contract-after hidden><div class="spread"><div><span class="badge badge-amber">En attente de signatures</span><h2 style="margin-top:9px">Contrat avec Bob Dupont</h2><p class="muted">Le contrat a été généré depuis la candidature acceptée.</p></div><a class="btn btn-primary" href="07_contrat_signature.html">Consulter et signer</a></div><div class="grid grid-3"><div class="soft-card card-pad"><span class="muted">Points</span><h3>25 réservés</h3></div><div class="soft-card card-pad"><span class="muted">Alice</span><h3>Signature attendue</h3></div><div class="soft-card card-pad"><span class="muted">Bob</span><h3>Signature attendue</h3></div></div><div class="alert alert-warning">Le contrat devient actif uniquement après les deux signatures. Les points restent réservés jusqu’à la validation du service.</div></div>
+            </div>
+
+            <div class="tab-panel" data-tab-panel="chat" hidden><div class="spread"><div><h2>Conversation liée au service</h2><p class="muted">Échangez sur le créneau et le matériel sans quitter le contexte de la prestation.</p></div><a class="btn btn-primary" href="08_messages.html">Ouvrir la conversation</a></div></div>
+
+            <div class="tab-panel" data-tab-panel="history" hidden>
+              <div class="timeline"><div class="timeline-item done"><span class="timeline-dot"></span><span class="timeline-copy"><strong>Service publié</strong><span>Alice a publié sa demande dans Quartier Centre.</span></span><time>22 juillet · 09:20</time></div><div class="timeline-item done"><span class="timeline-dot"></span><span class="timeline-copy"><strong>Candidature reçue</strong><span>Bob a proposé samedi à 9 h 30 pour 25 points.</span></span><time>22 juillet · 11:08</time></div><div class="timeline-item done"><span class="timeline-dot"></span><span class="timeline-copy"><strong>Candidat accepté</strong><span>Bob a été retenu et l’autre candidature a été refusée.</span></span><time>22 juillet · 18:42</time></div><div class="timeline-item current"><span class="timeline-dot"></span><span class="timeline-copy"><strong>Contrat généré</strong><span>Les 25 points sont réservés. Les deux signatures sont attendues.</span></span><time>23 juillet · 08:15</time></div></div>
+            </div>
+          </section>
+        </div>
+
+        <aside>
+          <section class="card summary-card">
+            <span class="badge badge-blue" data-summary-status>2 candidatures reçues</span>
+            <div class="summary-price">25 points</div>
+            <a class="person" href="10_profil.html"><span class="avatar">AM</span><span class="person-copy"><strong>Alice Martin</strong><span>Créatrice · 4,8 sur 5</span></span></a>
+            <ul class="summary-list"><li><span>Candidatures</span><strong>2 à comparer</strong></li><li><span>Date souhaitée</span><strong>27 juillet</strong></li><li><span>Quartier</span><strong>Quartier Centre</strong></li><li><span>Contrat</span><strong>Obligatoire après sélection</strong></li></ul>
+            <button class="btn btn-primary" style="width:100%" type="button" data-tab-jump="candidatures">Comparer les candidatures</button>
+            <p class="muted" style="margin:13px 0 0;font-size:11px">L’adresse exacte sera partagée avec le prestataire retenu.</p>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true"><h2 data-modal-title></h2><p data-modal-body></p><div class="alert alert-warning">Les autres candidatures seront refusées et les conditions proposées seront utilisées pour le contrat.</div><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Annuler</button><button class="btn btn-primary" type="button" data-modal-confirm-action>Confirmer</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+  <div data-site-footer></div>
+</body>
+</html>

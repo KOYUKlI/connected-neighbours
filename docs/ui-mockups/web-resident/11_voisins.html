@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voisins · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="neighbors"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section">
+      <header class="page-heading">
+        <div><span class="eyebrow">Quartier Centre · Paris</span><h1>Les voisins de votre quartier</h1><p>Découvrez des habitants actifs près de chez vous, selon leurs compétences et vos centres d’intérêt.</p></div>
+      </header>
+
+      <section class="neighbor-toolbar card" aria-label="Recherche de voisins">
+        <label class="neighbor-search"><span class="sr-only">Rechercher un voisin</span><input class="input" type="search" placeholder="Rechercher un nom ou une compétence" data-neighbor-search></label>
+        <div class="neighbor-filters" role="group" aria-label="Filtrer les voisins">
+          <button class="filter-chip is-active" type="button" data-neighbor-filter="all">Même quartier</button>
+          <button class="filter-chip" type="button" data-neighbor-filter="following">Suivis</button>
+          <button class="filter-chip" type="button" data-neighbor-filter="top">Mieux notés</button>
+          <button class="filter-chip" type="button" data-neighbor-filter="recent">Récemment actifs</button>
+        </div>
+      </section>
+
+      <section class="neighbor-section" aria-labelledby="suggestions-title">
+        <div class="section-heading"><div><h2 id="suggestions-title">Suggestions pour vous</h2><p>Des profils publics qui partagent vos besoins ou vos compétences.</p></div><span class="muted" data-neighbor-count>3 voisins</span></div>
+        <div class="neighbor-grid" data-neighbor-grid>
+          <article class="neighbor-card card" data-neighbor-card data-user-id="bob" data-name="bob dupont bricolage informatique" data-following="true" data-top="true" data-recent="true">
+            <div class="neighbor-card-head"><a class="avatar avatar-lg blue" href="12_profil_voisin.html" aria-label="Voir le profil de Bob Dupont">BD</a><span class="presence-label"><span></span> Actif récemment</span></div>
+            <div><a class="neighbor-name" href="12_profil_voisin.html">Bob Dupont</a><p class="neighbor-location">Quartier Centre · Même quartier</p></div>
+            <p class="neighbor-bio">Passionné de bricolage et d’informatique, toujours partant pour donner un coup de main.</p>
+            <div class="skill-list"><span>Bricolage</span><span>Informatique</span><span>Vélo</span></div>
+            <dl class="neighbor-stats"><div><dt>Réputation</dt><dd>4,9 / 5</dd></div><div><dt>Services terminés</dt><dd>18</dd></div><div><dt>En commun</dt><dd>6 voisins</dd></div></dl>
+            <div class="neighbor-actions"><button class="btn btn-secondary btn-small is-following" type="button" data-follow-button data-following="true"><span data-follow-label>✓ Suivi</span></button><a class="btn btn-primary btn-small" href="08_messages.html?conversation=bob">Message</a><a class="btn btn-ghost btn-small" href="12_profil_voisin.html">Voir le profil</a></div>
+          </article>
+
+          <article class="neighbor-card card" data-neighbor-card data-user-id="claire" data-name="claire bernard animaux jardinage" data-following="false" data-top="true" data-recent="false">
+            <div class="neighbor-card-head"><button class="avatar avatar-lg rose" type="button" data-toast-message="Le profil public de Claire est disponible depuis la découverte.">CB</button><span class="muted">Active hier</span></div>
+            <div><button class="neighbor-name text-button" type="button" data-toast-message="Aperçu du profil public de Claire Bernard.">Claire Bernard</button><p class="neighbor-location">Quartier Centre · À proximité</p></div>
+            <p class="neighbor-bio">Amoureuse des animaux et des plantes, disponible le week-end pour s’entraider.</p>
+            <div class="skill-list"><span>Animaux</span><span>Jardinage</span></div>
+            <dl class="neighbor-stats"><div><dt>Réputation</dt><dd>4,7 / 5</dd></div><div><dt>Services terminés</dt><dd>8</dd></div><div><dt>En commun</dt><dd>3 voisins</dd></div></dl>
+            <div class="neighbor-actions"><button class="btn btn-secondary btn-small" type="button" data-follow-button data-following="false"><span data-follow-label>Suivre</span></button><a class="btn btn-primary btn-small" href="08_messages.html?conversation=claire">Message</a><button class="btn btn-ghost btn-small" type="button" data-toast-message="Aperçu du profil public de Claire Bernard.">Voir le profil</button></div>
+          </article>
+
+          <article class="neighbor-card card" data-neighbor-card data-user-id="nadia" data-name="nadia petit événements vélo couture" data-following="false" data-top="false" data-recent="true">
+            <div class="neighbor-card-head"><button class="avatar avatar-lg amber" type="button" data-toast-message="Le profil public de Nadia est disponible depuis la découverte.">NP</button><span class="presence-label"><span></span> En ligne</span></div>
+            <div><button class="neighbor-name text-button" type="button" data-toast-message="Aperçu du profil public de Nadia Petit.">Nadia Petit</button><p class="neighbor-location">Quartier Centre · Entre 1 et 2 km</p></div>
+            <p class="neighbor-bio">Participe aux événements locaux et anime ponctuellement des ateliers de réparation.</p>
+            <div class="skill-list"><span>Vélo</span><span>Couture</span><span>Événements</span></div>
+            <dl class="neighbor-stats"><div><dt>Réputation</dt><dd>4,6 / 5</dd></div><div><dt>Services terminés</dt><dd>6</dd></div><div><dt>En commun</dt><dd>4 voisins</dd></div></dl>
+            <div class="neighbor-actions"><button class="btn btn-secondary btn-small" type="button" data-follow-button data-following="false"><span data-follow-label>Suivre</span></button><a class="btn btn-primary btn-small" href="08_messages.html?conversation=nadia">Message</a><button class="btn btn-ghost btn-small" type="button" data-toast-message="Aperçu du profil public de Nadia Petit.">Voir le profil</button></div>
+          </article>
+
+        </div>
+
+        <div class="card empty-state" data-neighbor-empty hidden><span class="empty-state-icon">⌕</span><h3>Aucune suggestion</h3><p>Aucun voisin ne correspond à cette recherche. Essayez une autre compétence ou un autre filtre.</p><button class="btn btn-secondary btn-small" type="button" data-neighbor-reset>Effacer les filtres</button></div>
+      </section>
+
+      <div class="privacy-note"><strong>Votre vie privée reste protégée.</strong><span>Les profils bloqués sont retirés des suggestions. Les distances restent approximatives et les profils publics n’affichent jamais vos coordonnées privées.</span></div>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-neighbors"><h2 id="modal-title-neighbors" data-modal-title></h2><p data-modal-body></p><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Annuler</button><button class="btn btn-primary" type="button" data-modal-confirm-action>Confirmer</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+  <div data-site-footer></div>
+</body>
+</html>

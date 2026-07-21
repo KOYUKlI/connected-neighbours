@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bob Dupont · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="neighbors"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section" data-tab-scope data-public-profile="bob">
+      <a class="section-link back-link" href="11_voisins.html">← Retour aux voisins</a>
+      <section class="public-profile-hero card">
+        <div class="public-profile-main">
+          <span class="avatar public-avatar blue">BD</span>
+          <div>
+            <div class="inline"><h1>Bob Dupont</h1><span class="presence-label"><span></span> Actif récemment</span></div>
+            <p class="neighbor-location">Quartier Centre, Paris · membre depuis février 2026</p>
+            <p class="public-profile-bio">Passionné de bricolage et d’informatique. J’aime transmettre ce que je sais et rencontrer les habitants du quartier autour de projets utiles.</p>
+            <div class="skill-list"><span>Bricolage</span><span>Informatique</span><span>Réparation vélo</span></div>
+          </div>
+        </div>
+        <div class="public-profile-actions">
+          <button class="btn btn-secondary is-following" type="button" data-follow-button data-user-id="bob" data-following="true"><span data-follow-label>✓ Suivi</span></button>
+          <a class="btn btn-primary" href="08_messages.html?conversation=bob" data-profile-message>Envoyer un message</a>
+          <details class="action-menu">
+            <summary class="icon-button" aria-label="Plus d’actions">•••</summary>
+            <div class="action-menu-panel">
+              <button type="button" data-modal-open data-modal-title="Signaler ce profil ?" data-modal-body="Décrivez un comportement inapproprié. Le signalement sera examiné sans prévenir immédiatement le profil." data-modal-confirm-label="Envoyer le signalement">Signaler</button>
+              <button class="danger-link" type="button" data-modal-open data-modal-action="block-bob" data-modal-title="Bloquer Bob ?" data-modal-body="Vos abonnements mutuels seront supprimés. Bob ne pourra plus vous écrire, apparaître dans vos suggestions ni consulter votre activité publique." data-modal-confirm-label="Bloquer">Bloquer</button>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <div class="alert alert-warning" data-public-profile-blocked hidden><span><strong>Ce profil est bloqué.</strong><br>Les abonnements ont été supprimés, les messages sont désactivés et l’activité publique est masquée. Le déblocage ne rétablira pas automatiquement le suivi.</span></div>
+
+      <div class="public-profile-summary">
+        <div><strong>4,9 / 5</strong><span>18 avis reçus</span></div>
+        <div><strong>18</strong><span>services terminés</span></div>
+        <div><strong data-follower-count>46</strong><span>abonnés</span></div>
+        <div><strong>32</strong><span>abonnements</span></div>
+        <div><strong>6</strong><span>voisins en commun</span></div>
+      </div>
+
+      <div class="tabs profile-tabs" role="tablist" data-tabs>
+        <button class="tab-button is-active" type="button" data-tab="overview">Aperçu</button>
+        <button class="tab-button" type="button" data-tab="services">Services</button>
+        <button class="tab-button" type="button" data-tab="reviews">Avis</button>
+        <button class="tab-button" type="button" data-tab="activity">Activité publique</button>
+      </div>
+
+      <section class="tab-panel layout-main-aside" data-tab-panel="overview">
+        <div class="stack">
+          <article class="card card-pad"><h2>À propos de Bob</h2><p class="muted">Disponible surtout le soir et le samedi. Bob apporte souvent son propre matériel et précise toujours les conditions avant d’accepter un service.</p><dl class="profile-facts"><div><dt>Quartier</dt><dd>Quartier Centre</dd></div><div><dt>Réponse habituelle</dt><dd>Dans la journée</dd></div><div><dt>Compétences principales</dt><dd>Bricolage, informatique</dd></div></dl></article>
+          <article class="card card-pad"><div class="section-heading"><div><h2>Services proposés</h2><p>Deux offres actuellement visibles dans le quartier.</p></div><button class="section-link text-button" type="button" data-tab-jump="services">Tout voir</button></div><div class="compact-service-list"><a href="03_services.html"><span class="service-mini-icon blue">@</span><span><strong>Aide informatique à domicile</strong><small>18 points · soirs de semaine</small></span><span>→</span></a><a href="03_services.html"><span class="service-mini-icon amber">V</span><span><strong>Révision et réglage de vélo</strong><small>12 points · samedi matin</small></span><span>→</span></a></div></article>
+        </div>
+        <aside class="stack"><article class="card card-pad"><h3>Confiance dans le quartier</h3><div class="rating" aria-label="Note 4,9 sur 5">★★★★★</div><p class="muted">Ponctualité, communication et qualité du service sont les critères les plus cités.</p></article><article class="card card-pad"><h3>Voisins en commun</h3><div class="avatar-stack"><span class="avatar rose">CB</span><span class="avatar amber">NP</span><span class="avatar">AM</span><span class="avatar more">+3</span></div><p class="muted">Claire, Nadia et quatre autres voisins suivent aussi Bob.</p></article></aside>
+      </section>
+
+      <section class="tab-panel stack" data-tab-panel="services" hidden>
+        <article class="activity-card"><div><span class="badge badge-blue">Offre</span><h3>Aide informatique à domicile</h3><p>Installation, sauvegarde de photos et prise en main d’un ordinateur portable.</p></div><a class="btn btn-secondary btn-small" href="03_services.html">Consulter</a></article>
+        <article class="activity-card"><div><span class="badge badge-blue">Offre</span><h3>Révision et réglage de vélo</h3><p>Contrôle des freins, réglage des vitesses et conseils d’entretien.</p></div><a class="btn btn-secondary btn-small" href="03_services.html">Consulter</a></article>
+        <article class="activity-card"><div><span class="badge badge-green">Terminé</span><h3>Cours de maths niveau lycée</h3><p>Service validé par Alice · 15 points transférés.</p></div><span class="muted">12 juillet</span></article>
+      </section>
+
+      <section class="tab-panel stack" data-tab-panel="reviews" hidden>
+        <article class="review-card card"><div class="person"><span class="avatar">AM</span><span class="person-copy"><strong>Alice Martin</strong><span>Service terminé · 12 juillet</span></span></div><div class="rating">★★★★★</div><p>Bob explique clairement et prend le temps de vérifier que tout fonctionne avant de partir.</p></article>
+        <article class="review-card card"><div class="person"><span class="avatar rose">CB</span><span class="person-copy"><strong>Claire Bernard</strong><span>Service terminé · 28 juin</span></span></div><div class="rating">★★★★★</div><p>Très ponctuel et bien équipé. La réparation a été rapide et soignée.</p></article>
+      </section>
+
+      <section class="tab-panel stack" data-tab-panel="activity" data-public-activity hidden>
+        <div class="privacy-note"><strong>Activité publique uniquement</strong><span>Les messages, contrats, points et coordonnées privées de Bob ne sont jamais affichés ici.</span></div>
+        <div class="timeline"><div class="timeline-item done"><span class="timeline-dot"></span><span class="timeline-copy"><strong>A participé à l’atelier réparation vélo</strong><span>Maison de quartier · activité publique</span></span><time>Il y a 2 jours</time></div><div class="timeline-item done"><span class="timeline-dot"></span><span class="timeline-copy"><strong>A publié une offre d’aide informatique</strong><span>Visible dans Quartier Centre</span></span><time>Il y a 5 jours</time></div><div class="timeline-item done"><span class="timeline-dot"></span><span class="timeline-copy"><strong>A terminé un service</strong><span>Cours de maths niveau lycée</span></span><time>12 juillet</time></div></div>
+      </section>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-profile"><h2 id="modal-title-profile" data-modal-title></h2><p data-modal-body></p><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Annuler</button><button class="btn btn-danger" type="button" data-modal-confirm-action>Confirmer</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+  <div data-site-footer></div>
+</body>
+</html>

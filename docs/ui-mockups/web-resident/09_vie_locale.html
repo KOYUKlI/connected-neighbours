@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vie locale · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="local"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section" data-tab-scope>
+      <header class="page-heading"><div><span class="eyebrow">Quartier Centre · Paris</span><h1>Vie locale</h1><p>Participez aux rendez-vous, décisions et signalements de votre quartier.</p></div><button class="btn btn-primary" type="button" data-local-primary data-modal-open data-modal-title="Proposer un événement" data-modal-body="Décrivez le rendez-vous, le lieu et la date proposés." data-modal-confirm-label="Continuer"><span aria-hidden="true">＋</span> Proposer un événement</button></header>
+      <div class="tabs" role="tablist" data-tabs>
+        <button class="tab-button is-active" type="button" data-tab="events">Événements</button>
+        <button class="tab-button" type="button" data-tab="votes">Votes <span class="badge badge-green">1 ouvert</span></button>
+        <button class="tab-button" type="button" data-tab="incidents">Incidents</button>
+        <button class="tab-button" type="button" data-tab="map">Carte</button>
+      </div>
+
+      <section class="tab-panel stack" data-tab-panel="events">
+        <div class="spread"><div><h2>Prochains événements</h2><p class="muted">Rencontrez vos voisins autour d’activités locales.</p></div><select class="select" style="width:auto"><option>À venir</option><option>Ce week-end</option><option>Mes participations</option></select></div>
+        <div class="local-grid">
+          <article class="local-card"><span class="date-tile"><span>Juil.</span><strong>27</strong></span><span class="local-copy"><span class="badge badge-green">Environnement</span><h3>Nettoyage du parc samedi</h3><p>10 h · Parc des Célestins · 18 participants</p></span><button class="btn btn-primary btn-small" type="button" data-toast-message="Votre participation est enregistrée.">Participer</button></article>
+          <article class="local-card"><span class="date-tile"><span>Août</span><strong>03</strong></span><span class="local-copy"><span class="badge badge-blue">Atelier</span><h3>Atelier réparation vélo</h3><p>14 h · Maison de quartier · 9 participants</p></span><button class="btn btn-secondary btn-small" type="button">Voir</button></article>
+          <article class="local-card"><span class="date-tile"><span>Août</span><strong>10</strong></span><span class="local-copy"><span class="badge badge-gray">Convivialité</span><h3>Petit-déjeuner des voisins</h3><p>9 h 30 · Place du Marché · 24 participants</p></span><button class="btn btn-secondary btn-small" type="button">Voir</button></article>
+          <article class="local-card"><span class="date-tile"><span>Août</span><strong>17</strong></span><span class="local-copy"><span class="badge badge-blue">Culture</span><h3>Balade historique du quartier</h3><p>16 h · Départ mairie · 12 participants</p></span><button class="btn btn-secondary btn-small" type="button">Voir</button></article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="votes" hidden>
+        <div class="layout-main-aside">
+          <article class="card card-pad stack"><div class="spread"><span class="badge badge-green">Vote ouvert</span><span class="muted">Clôture dimanche à 20 h</span></div><div><h2>Installer un composteur partagé près du parc ?</h2><p class="muted">Le quartier propose un espace accessible aux habitants, avec une permanence mensuelle d’entretien.</p></div><div class="stack-sm"><label class="vote-option"><input type="radio" name="compost" value="yes" data-vote-option> Oui, je suis favorable</label><label class="vote-option"><input type="radio" name="compost" value="different" data-vote-option> Oui, mais à un autre emplacement</label><label class="vote-option"><input type="radio" name="compost" value="no" data-vote-option> Non, je ne suis pas favorable</label></div><div class="inline"><button class="btn btn-primary" type="button" data-vote-submit disabled>Valider mon vote</button><span class="muted">Une seule réponse par habitant.</span></div><div class="alert" data-vote-feedback hidden>Votre vote est enregistré. Vous verrez les résultats à la clôture.</div></article>
+          <aside class="stack"><section class="card card-pad"><span class="badge badge-gray">Déjà voté</span><h3 style="margin-top:10px">Organiser une fête de quartier ?</h3><p class="muted">Résultat : 76 % pour · 142 participants</p><div class="progress-track"><div class="progress-value" style="width:76%"></div></div></section><section class="card card-pad"><h3>Comment ça marche ?</h3><p class="muted">Les votes sont réservés aux habitants du quartier concerné. Un vote clôturé n’accepte plus de réponse.</p></section></aside>
+        </div>
+      </section>
+
+      <section class="tab-panel stack" data-tab-panel="incidents" hidden>
+        <div class="spread"><div><h2>Incidents signalés</h2><p class="muted">Consultez l’état des signalements qui concernent votre quartier.</p></div></div>
+        <article class="activity-card"><div><div class="inline"><span class="badge badge-amber">En cours</span><span class="badge badge-gray">Maintenance · moyenne</span></div><h3>Éclairage public en panne</h3><p>Rue Saint-Paul · signalé le 22 juillet · dernière mise à jour aujourd’hui</p></div><button class="btn btn-secondary btn-small" type="button" data-toast-message="Vous suivez maintenant les mises à jour de cet incident.">Suivre</button></article>
+        <article class="activity-card"><div><div class="inline"><span class="badge badge-blue">Signalé</span><span class="badge badge-red">Propreté · élevée</span></div><h3>Dépôt sauvage signalé</h3><p>Angle rue de Turenne · signalé hier par Claire Bernard</p></div><button class="btn btn-secondary btn-small" type="button">Consulter</button></article>
+        <article class="activity-card"><div><div class="inline"><span class="badge badge-green">Résolu</span><span class="badge badge-gray">Circulation · faible</span></div><h3>Signalisation déplacée</h3><p>Rue des Rosiers · résolu le 19 juillet</p></div><button class="btn btn-ghost btn-small" type="button">Historique</button></article>
+        <div class="accordion"><button class="accordion-button" type="button" data-accordion-button aria-expanded="false"><span>Conseils pour un signalement utile</span><span>＋</span></button><div class="accordion-content"><p>Choisissez le type et le niveau d’urgence, indiquez un lieu approximatif, décrivez les faits et joignez une photo seulement si elle ne montre pas de données personnelles.</p></div></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="map" hidden>
+        <div class="section-heading"><div><h2>Carte de Quartier Centre</h2><p>Services, événements et incidents visibles autour de vous.</p></div><div class="inline"><button class="btn btn-secondary btn-small" type="button">Services</button><button class="btn btn-secondary btn-small" type="button">Événements</button><button class="btn btn-secondary btn-small" type="button">Incidents</button></div></div>
+        <div class="map-placeholder" role="img" aria-label="Carte urbaine avec limites du Quartier Centre et repères"><div class="map-river"></div><div class="map-zone"></div><span class="map-pin one" title="Service">S</span><span class="map-pin event two" title="Événement">E</span><span class="map-pin incident three" title="Incident">!</span><div class="map-legend"><strong>Légende</strong><span class="legend-row"><span class="legend-dot"></span> Service</span><span class="legend-row"><span class="legend-dot" style="background:#2563a6"></span> Événement</span><span class="legend-row"><span class="legend-dot" style="background:#d5624c"></span> Incident</span><span class="legend-row"><span class="legend-dot" style="border:2px solid #176b5b;background:#d8ece7"></span> Limite du quartier</span></div></div>
+      </section>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true"><h2 data-modal-title></h2><p data-modal-body></p><div class="form-grid" data-local-form="events"><div class="field full"><label>Titre de l’événement</label><input class="input" placeholder="Ex. Atelier cuisine entre voisins"></div><div class="field"><label>Date</label><input class="input" type="date"></div><div class="field"><label>Lieu approximatif</label><input class="input" placeholder="Maison de quartier"></div></div><div class="form-grid" data-local-form="votes" hidden><div class="field full"><label>Question proposée</label><input class="input" placeholder="Ex. Installer un banc près du parc ?"></div><div class="field full"><label>Contexte</label><textarea class="textarea" placeholder="Expliquez la proposition aux habitants"></textarea></div></div><div class="form-grid" data-local-form="incidents" hidden><div class="field"><label>Type</label><select class="select"><option>Maintenance</option><option>Propreté</option><option>Sécurité</option><option>Circulation</option></select></div><div class="field"><label>Urgence</label><select class="select"><option>Faible</option><option>Moyenne</option><option>Élevée</option></select></div><div class="field full"><label>Localisation</label><input class="input" placeholder="Lieu approximatif"></div><div class="field full"><label>Description</label><textarea class="textarea" placeholder="Décrivez ce que vous avez constaté"></textarea></div></div><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Annuler</button><button class="btn btn-primary" type="button" data-modal-confirm-action>Continuer</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+  <div data-site-footer></div>
+</body>
+</html>

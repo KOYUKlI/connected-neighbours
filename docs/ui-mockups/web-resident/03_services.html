@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Services · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="services"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section">
+      <header class="page-heading">
+        <div><span class="eyebrow">Quartier Centre et alentours</span><h1>Services entre voisins</h1><p>Trouvez un coup de main près de chez vous ou proposez vos compétences.</p></div>
+        <a class="btn btn-primary" href="05_service_publication.html"><span aria-hidden="true">＋</span> Publier un service</a>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="Types de services">
+        <button class="tab-button is-active" type="button" data-service-view="all">Explorer</button>
+        <button class="tab-button" type="button" data-service-view="request">Demandes</button>
+        <button class="tab-button" type="button" data-service-view="offer">Offres</button>
+        <button class="tab-button" type="button" data-service-view="urgent">Urgents</button>
+        <button class="tab-button" type="button" data-service-view="recommended">Pour vous</button>
+      </div>
+
+      <div class="filters service-filters">
+        <input class="input" type="search" placeholder="Rechercher un service…" aria-label="Rechercher un service" data-service-search>
+        <select class="select desktop-service-filter" aria-label="Catégorie" data-service-category><option value="all">Toutes les catégories</option><option value="bricolage">Bricolage</option><option value="animaux">Animaux</option><option value="cours">Cours</option><option value="jardinage">Jardinage</option><option value="informatique">Informatique</option><option value="mobilite">Mobilité</option></select>
+        <select class="select desktop-service-filter" aria-label="Type" data-service-type><option value="all">Demandes et offres</option><option value="request">Demandes</option><option value="offer">Offres</option></select>
+        <select class="select filter-secondary desktop-service-filter" aria-label="Distance" data-service-distance><option value="all">Tout le quartier</option><option value="1">Moins de 1 km</option><option value="2">Moins de 2 km</option><option value="3">Moins de 3 km</option></select>
+        <select class="select filter-secondary desktop-service-filter" aria-label="Points" data-service-points><option value="all">Tous les prix</option><option value="free">Gratuit</option><option value="low">1 à 20 points</option><option value="high">Plus de 20 points</option></select>
+      </div>
+      <div class="mobile-service-toolbar">
+        <button class="btn btn-secondary" type="button" data-filter-toggle aria-controls="mobile-service-filters" aria-expanded="false">Filtres <span data-mobile-filter-count hidden></span></button>
+        <select class="select" aria-label="Trier les services" data-mobile-service-sort><option value="distance">Plus proches</option><option value="recent">Plus récents</option><option value="points">Plus de points</option><option value="urgent">Urgents</option></select>
+      </div>
+      <div class="results-row"><strong data-result-count>6 services</strong><div class="inline desktop-result-controls"><select class="select" style="width:auto" aria-label="Disponibilité" data-service-date><option value="all">Toutes les dates</option><option value="week">Cette semaine</option><option value="weekend">Ce week-end</option></select><select class="select" style="width:auto" aria-label="Trier" data-service-sort><option value="distance">Plus proches</option><option value="recent">Plus récents</option><option value="points">Plus de points</option><option value="urgent">Urgents</option></select><button class="btn btn-ghost btn-small" type="button" data-clear-filters>Effacer</button></div></div>
+      <div class="active-filter-chips" data-active-filter-chips hidden aria-label="Filtres actifs" aria-live="polite"></div>
+
+      <div class="service-grid" id="service-results" data-service-grid>
+        <article class="service-card" data-service-card data-category="bricolage" data-type="request" data-distance="0.45" data-points="25" data-date="weekend" data-urgent="true" data-recommended="false" data-order="6">
+          <div class="service-visual amber"><span class="badge badge-amber">Demande urgente</span><span class="service-symbol">M</span></div>
+          <div class="service-body"><div class="spread"><span class="badge badge-gray">Bricolage</span><span class="badge badge-green">Votre annonce</span></div><a class="service-title-link" href="04_service_detail.html"><h3>Aide pour monter un meuble</h3></a><p>Besoin d’un coup de main samedi matin pour assembler une armoire dans mon salon.</p><div class="service-meta"><span>Dans votre quartier</span><span>Sam. 27 juillet</span><span>2 candidatures</span></div><div class="service-footer"><a class="person" href="10_profil.html"><span class="avatar">AM</span><span class="person-copy"><strong>Alice Martin</strong><span>Votre profil · 4,8</span></span></a><a class="btn btn-secondary btn-small" href="04_service_detail.html">Gérer</a></div></div>
+        </article>
+        <article class="service-card" data-service-card data-category="animaux" data-type="request" data-distance="0.9" data-points="20" data-date="weekend" data-urgent="false" data-recommended="false" data-order="5">
+          <div class="service-visual rose"><span class="badge badge-blue">Demande</span><span class="service-symbol">C</span></div>
+          <div class="service-body"><span class="badge badge-gray">Animaux</span><a class="service-title-link" href="04_service_detail.html"><h3>Garde de chat ce week-end</h3></a><p>Passer nourrir Moka samedi et dimanche, appartement proche de Bastille.</p><div class="service-meta"><span>À moins de 1 km</span><span>27 et 28 juillet</span><span>3 candidatures</span></div><div class="service-footer"><a class="person" href="11_voisins.html#claire"><span class="avatar rose">CB</span><span class="person-copy"><strong>Claire Bernard</strong><span>4,7 · 8 avis</span></span></a><a class="btn btn-primary btn-small" href="04_service_detail.html">Candidater</a></div></div>
+        </article>
+        <article class="service-card" data-service-card data-category="cours" data-type="offer" data-distance="0.7" data-points="15" data-date="week" data-urgent="false" data-recommended="true" data-order="4">
+          <div class="service-visual blue"><span class="badge badge-blue">Offre</span><span class="service-symbol">∑</span></div>
+          <div class="service-body"><div class="spread"><span class="badge badge-gray">Cours</span><span class="badge badge-green">Pour vous</span></div><a class="service-title-link" href="04_service_detail.html"><h3>Cours de maths niveau lycée</h3></a><p>Une heure de soutien en mathématiques, avec exercices adaptés au programme.</p><div class="service-meta"><span>À moins de 1 km</span><span>Mer. après 18 h</span><span>Disponible</span></div><div class="service-footer"><a class="person" href="12_profil_voisin.html"><span class="avatar blue">BD</span><span class="person-copy"><strong>Bob Dupont</strong><span>4,9 · 18 avis</span></span></a><a class="btn btn-secondary btn-small" href="04_service_detail.html">Consulter</a></div></div>
+        </article>
+        <article class="service-card" data-service-card data-category="jardinage" data-type="request" data-distance="1.1" data-points="0" data-date="week" data-urgent="false" data-recommended="true" data-order="3">
+          <div class="service-visual"><span class="badge badge-green">Pour vous</span><span class="service-symbol">P</span></div>
+          <div class="service-body"><span class="badge badge-gray">Jardinage</span><a class="service-title-link" href="04_service_detail.html"><h3>Arrosage de plantes</h3></a><p>Je cherche une personne disponible pendant mon absence de quatre jours.</p><div class="service-meta"><span>À environ 1 km</span><span>Du 2 au 5 août</span><span>1 candidature</span></div><div class="service-footer"><a class="person" href="11_voisins.html#nadia"><span class="avatar amber">NP</span><span class="person-copy"><strong>Nadia Petit</strong><span>4,6 · 6 avis</span></span></a><a class="btn btn-primary btn-small" href="04_service_detail.html">Candidater</a></div></div>
+        </article>
+        <article class="service-card" data-service-card data-category="informatique" data-type="offer" data-distance="1.4" data-points="18" data-date="week" data-urgent="false" data-recommended="true" data-order="2">
+          <div class="service-visual blue"><span class="badge badge-blue">Offre</span><span class="service-symbol">@</span></div>
+          <div class="service-body"><span class="badge badge-gray">Informatique</span><a class="service-title-link" href="04_service_detail.html"><h3>Aide informatique à domicile</h3></a><p>Installation, sauvegarde de photos et prise en main d’un ordinateur portable.</p><div class="service-meta"><span>Entre 1 et 2 km</span><span>Soirs de semaine</span><span>4 services réalisés</span></div><div class="service-footer"><a class="person" href="12_profil_voisin.html"><span class="avatar blue">BD</span><span class="person-copy"><strong>Bob Dupont</strong><span>4,9 · 18 avis</span></span></a><a class="btn btn-secondary btn-small" href="04_service_detail.html">Consulter</a></div></div>
+        </article>
+        <article class="service-card" data-service-card data-category="mobilite" data-type="request" data-distance="2" data-points="10" data-date="weekend" data-urgent="false" data-recommended="false" data-order="1">
+          <div class="service-visual amber"><span class="badge badge-blue">Demande</span><span class="service-symbol">V</span></div>
+          <div class="service-body"><div class="spread"><span class="badge badge-gray">Mobilité</span><span class="badge badge-green">Votre annonce</span></div><a class="service-title-link" href="06_mes_activites.html"><h3>Révision rapide d’un vélo</h3></a><p>Freins à régler avant une sortie prévue dimanche matin.</p><div class="service-meta"><span>Dans votre quartier</span><span>Avant dimanche</span><span>Aucune candidature</span></div><div class="service-footer"><a class="person" href="10_profil.html"><span class="avatar">AM</span><span class="person-copy"><strong>Alice Martin</strong><span>Votre profil · 4,8</span></span></a><a class="btn btn-secondary btn-small" href="06_mes_activites.html">Gérer</a></div></div>
+        </article>
+      </div>
+      <button class="btn btn-secondary mobile-more-button" type="button" data-mobile-more hidden>Voir plus de services</button>
+      <div class="card empty-state" data-empty-results hidden><span class="empty-state-icon">⌕</span><h3>Aucun service trouvé</h3><p>Essayez un autre mot-clé ou élargissez la distance de recherche.</p><button class="btn btn-secondary btn-small" type="button" data-clear-filters>Effacer les filtres</button></div>
+    </div>
+  </main>
+  <div class="mobile-filter-backdrop" data-filter-drawer hidden aria-hidden="true">
+    <section class="mobile-filter-sheet" id="mobile-service-filters" role="dialog" aria-modal="true" aria-labelledby="mobile-filter-title" tabindex="-1">
+      <div class="mobile-filter-header">
+        <div><span class="eyebrow">Affiner la recherche</span><h2 id="mobile-filter-title">Filtres</h2></div>
+        <button class="icon-button" type="button" data-filter-close aria-label="Fermer les filtres">×</button>
+      </div>
+      <form class="mobile-filter-form" data-mobile-filter-form>
+        <label class="field"><span>Catégorie</span><select class="select" data-mobile-service-category><option value="all">Toutes les catégories</option><option value="bricolage">Bricolage</option><option value="animaux">Animaux</option><option value="cours">Cours</option><option value="jardinage">Jardinage</option><option value="informatique">Informatique</option><option value="mobilite">Mobilité</option></select></label>
+        <label class="field"><span>Type de service</span><select class="select" data-mobile-service-type><option value="all">Demandes et offres</option><option value="request">Demandes</option><option value="offer">Offres</option></select></label>
+        <label class="field"><span>Distance approximative</span><select class="select" data-mobile-service-distance><option value="all">Tout le quartier</option><option value="1">Moins de 1 km</option><option value="2">Moins de 2 km</option><option value="3">Moins de 3 km</option></select></label>
+        <label class="field"><span>Prix</span><select class="select" data-mobile-service-points><option value="all">Tous les prix</option><option value="free">Gratuit</option><option value="low">1 à 20 points</option><option value="high">Plus de 20 points</option></select></label>
+        <label class="field"><span>Disponibilité</span><select class="select" data-mobile-service-date><option value="all">Toutes les dates</option><option value="week">Cette semaine</option><option value="weekend">Ce week-end</option></select></label>
+        <div class="mobile-filter-actions">
+          <button class="btn btn-ghost" type="button" data-mobile-filter-reset>Réinitialiser</button>
+          <button class="btn btn-primary" type="submit">Appliquer</button>
+        </div>
+      </form>
+    </section>
+  </div>
+  <div data-site-footer></div>
+</body>
+</html>

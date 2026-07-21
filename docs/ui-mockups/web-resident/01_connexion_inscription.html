@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="login-page">
+  <header class="auth-header">
+    <a class="brand" href="01_connexion_inscription.html" aria-label="Connected Neighbours">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg></span>
+      <span>Connected Neighbours</span>
+    </a>
+  </header>
+
+  <main class="auth-shell" id="main-content">
+    <section class="auth-main" aria-labelledby="auth-title">
+      <span class="eyebrow">Bienvenue dans votre quartier</span>
+      <h1 id="auth-title">Retrouvez vos voisins</h1>
+      <p class="muted auth-intro">Connectez-vous pour demander de l’aide, proposer vos compétences et suivre la vie locale.</p>
+
+      <div class="tabs auth-tabs" role="tablist" aria-label="Accès au compte">
+        <button class="tab-button is-active" type="button" data-auth-mode="login" role="tab" aria-selected="true">Connexion</button>
+        <button class="tab-button" type="button" data-auth-mode="register" role="tab" aria-selected="false">Créer un compte</button>
+      </div>
+
+      <form class="stack auth-panel" data-auth-panel="login">
+        <div class="field">
+          <label for="login-email">Adresse e-mail</label>
+          <input class="input" id="login-email" type="email" autocomplete="email" placeholder="vous@exemple.fr">
+        </div>
+        <div class="field">
+          <label for="login-password">Mot de passe</label>
+          <input class="input" id="login-password" type="password" autocomplete="current-password" placeholder="Votre mot de passe">
+        </div>
+        <div class="spread auth-options">
+          <label class="checkbox-row"><input type="checkbox"> Rester connecté</label>
+          <a class="section-link" href="#">Mot de passe oublié ?</a>
+        </div>
+        <button class="btn btn-primary auth-submit" type="button" data-auth-login>Se connecter</button>
+        <p class="auth-security-note">Vos informations de connexion restent confidentielles.</p>
+      </form>
+
+      <section class="auth-panel auth-mfa-panel" data-auth-panel="mfa" data-mfa-flow data-login-mfa hidden aria-labelledby="login-mfa-title">
+        <button class="back-link text-button" type="button" data-auth-back>← Retour à la connexion</button>
+        <div class="mfa-heading">
+          <span class="mfa-shield" aria-hidden="true">✓</span>
+          <div><span class="badge badge-green">Vérification renforcée</span><h2 id="login-mfa-title">Confirmez votre connexion</h2></div>
+        </div>
+        <p class="muted">Saisissez le code à 6 chiffres envoyé à votre adresse e-mail. Ce parcours illustre la sécurité prévue pour les actions sensibles.</p>
+        <form class="stack" data-mfa-form>
+          <div class="field">
+            <label for="login-mfa-code">Code de vérification</label>
+            <input class="input mfa-code-input" id="login-mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" aria-describedby="login-mfa-hint login-mfa-feedback" data-mfa-code>
+            <span class="field-hint" id="login-mfa-hint">Le code expire dans 10 minutes.</span>
+            <span class="field-error" id="login-mfa-feedback" data-mfa-feedback aria-live="polite"></span>
+          </div>
+          <div class="mfa-inline-actions">
+            <button class="btn btn-primary" type="submit" data-mfa-verify>Vérifier le code</button>
+            <button class="btn btn-ghost" type="button" data-mfa-resend>Renvoyer le code</button>
+          </div>
+          <button class="section-link text-button mfa-recovery-link" type="button" data-mfa-recovery-toggle>Utiliser un code de récupération</button>
+          <div class="field" data-mfa-recovery hidden>
+            <label for="login-recovery-code">Code de récupération</label>
+            <input class="input" id="login-recovery-code" autocomplete="off" placeholder="XXXX-XXXX" data-mfa-recovery-code>
+          </div>
+        </form>
+        <div class="mfa-loading" data-mfa-loading hidden role="status"><span class="spinner" aria-hidden="true"></span><strong>Vérification en cours…</strong></div>
+        <div class="auth-success compact" data-mfa-success hidden>
+          <span class="auth-success-icon" aria-hidden="true">✓</span>
+          <h2>Identité confirmée</h2>
+          <p>La vérification a réussi. Vous pouvez accéder à votre quartier.</p>
+          <a class="btn btn-primary" href="02_accueil.html">Continuer</a>
+        </div>
+      </section>
+
+      <form class="auth-panel" data-auth-panel="register" data-register-flow hidden>
+        <div class="register-progress" aria-label="Progression de l’inscription">
+          <span class="is-active" data-register-progress="1"><strong>1</strong> Identité</span>
+          <span data-register-progress="2"><strong>2</strong> Quartier</span>
+        </div>
+
+        <section class="stack" data-register-step="1">
+          <div>
+            <h2>Créer votre compte</h2>
+            <p class="muted">Quelques informations suffisent pour commencer.</p>
+          </div>
+          <div class="form-grid">
+            <div class="field full"><label for="register-name">Nom complet</label><input class="input" id="register-name" autocomplete="name" placeholder="Ex. Camille Durand"></div>
+            <div class="field full"><label for="register-email">Adresse e-mail</label><input class="input" id="register-email" type="email" autocomplete="email" placeholder="vous@exemple.fr"></div>
+            <div class="field"><label for="register-password">Mot de passe</label><input class="input" id="register-password" type="password" autocomplete="new-password" placeholder="8 caractères minimum"></div>
+            <div class="field"><label for="register-confirm">Confirmation</label><input class="input" id="register-confirm" type="password" autocomplete="new-password" placeholder="Répétez le mot de passe"></div>
+          </div>
+          <label class="checkbox-row"><input type="checkbox" data-register-terms> J’accepte les conditions d’utilisation et la politique de confidentialité.</label>
+          <div class="auth-step-actions"><span></span><button class="btn btn-primary" type="button" data-register-next>Continuer</button></div>
+        </section>
+
+        <section class="stack" data-register-step="2" hidden>
+          <div>
+            <h2>Rejoignez votre quartier</h2>
+            <p class="muted">Recherchez votre ville ou votre code postal. Votre adresse exacte ne sera pas affichée.</p>
+          </div>
+          <div class="field">
+            <label for="neighborhood-search">Ville ou code postal</label>
+            <div class="auth-search-row">
+              <input class="input" id="neighborhood-search" placeholder="Ex. Paris 75004">
+              <button class="btn btn-secondary" type="button" data-neighborhood-search>Rechercher</button>
+            </div>
+          </div>
+          <div class="neighborhood-result" data-neighborhood-result hidden>
+            <span><strong>Quartier Centre, Paris</strong><span>Paris 4e · quartier actif</span></span>
+            <button class="btn btn-primary btn-small" type="button" data-neighborhood-select>Choisir</button>
+          </div>
+          <p class="field-hint" data-register-neighborhood-hint>Choisissez un quartier pour continuer.</p>
+          <div class="auth-step-actions">
+            <button class="btn btn-secondary" type="button" data-register-prev>Précédent</button>
+            <button class="btn btn-primary" type="button" data-register-confirm disabled>Créer mon compte</button>
+          </div>
+        </section>
+
+        <section class="auth-success" data-register-success hidden>
+          <span class="auth-success-icon" aria-hidden="true">✓</span>
+          <h2>Votre compte est prêt</h2>
+          <p>Vous avez rejoint <strong>Quartier Centre, Paris</strong>. Découvrez les services et les voisins près de chez vous.</p>
+          <a class="btn btn-primary" href="02_accueil.html">Accéder à mon quartier</a>
+        </section>
+      </form>
+    </section>
+
+    <aside class="auth-aside">
+      <span class="eyebrow">Quartier Centre · Paris</span>
+      <h2>Tout ce qui rapproche les voisins, au même endroit.</h2>
+      <p>Une plateforme simple pour s’entraider et prendre part à la vie du quartier.</p>
+      <div class="benefit-list">
+        <div class="benefit"><span class="benefit-icon">01</span><span><strong>Trouver de l’aide</strong><span>Consultez les demandes et offres autour de chez vous.</span></span></div>
+        <div class="benefit"><span class="benefit-icon">02</span><span><strong>Proposer ses compétences</strong><span>Rendez service gratuitement ou en échange de points.</span></span></div>
+        <div class="benefit"><span class="benefit-icon">03</span><span><strong>Participer à la vie locale</strong><span>Événements, votes et suivi des incidents du quartier.</span></span></div>
+      </div>
+    </aside>
+  </main>
+  <div class="toast" data-toast role="status"></div>
+</body>
+</html>

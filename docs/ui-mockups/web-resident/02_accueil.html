@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accueil · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div data-site-header data-active="home"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section">
+      <header class="page-heading">
+        <div><span class="eyebrow">Quartier Centre · Paris</span><h1>Bonjour Alice</h1><p>Voici les échanges qui demandent votre attention aujourd’hui.</p></div>
+        <a class="btn btn-primary" href="05_service_publication.html"><span aria-hidden="true">＋</span> Publier un service</a>
+      </header>
+
+      <div class="layout-main-aside">
+        <div class="stack" style="gap:26px">
+          <section aria-labelledby="todo-title">
+            <div class="section-heading"><div><h2 id="todo-title">À faire</h2><p>Trois actions pour faire avancer vos échanges.</p></div><a class="section-link" href="06_mes_activites.html">Tout voir</a></div>
+            <div class="card card-pad task-list">
+              <div class="task-item"><span class="task-icon">01</span><span class="task-copy"><strong>Signer le contrat avec Bob</strong><span>Aide pour monter un meuble · 25 points réservés</span></span><a class="btn btn-primary btn-small" href="07_contrat_signature.html">Signer</a></div>
+              <div class="task-item"><span class="task-icon">02</span><span class="task-copy"><strong>Comparer deux candidatures</strong><span>Garde de chat ce week-end · reçues aujourd’hui</span></span><a class="btn btn-secondary btn-small" href="04_service_detail.html#candidatures">Comparer</a></div>
+              <div class="task-item"><span class="task-icon">03</span><span class="task-copy"><strong>Valider un service réalisé</strong><span>Aide informatique · Bob attend votre confirmation</span></span><button class="btn btn-secondary btn-small" type="button" data-modal-open data-modal-title="Valider la réalisation ?" data-modal-body="La validation transfère les points réservés au prestataire. Vérifiez que le service a bien été réalisé." data-modal-confirm-label="Valider et transférer">Examiner</button></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="neighbors-home-title">
+            <div class="section-heading"><div><h2 id="neighbors-home-title">Voisins à découvrir</h2><p>Des habitants actifs dans Quartier Centre.</p></div><a class="section-link" href="11_voisins.html">Découvrir les voisins</a></div>
+            <div class="neighbor-strip">
+              <article class="card neighbor-mini"><a class="avatar blue" href="12_profil_voisin.html">BD</a><div><a class="neighbor-mini-name" href="12_profil_voisin.html">Bob Dupont</a><span>Bricolage · informatique</span></div><button class="btn btn-secondary btn-small is-following" type="button" data-follow-button data-following="true"><span data-follow-label>Suivi</span></button></article>
+              <article class="card neighbor-mini"><a class="avatar rose" href="11_voisins.html#claire">CB</a><div><a class="neighbor-mini-name" href="11_voisins.html#claire">Claire Bernard</a><span>Animaux · jardinage</span></div><button class="btn btn-secondary btn-small" type="button" data-follow-button data-following="false"><span data-follow-label>Suivre</span></button></article>
+              <article class="card neighbor-mini"><a class="avatar amber" href="11_voisins.html#nadia">NP</a><div><a class="neighbor-mini-name" href="11_voisins.html#nadia">Nadia Petit</a><span>Vélo · événements</span></div><button class="btn btn-secondary btn-small" type="button" data-follow-button data-following="false"><span data-follow-label>Suivre</span></button></article>
+            </div>
+          </section>
+
+          <section aria-labelledby="nearby-title">
+            <div class="section-heading"><div><h2 id="nearby-title">Services près de chez vous</h2><p>Des demandes et offres publiées dans Quartier Centre.</p></div><a class="section-link" href="03_services.html">Explorer les services</a></div>
+            <div class="service-grid">
+              <article class="service-card"><div class="service-visual amber"><span class="badge badge-amber">Demande urgente</span><span class="service-symbol">M</span></div><div class="service-body"><span class="badge badge-gray">Bricolage</span><h3>Aide pour monter un meuble</h3><p>Besoin d’un coup de main samedi matin pour assembler une armoire.</p><div class="service-meta"><span>À moins de 500 m</span><span>Sam. 27 juillet</span><span>2 candidatures</span></div><div class="service-footer"><span class="person"><span class="avatar">AM</span><span class="person-copy"><strong>Alice Martin</strong><span>4,8 · 12 avis</span></span></span><a class="price" href="04_service_detail.html">25 pts</a></div></div></article>
+              <article class="service-card"><div class="service-visual blue"><span class="badge badge-blue">Offre</span><span class="service-symbol">∑</span></div><div class="service-body"><span class="badge badge-gray">Cours</span><h3>Cours de maths niveau lycée</h3><p>Je propose une heure de soutien en mathématiques, le mercredi soir.</p><div class="service-meta"><span>À moins de 1 km</span><span>Mer. après 18 h</span><span>Disponible</span></div><div class="service-footer"><span class="person"><span class="avatar blue">BD</span><span class="person-copy"><strong>Bob Dupont</strong><span>4,9 · 18 avis</span></span></span><span class="price">15 pts</span></div></div></article>
+              <article class="service-card"><div class="service-visual"><span class="badge badge-green">Pour vous</span><span class="service-symbol">P</span></div><div class="service-body"><span class="badge badge-gray">Jardinage</span><h3>Arrosage de plantes</h3><p>Je cherche une personne disponible pendant mon absence de quatre jours.</p><div class="service-meta"><span>À environ 1 km</span><span>Du 2 au 5 août</span><span>1 candidature</span></div><div class="service-footer"><span class="person"><span class="avatar rose">CB</span><span class="person-copy"><strong>Claire Bernard</strong><span>4,7 · 8 avis</span></span></span><span class="price">Gratuit</span></div></div></article>
+            </div>
+          </section>
+
+          <section aria-labelledby="local-title">
+            <div class="section-heading"><div><h2 id="local-title">Dans votre quartier</h2><p>Les prochains rendez-vous et sujets à suivre.</p></div><a class="section-link" href="09_vie_locale.html">Voir la vie locale</a></div>
+            <div class="grid grid-3">
+              <article class="card card-pad"><span class="badge badge-blue">Événement</span><h3 style="margin-top:10px">Nettoyage du parc samedi</h3><p class="muted" style="font-size:12px">Samedi, 10 h · Parc des Célestins · 18 participants</p><a class="section-link" href="09_vie_locale.html">Voir l’événement</a></article>
+              <article class="card card-pad"><span class="badge badge-green">Vote ouvert</span><h3 style="margin-top:10px">Installer un composteur partagé ?</h3><p class="muted" style="font-size:12px">Vous avez jusqu’à dimanche pour participer.</p><a class="section-link" href="09_vie_locale.html#votes">Voter</a></article>
+              <article class="card card-pad"><span class="badge badge-amber">Incident suivi</span><h3 style="margin-top:10px">Éclairage public en panne</h3><p class="muted" style="font-size:12px">Rue Saint-Paul · Pris en charge par les services locaux.</p><a class="section-link" href="09_vie_locale.html#incidents">Suivre</a></article>
+            </div>
+          </section>
+        </div>
+
+        <aside class="stack">
+          <section class="card card-pad"><div class="spread"><div><span class="muted" style="font-size:11px">Votre solde</span><div class="summary-price">75 points</div></div><span class="badge badge-amber">25 réservés</span></div><p class="muted" style="font-size:12px">Les points réservés seront transférés après votre validation du service.</p><a class="btn btn-secondary btn-small" href="10_profil.html#points">Voir mes points</a></section>
+          <section class="card card-pad"><h3>Raccourcis utiles</h3><div class="stack-sm" style="margin-top:12px"><a class="btn btn-secondary" href="05_service_publication.html">Créer une demande</a><a class="btn btn-secondary" href="06_mes_activites.html#contrats">Mes contrats</a><a class="btn btn-secondary" href="09_vie_locale.html#incidents">Signaler un incident</a></div></section>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true"><h2 data-modal-title></h2><p data-modal-body></p><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Annuler</button><button class="btn btn-primary" type="button" data-modal-confirm-action>Confirmer</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+  <div data-site-footer></div>
+</body>
+</html>

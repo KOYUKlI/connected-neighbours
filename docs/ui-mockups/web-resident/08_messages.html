@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages · Connected Neighbours</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="messages-page">
+  <div data-site-header data-active="messages"></div>
+  <main class="page" id="main-content">
+    <div class="container page-section messages-page-section">
+      <header class="page-heading messages-page-heading"><div><span class="eyebrow">Échanges entre voisins</span><h1>Messages</h1><p>Discutez directement avec vos voisins ou retrouvez les échanges liés à un service.</p></div></header>
+
+      <section class="messaging-shell messaging-shell-v2" aria-label="Messagerie" data-messaging-shell>
+        <aside class="conversation-sidebar" data-conversation-sidebar>
+          <div class="conversation-sidebar-head">
+            <div class="spread"><div><h2>Conversations</h2><span class="muted">3 échanges récents</span></div><button class="icon-button" type="button" aria-label="Nouveau message" data-toast-message="Choisissez un voisin depuis la page Voisins.">＋</button></div>
+            <label class="conversation-search-v2"><span class="sr-only">Rechercher une conversation</span><input class="input" type="search" placeholder="Rechercher une conversation" data-conversation-search></label>
+            <div class="conversation-filter-tabs" role="group" aria-label="Filtrer les conversations">
+              <button class="is-active" type="button" data-conversation-filter="all">Tous</button>
+              <button type="button" data-conversation-filter="direct">Personnels</button>
+              <button type="button" data-conversation-filter="service">Services</button>
+              <button type="button" data-conversation-filter="unread">Non lus</button>
+            </div>
+          </div>
+          <div class="conversation-items-v2" data-conversation-list>
+            <button class="conversation-item-v2 is-active" type="button" data-conversation="bob" data-type="service" data-unread="true">
+              <span class="avatar blue"><span class="online-dot"></span>BD</span>
+              <span class="conversation-copy"><span class="conversation-name-row"><strong>Bob Dupont</strong><time>10:42</time></span><span class="conversation-kind">Service · Montage du meuble</span><span class="conversation-excerpt">Je peux apporter ma perceuse.</span></span>
+              <span class="unread-count">2</span>
+            </button>
+            <button class="conversation-item-v2" type="button" data-conversation="claire" data-type="direct" data-unread="false">
+              <span class="avatar rose">CB</span>
+              <span class="conversation-copy"><span class="conversation-name-row"><strong>Claire Bernard</strong><time>Hier</time></span><span class="conversation-kind">Conversation personnelle</span><span class="conversation-excerpt">Merci pour l’adresse de l’atelier !</span></span>
+            </button>
+            <button class="conversation-item-v2" type="button" data-conversation="nadia" data-type="event" data-unread="true">
+              <span class="avatar amber"><span class="online-dot"></span>AV</span>
+              <span class="conversation-copy"><span class="conversation-name-row"><strong>Atelier réparation vélo</strong><time>Lun.</time></span><span class="conversation-kind">Groupe événement · 8 participants</span><span class="conversation-excerpt">Nadia : l’atelier est confirmé à 14 h.</span></span>
+              <span class="unread-count">1</span>
+            </button>
+          </div>
+          <div class="conversation-empty" data-conversation-empty hidden><span>⌕</span><strong>Aucune conversation</strong><p>Modifiez votre recherche ou vos filtres.</p></div>
+        </aside>
+
+        <div class="chat-pane-v2" data-chat-pane>
+          <div class="chat-top-v2">
+          <header class="chat-header-v2">
+            <button class="icon-button mobile-chat-back" type="button" data-chat-back aria-label="Revenir aux conversations">←</button>
+            <a class="person chat-person-link" href="12_profil_voisin.html" data-chat-profile-link>
+              <span class="avatar blue" data-chat-avatar>BD</span>
+              <span class="person-copy"><strong data-chat-name>Bob Dupont</strong><span class="presence" data-chat-presence>Actif récemment</span></span>
+            </a>
+            <div class="chat-header-actions">
+              <a class="btn btn-ghost btn-small" href="12_profil_voisin.html" data-chat-profile-button>Profil</a>
+              <button class="icon-button" type="button" data-chat-info-toggle aria-label="Afficher les informations">ⓘ</button>
+              <details class="action-menu chat-action-menu">
+                <summary class="icon-button" aria-label="Actions de conversation">•••</summary>
+                <div class="action-menu-panel">
+                  <button type="button" data-modal-open data-modal-title="Signaler cette conversation ?" data-modal-body="Le signalement sera transmis avec les messages nécessaires à son examen." data-modal-confirm-label="Signaler">Signaler</button>
+                  <button class="danger-link" type="button" data-modal-open data-modal-action="block-current" data-modal-title="Bloquer ce voisin ?" data-modal-body="Les abonnements mutuels seront supprimés. Cette personne ne pourra plus vous écrire ni voir votre activité publique." data-modal-confirm-label="Bloquer">Bloquer</button>
+                </div>
+              </details>
+            </div>
+          </header>
+
+          <div class="chat-context-slot" data-chat-context>
+            <div class="service-context-card">
+              <div><span class="badge badge-amber">Contrat à signer</span><strong>Aide pour monter un meuble</strong><span>Samedi 27 juillet · 25 points réservés</span></div>
+              <div class="inline"><a class="btn btn-secondary btn-small" href="04_service_detail.html">Voir le service</a><a class="btn btn-primary btn-small" href="07_contrat_signature.html">Voir le contrat</a><button class="icon-button context-collapse" type="button" data-context-toggle aria-label="Réduire le contexte">⌃</button></div>
+            </div>
+          </div>
+          </div>
+
+          <div class="messages-v2" aria-live="polite" data-message-list>
+            <div class="message-stack" data-message-stack>
+              <div class="message-day">Aujourd’hui</div>
+              <div class="system-message">Candidature acceptée · contrat généré</div>
+              <div class="message-v2 theirs"><p>Bonjour Alice, je peux apporter une perceuse et un niveau samedi.</p><span class="message-meta">10:38</span></div>
+              <div class="message-v2 mine"><p>Parfait, merci. Les chevilles sont déjà dans le colis.</p><span class="message-meta">10:40 · Lu</span></div>
+              <div class="message-v2 theirs"><div class="reply-preview">Alice · Les chevilles sont déjà dans le colis.</div><p>Très bien. 9 h 30 me convient toujours.</p><div class="message-reaction">👍 1</div><span class="message-meta">10:42</span></div>
+            </div>
+          </div>
+
+          <form class="composer-v2" data-message-form>
+            <div class="attachment-wrap">
+              <button class="composer-icon" type="button" aria-label="Ajouter une pièce jointe" aria-expanded="false" data-attachment-toggle>＋</button>
+              <div class="attachment-menu" data-attachment-menu hidden>
+                <button type="button" data-toast-message="Choisissez une photo à joindre."><span aria-hidden="true">▧</span> Photo</button>
+                <button type="button" data-toast-message="Ouvrez l’appareil photo."><span aria-hidden="true">◉</span> Appareil photo</button>
+                <button type="button" data-toast-message="Choisissez un document à joindre."><span aria-hidden="true">▤</span> Document</button>
+                <button type="button" data-toast-message="Choisissez un service ou un événement à partager."><span aria-hidden="true">↗</span> Service ou événement</button>
+              </div>
+            </div>
+            <button class="composer-icon" type="button" aria-label="Ajouter un emoji" data-toast-message="Sélecteur d’emoji ouvert.">☺</button>
+            <input class="input" type="text" placeholder="Écrire à Bob…" data-message-input aria-label="Votre message">
+            <button class="composer-icon audio-button" type="button" aria-label="Enregistrer un message vocal, fonctionnalité prévue" data-toast-message="Les messages vocaux sont prévus dans une prochaine version.">●</button>
+            <button class="btn btn-primary send-button" type="submit" data-send-message hidden>Envoyer</button>
+          </form>
+        </div>
+
+        <aside class="chat-info-panel" data-chat-info>
+          <button class="icon-button info-close" type="button" data-chat-info-close aria-label="Fermer les informations">×</button>
+          <a class="avatar public-avatar blue" href="12_profil_voisin.html" data-info-profile-link data-info-avatar>BD</a>
+          <h2 data-info-name>Bob Dupont</h2>
+          <p class="presence" data-info-presence>Actif récemment</p>
+          <div class="chat-info-actions"><a class="btn btn-primary btn-small" href="12_profil_voisin.html" data-info-profile-button>Voir le profil</a><button class="btn btn-secondary btn-small is-following" type="button" data-follow-button data-following="true"><span data-follow-label>✓ Suivi</span></button></div>
+          <dl class="profile-facts chat-profile-facts"><div><dt>Quartier</dt><dd data-info-neighborhood>Quartier Centre</dd></div><div><dt>Réputation</dt><dd data-info-reputation>4,9 / 5</dd></div><div><dt>Conversation</dt><dd data-info-conversation-type>Liée à un service</dd></div></dl>
+          <div class="chat-shared-media"><div class="section-heading"><div><h3>Fichiers partagés</h3></div></div><div class="shared-file"><span>PDF</span><div><strong>notice-montage-armoire.pdf</strong><small>1,8 Mo</small></div></div></div>
+        </aside>
+      </section>
+    </div>
+  </main>
+  <div class="modal-backdrop" data-modal aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-chat"><h2 id="modal-title-chat" data-modal-title></h2><p data-modal-body></p><div class="modal-actions"><button class="btn btn-secondary" type="button" data-modal-close>Annuler</button><button class="btn btn-danger" type="button" data-modal-confirm-action>Confirmer</button></div></div></div>
+  <div class="toast" data-toast role="status"></div>
+</body>
+</html>
