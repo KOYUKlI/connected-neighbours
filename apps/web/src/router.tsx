@@ -14,6 +14,8 @@ import { DesktopLoginPage } from './features/sso/DesktopLoginPage';
 import LandingPage from './landing/LandingPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { HomePage } from './pages/HomePage';
+import { DisputeDetailPage } from './pages/DisputeDetailPage';
+import { DisputesPage } from './pages/DisputesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ServiceCreatePage } from './pages/ServiceCreatePage';
@@ -25,6 +27,8 @@ const residentRoutes = [
   { path: 'services', element: <ServicesExplorePage /> },
   { path: 'services/new', element: <ServiceCreatePage /> },
   { path: 'services/:serviceId', element: <ServiceDetailPage /> },
+  { path: 'disputes', element: <DisputesPage /> },
+  { path: 'disputes/:disputeId', element: <DisputeDetailPage /> },
   {
     path: 'neighbors',
     element: (

@@ -36,6 +36,13 @@ const DEMO_USERS = [
     neighborhoodId: 'quartier-centre',
     password: 'bob123',
   },
+  {
+    email: 'moderator@connected-neighbours.local',
+    displayName: 'Moderation Demo',
+    role: Role.MODERATOR,
+    neighborhoodId: 'quartier-centre',
+    password: 'moderator123',
+  },
 ] as const;
 
 describe('Connected Neighbours API P0 (e2e)', () => {
@@ -45,6 +52,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   let adminToken: string;
   let aliceToken: string;
   let bobToken: string;
+  let moderatorToken: string;
 
   let aliceId: string;
   let bobId: string;
@@ -55,6 +63,9 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   let contractId: string;
   let cancellableServiceId: string;
   let cancellableContractId: string;
+  let disputeServiceId: string;
+  let disputeContractId: string;
+  let disputeId: string;
   let incidentId: string;
   let alertId: string;
 
@@ -108,14 +119,17 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     const admin = await login(DEMO_USERS[0].email, DEMO_USERS[0].password);
     const alice = await login(DEMO_USERS[1].email, DEMO_USERS[1].password);
     const bob = await login(DEMO_USERS[2].email, DEMO_USERS[2].password);
+    const moderator = await login(DEMO_USERS[3].email, DEMO_USERS[3].password);
 
     adminToken = admin.accessToken;
     aliceToken = alice.accessToken;
     bobToken = bob.accessToken;
+    moderatorToken = moderator.accessToken;
     aliceId = alice.user.id;
     bobId = bob.user.id;
 
     expect(admin.user.role).toBe(Role.ADMIN);
+    expect(moderator.user.role).toBe(Role.MODERATOR);
     expect(alice.user.pointsBalance).toBeGreaterThanOrEqual(100);
     expect(bob.user.pointsBalance).toBeGreaterThanOrEqual(100);
   });
@@ -1146,6 +1160,339 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
   });
 
+  it('covers dispute opening, evidence, moderation and an idempotent split', async () => {
+    const createdService = await request(app.getHttpServer())
+      .post('/api/services')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Litige partage',
+        description:
+          'Service payant utilisé pour valider le workflow de litige.',
+        type: 'request',
+        category: 'bricolage',
+        availability: 'Mardi soir',
+        neighborhoodId: 'quartier-centre',
+        isPaid: true,
+        pricePoints: 20,
+        status: 'published',
+      })
+      .expect(201);
+
+    disputeServiceId = getId(createdService.body);
+
+    const application = await request(app.getHttpServer())
+      .post('/api/services/' + disputeServiceId + '/applications')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        message: 'E2E candidature litige partage',
+        proposedPricePoints: 20,
+      })
+      .expect(201);
+
+    const disputeApplicationId = getId(application.body);
+
+    await request(app.getHttpServer())
+      .post('/api/applications/' + disputeApplicationId + '/accept')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    const generated = await request(app.getHttpServer())
+      .post('/api/contracts/from-application/' + disputeApplicationId)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    disputeContractId = getId(generated.body.contract);
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + disputeContractId + '/sign')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + disputeContractId + '/sign')
+      .set('Authorization', bearer(bobToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('active'));
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + disputeServiceId + '/start')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + disputeServiceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        type: 'note',
+        message: 'Preuve de réalisation avant contestation.',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + disputeServiceId + '/mark-done')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    const aliceBeforeResolution = await getMe(aliceToken);
+    const bobBeforeResolution = await getMe(bobToken);
+    expect(aliceBeforeResolution.reservedPoints).toBe(20);
+
+    const opened = await request(app.getHttpServer())
+      .post('/api/services/' + disputeServiceId + '/disputes')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        reason: 'service_quality',
+        description:
+          'La prestation est partiellement réalisée et nécessite une décision de modération.',
+        requestedOutcome: 'split',
+      })
+      .expect(201);
+
+    disputeId = getId(opened.body);
+    expect(opened.body).toEqual(
+      expect.objectContaining({
+        status: 'open',
+        reservedPoints: 20,
+        previousServiceStatus: 'awaiting_validation',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/services/' + disputeServiceId)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.status).toBe('disputed');
+        expect(body.activeDispute).toEqual(
+          expect.objectContaining({ id: disputeId, reservedPoints: 20 }),
+        );
+        expect(body.permissions.canOpenDispute).toBe(false);
+        expect(body.permissions.canViewDispute).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + disputeServiceId + '/validate')
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + disputeContractId + '/complete')
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + disputeContractId + '/cancel')
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/disputes/' + disputeId + '/evidence')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        type: 'note',
+        message: 'Une partie du travail a été réalisée et vérifiée.',
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.author.displayName).toBe('Bob Dupont');
+        expect(body.author).not.toHaveProperty('email');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/disputes/me')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: disputeId, status: 'open' }),
+          ]),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/admin/disputes')
+      .set('Authorization', bearer(aliceToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + disputeId + '/assign')
+      .set('Authorization', bearer(moderatorToken))
+      .send({})
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.assignedModerator.displayName).toBe('Moderation Demo');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + disputeId + '/start-review')
+      .set('Authorization', bearer(moderatorToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('under_review'));
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + disputeId + '/resolve')
+      .set('Authorization', bearer(moderatorToken))
+      .send({
+        type: 'split',
+        justification: 'Réalisation partielle confirmée par les preuves.',
+        providerPoints: 15,
+        requesterPoints: 10,
+      })
+      .expect(400);
+
+    const resolved = await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + disputeId + '/resolve')
+      .set('Authorization', bearer(moderatorToken))
+      .send({
+        type: 'split',
+        justification: 'Réalisation partielle confirmée par les preuves.',
+        providerPoints: 12,
+        requesterPoints: 8,
+      })
+      .expect(201);
+
+    expect(resolved.body).toEqual(
+      expect.objectContaining({
+        status: 'resolved',
+        resolution: expect.objectContaining({
+          type: 'split',
+          providerPoints: 12,
+          requesterPoints: 8,
+        }),
+      }),
+    );
+    expect(resolved.body.service.status).toBe('completed');
+    expect(resolved.body.contract.status).toBe('completed');
+
+    const aliceAfterResolution = await getMe(aliceToken);
+    const bobAfterResolution = await getMe(bobToken);
+    expect(aliceAfterResolution.pointsBalance).toBe(
+      aliceBeforeResolution.pointsBalance + 8,
+    );
+    expect(aliceAfterResolution.reservedPoints).toBe(0);
+    expect(bobAfterResolution.pointsBalance).toBe(
+      bobBeforeResolution.pointsBalance + 12,
+    );
+
+    const transactionsBeforeRetry = await connection
+      .collection('pointtransactions')
+      .find({ disputeId })
+      .toArray();
+    expect(transactionsBeforeRetry).toHaveLength(2);
+    expect(transactionsBeforeRetry).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'transfer', amount: 12 }),
+        expect.objectContaining({ type: 'release', amount: 8 }),
+      ]),
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + disputeId + '/resolve')
+      .set('Authorization', bearer(moderatorToken))
+      .send({
+        type: 'split',
+        justification: 'Réalisation partielle confirmée par les preuves.',
+        providerPoints: 12,
+        requesterPoints: 8,
+      })
+      .expect(409);
+
+    const transactionsAfterRetry = await connection
+      .collection('pointtransactions')
+      .countDocuments({ disputeId });
+    expect(transactionsAfterRetry).toBe(2);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + disputeId + '/close')
+      .set('Authorization', bearer(moderatorToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('closed'));
+  });
+
+  it('covers full provider payment and full requester refund resolutions', async () => {
+    const providerPayment = await createDisputedResolutionScenario(
+      'paiement',
+      14,
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + providerPayment.disputeId + '/assign')
+      .set('Authorization', bearer(moderatorToken))
+      .send({})
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/admin/disputes/' + providerPayment.disputeId + '/start-review',
+      )
+      .set('Authorization', bearer(moderatorToken))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + providerPayment.disputeId + '/resolve')
+      .set('Authorization', bearer(moderatorToken))
+      .send({
+        type: 'provider_payment',
+        justification:
+          'Les preuves confirment la réalisation complète du service.',
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.status).toBe('resolved');
+        expect(body.service.status).toBe('completed');
+        expect(body.contract.status).toBe('completed');
+      });
+
+    const providerTransactions = await connection
+      .collection('pointtransactions')
+      .find({ disputeId: providerPayment.disputeId })
+      .toArray();
+    expect(providerTransactions).toEqual([
+      expect.objectContaining({ type: 'transfer', amount: 14 }),
+    ]);
+
+    const requesterRefund = await createDisputedResolutionScenario(
+      'remboursement',
+      11,
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + requesterRefund.disputeId + '/assign')
+      .set('Authorization', bearer(moderatorToken))
+      .send({})
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/admin/disputes/' + requesterRefund.disputeId + '/start-review',
+      )
+      .set('Authorization', bearer(moderatorToken))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/disputes/' + requesterRefund.disputeId + '/resolve')
+      .set('Authorization', bearer(moderatorToken))
+      .send({
+        type: 'requester_refund',
+        justification:
+          'Les preuves justifient le remboursement intégral du demandeur.',
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.status).toBe('resolved');
+        expect(body.service.status).toBe('cancelled');
+        expect(body.contract.status).toBe('cancelled');
+      });
+
+    const refundTransactions = await connection
+      .collection('pointtransactions')
+      .find({ disputeId: requesterRefund.disputeId })
+      .toArray();
+    expect(refundTransactions).toEqual([
+      expect.objectContaining({ type: 'release', amount: 11 }),
+    ]);
+  });
   async function login(email: string, password: string) {
     const response = await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -1179,40 +1526,138 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     };
   }
 
+  async function createDisputedResolutionScenario(
+    label: string,
+    pricePoints: number,
+  ) {
+    const serviceResponse = await request(app.getHttpServer())
+      .post('/api/services')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Litige ' + label,
+        description: 'Service payant E2E pour une décision de ' + label + '.',
+        type: 'request',
+        category: 'bricolage',
+        availability: 'Vendredi après-midi',
+        neighborhoodId: 'quartier-centre',
+        isPaid: true,
+        pricePoints,
+        status: 'published',
+      })
+      .expect(201);
+    const scenarioServiceId = getId(serviceResponse.body);
+
+    const applicationResponse = await request(app.getHttpServer())
+      .post('/api/services/' + scenarioServiceId + '/applications')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        message: 'E2E candidature litige ' + label,
+        proposedPricePoints: pricePoints,
+      })
+      .expect(201);
+    const applicationId = getId(applicationResponse.body);
+
+    await request(app.getHttpServer())
+      .post('/api/applications/' + applicationId + '/accept')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+
+    const contractResponse = await request(app.getHttpServer())
+      .post('/api/contracts/from-application/' + applicationId)
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+    const scenarioContractId = getId(contractResponse.body.contract);
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + scenarioContractId + '/sign')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + scenarioContractId + '/sign')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + scenarioServiceId + '/start')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/services/' + scenarioServiceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({ type: 'note', message: 'E2E preuve litige ' + label })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/services/' + scenarioServiceId + '/mark-done')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    const opened = await request(app.getHttpServer())
+      .post('/api/services/' + scenarioServiceId + '/disputes')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        reason:
+          label === 'paiement'
+            ? 'payment_disagreement'
+            : 'service_not_completed',
+        description:
+          'E2E litige destiné à tester la décision de ' + label + '.',
+        requestedOutcome:
+          label === 'paiement' ? 'provider_payment' : 'requester_refund',
+      })
+      .expect(201);
+
+    return {
+      serviceId: scenarioServiceId,
+      contractId: scenarioContractId,
+      disputeId: getId(opened.body),
+    };
+  }
   async function cleanE2eData(includeUsers: boolean) {
     if (!connection) {
       return;
     }
 
-    const operations = [
-      connection.collection('services').deleteMany({
-        title: {
-          $in: [
-            'E2E Aide bricolage',
-            'E2E Service brouillon',
-            'E2E Contrat annulation',
-            'E2E Quartier introuvable',
-            'E2E Brouillon suppression',
-          ],
+    const staleServices = await connection
+      .collection('services')
+      .find({ title: /^E2E/ }, { projection: { _id: 1 } })
+      .toArray();
+    const serviceIds = staleServices.map((service) => String(service._id));
+    const staleDisputes = await connection
+      .collection('disputes')
+      .find(
+        {
+          $or: [{ serviceId: { $in: serviceIds } }, { description: /^E2E/ }],
         },
+        { projection: { _id: 1 } },
+      )
+      .toArray();
+    const disputeIds = staleDisputes.map((dispute) => String(dispute._id));
+
+    const operations = [
+      connection.collection('disputeevidences').deleteMany({
+        $or: [{ disputeId: { $in: disputeIds } }, { message: /^E2E/ }],
       }),
-      connection.collection('neighborhoods').deleteMany({
-        slug: { $in: ['e2e-quartier', 'e2e-quartier-invalide'] },
+      connection.collection('disputes').deleteMany({
+        $or: [{ serviceId: { $in: serviceIds } }, { description: /^E2E/ }],
       }),
       connection.collection('serviceapplications').deleteMany({
-        message: {
-          $in: ['E2E candidature Bob', 'E2E candidature annulation contrat'],
-        },
+        $or: [{ serviceId: { $in: serviceIds } }, { message: /^E2E/ }],
       }),
       connection.collection('serviceproofs').deleteMany({
-        serviceId: {
-          $in: [serviceId, cancellableServiceId].filter(Boolean),
-        },
+        serviceId: { $in: serviceIds },
       }),
       connection.collection('contracts').deleteMany({
-        serviceId: {
-          $in: [serviceId, cancellableServiceId].filter(Boolean),
-        },
+        serviceId: { $in: serviceIds },
+      }),
+      connection.collection('pointtransactions').deleteMany({
+        $or: [
+          { serviceId: { $in: serviceIds } },
+          { disputeId: { $in: disputeIds } },
+        ],
+      }),
+      connection.collection('services').deleteMany({ title: /^E2E/ }),
+      connection.collection('neighborhoods').deleteMany({
+        slug: { $in: ['e2e-quartier', 'e2e-quartier-invalide'] },
       }),
       connection.collection('incidents').deleteMany({
         title: { $in: ['E2E Local velo force', 'E2E Incident JavaFX'] },
@@ -1226,11 +1671,6 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection
         .collection('syncstates')
         .deleteMany({ clientId: 'e2e-javafx-client' }),
-      connection.collection('pointtransactions').deleteMany({
-        serviceId: {
-          $in: [serviceId, cancellableServiceId].filter(Boolean),
-        },
-      }),
     ];
 
     if (includeUsers) {

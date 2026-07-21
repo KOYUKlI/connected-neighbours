@@ -4,11 +4,13 @@ import type { ReactNode } from 'react';
 export function AdminTopbar({
   breadcrumb,
   onLogout,
+  roleLabel = 'Administrateur',
   userEmail,
   userName,
 }: {
   breadcrumb?: ReactNode;
   onLogout: () => void;
+  roleLabel?: string;
   userEmail: string;
   userName: string;
 }) {
@@ -55,7 +57,7 @@ export function AdminTopbar({
               </span>
               <span className="grid leading-tight">
                 <strong className="text-sm font-medium text-slate-950">{userName}</strong>
-                <span className="text-xs text-slate-500">Admin</span>
+                <span className="text-xs text-slate-500">{roleLabel}</span>
               </span>
               <span className="text-slate-400">⌄</span>
             </button>

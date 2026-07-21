@@ -55,6 +55,9 @@ export async function loginAdmin(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
 }
+export function getCurrentAdmin() {
+  return apiRequest<PublicUser>('/api/auth/me');
+}
 
 export async function apiRequest<T>(
   path: string,

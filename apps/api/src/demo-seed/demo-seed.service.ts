@@ -16,6 +16,21 @@ import {
   ContractStatus,
 } from '../contracts/schemas/contract.schema';
 import {
+  DisputeEvidence,
+  DisputeEvidenceDocument,
+  DisputeEvidenceType,
+} from '../disputes/schemas/dispute-evidence.schema';
+import {
+  Dispute,
+  DisputeAuditEvent,
+  DisputeAuditEventType,
+  DisputeDocument,
+  DisputeOutcome,
+  DisputeReason,
+  DisputeResolutionType,
+  DisputeStatus,
+} from '../disputes/schemas/dispute.schema';
+import {
   Incident,
   IncidentDocument,
   IncidentSeverity,
@@ -36,6 +51,12 @@ import {
   ServiceType,
 } from '../services/schemas/service.schema';
 
+type DemoExecutionReference = {
+  serviceId: string;
+  contractId: string;
+  previousServiceStatus: ServiceStatus;
+  reservedPoints: number;
+};
 type DemoServiceInput = Pick<
   Service,
   | 'title'
@@ -59,6 +80,10 @@ export class DemoSeedService implements OnModuleInit {
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Contract.name)
     private readonly contractModel: Model<ContractDocument>,
+    @InjectModel(Dispute.name)
+    private readonly disputeModel: Model<DisputeDocument>,
+    @InjectModel(DisputeEvidence.name)
+    private readonly disputeEvidenceModel: Model<DisputeEvidenceDocument>,
     @InjectModel(ServiceProof.name)
     private readonly proofModel: Model<ServiceProofDocument>,
     @InjectModel(Incident.name)
@@ -75,7 +100,7 @@ export class DemoSeedService implements OnModuleInit {
       return;
     }
 
-    const [alice, bob, claire] = await Promise.all([
+    const [alice, bob, claire, moderator] = await Promise.all([
       this.usersService.ensureDevUser({
         email: 'alice@connected-neighbours.local',
         displayName: 'Alice Martin',
@@ -96,6 +121,13 @@ export class DemoSeedService implements OnModuleInit {
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
         password: 'claire123',
+      }),
+      this.usersService.ensureDevUser({
+        email: 'moderator@connected-neighbours.local',
+        displayName: 'Moderation Demo',
+        role: Role.MODERATOR,
+        neighborhoodId: 'quartier-centre',
+        password: 'moderator123',
       }),
     ]);
 
@@ -161,7 +193,8 @@ export class DemoSeedService implements OnModuleInit {
     });
 
     await this.ensureFurnitureWorkflow(furniture, alice, bob, claire);
-    await this.ensureExecutionDemos(alice, bob);
+    const disputeDemos = await this.ensureExecutionDemos(alice, bob);
+    await this.ensureDisputeDemos(disputeDemos, alice, bob, moderator);
     await this.ensureApplication(
       computerHelp,
       claire.id,
@@ -284,7 +317,7 @@ export class DemoSeedService implements OnModuleInit {
   }
 
   private async ensureExecutionDemos(alice: UserDocument, bob: UserDocument) {
-    await this.ensureExecutionDemo(
+    const open = await this.ensureExecutionDemo(
       alice,
       bob,
       {
@@ -301,7 +334,7 @@ export class DemoSeedService implements OnModuleInit {
       ServiceStatus.IN_PROGRESS,
       null,
     );
-    await this.ensureExecutionDemo(
+    const review = await this.ensureExecutionDemo(
       alice,
       bob,
       {
@@ -318,8 +351,26 @@ export class DemoSeedService implements OnModuleInit {
       ServiceStatus.AWAITING_VALIDATION,
       'Imprimante installée et page de test imprimée avec succès.',
     );
-  }
+    const resolved = await this.ensureExecutionDemo(
+      alice,
+      bob,
+      {
+        title: 'Réparation contestée puis validée',
+        description:
+          'Une petite réparation dont les preuves permettent une décision de modération.',
+        type: ServiceType.REQUEST,
+        category: 'Bricolage',
+        availability: 'Vendredi matin',
+        isPaid: true,
+        pricePoints: 5,
+        status: ServiceStatus.AWAITING_VALIDATION,
+      },
+      ServiceStatus.AWAITING_VALIDATION,
+      'Réparation terminée et fonctionnement vérifié.',
+    );
 
+    return { open, review, resolved };
+  }
   private async ensureExecutionDemo(
     alice: UserDocument,
     bob: UserDocument,
@@ -393,8 +444,280 @@ export class DemoSeedService implements OnModuleInit {
         });
       }
     }
+    return {
+      serviceId: service.id,
+      contractId: contract.id,
+      previousServiceStatus: status,
+      reservedPoints: input.pricePoints ?? 0,
+    };
   }
 
+  private async ensureDisputeDemos(
+    demos: {
+      open: DemoExecutionReference;
+      review: DemoExecutionReference;
+      resolved: DemoExecutionReference;
+    },
+    alice: UserDocument,
+    bob: UserDocument,
+    moderator: UserDocument,
+  ) {
+    await this.ensureDisputeDemo(
+      demos.open,
+      alice,
+      bob,
+      moderator,
+      DisputeStatus.OPEN,
+    );
+    await this.ensureDisputeDemo(
+      demos.review,
+      alice,
+      bob,
+      moderator,
+      DisputeStatus.UNDER_REVIEW,
+    );
+    await this.ensureDisputeDemo(
+      demos.resolved,
+      alice,
+      bob,
+      moderator,
+      DisputeStatus.RESOLVED,
+    );
+  }
+
+  private async ensureDisputeDemo(
+    reference: DemoExecutionReference,
+    alice: UserDocument,
+    bob: UserDocument,
+    moderator: UserDocument,
+    targetStatus: DisputeStatus,
+  ) {
+    let dispute = await this.disputeModel
+      .findOne({ contractId: reference.contractId })
+      .exec();
+    const now = new Date();
+    const isReview = targetStatus === DisputeStatus.UNDER_REVIEW;
+    const isResolved = targetStatus === DisputeStatus.RESOLVED;
+
+    if (!dispute) {
+      const assignedModeratorId = isReview || isResolved ? moderator.id : null;
+      const history: DisputeAuditEvent[] = [
+        {
+          type: DisputeAuditEventType.OPENED,
+          actorId: alice.id,
+          occurredAt: now,
+          metadata: { previousServiceStatus: reference.previousServiceStatus },
+        },
+      ];
+      if (assignedModeratorId) {
+        history.push(
+          {
+            type: DisputeAuditEventType.MODERATOR_ASSIGNED,
+            actorId: moderator.id,
+            occurredAt: now,
+            metadata: { moderatorId: moderator.id },
+          },
+          {
+            type: DisputeAuditEventType.REVIEW_STARTED,
+            actorId: moderator.id,
+            occurredAt: now,
+            metadata: {},
+          },
+        );
+      }
+      dispute = await this.disputeModel.create({
+        serviceId: reference.serviceId,
+        contractId: reference.contractId,
+        openedById: alice.id,
+        reason: isResolved
+          ? DisputeReason.PAYMENT_DISAGREEMENT
+          : isReview
+            ? DisputeReason.SERVICE_QUALITY
+            : DisputeReason.SERVICE_NOT_COMPLETED,
+        description: isResolved
+          ? 'Les preuves ont permis une décision favorable au prestataire.'
+          : 'Les parties demandent une vérification de la réalisation du service.',
+        requestedOutcome: isResolved
+          ? DisputeOutcome.PROVIDER_PAYMENT
+          : isReview
+            ? DisputeOutcome.SPLIT
+            : DisputeOutcome.REQUESTER_REFUND,
+        status: isResolved ? DisputeStatus.OPEN : targetStatus,
+        assignedModeratorId,
+        previousServiceStatus: reference.previousServiceStatus,
+        reservedPoints: reference.reservedPoints,
+        openedAt: now,
+        assignedAt: assignedModeratorId ? now : null,
+        reviewStartedAt: assignedModeratorId ? now : null,
+        resolvedAt: null,
+        closedAt: null,
+        resolution: null,
+        resolutionClaimedAt: null,
+        history,
+      });
+    }
+
+    await Promise.all([
+      this.ensureDisputeEvidence(
+        dispute.id,
+        alice.id,
+        'Le résultat ne correspond pas entièrement à ce qui était attendu.',
+      ),
+      this.ensureDisputeEvidence(
+        dispute.id,
+        bob.id,
+        'Voici les explications et les éléments constatés pendant l intervention.',
+      ),
+    ]);
+
+    if (isResolved) {
+      await this.pointsService.transferReservedPoints(
+        alice.id,
+        bob.id,
+        reference.reservedPoints,
+        reference.contractId,
+        reference.serviceId,
+        {
+          disputeId: dispute.id,
+          disputeResolutionType: DisputeResolutionType.PROVIDER_PAYMENT,
+        },
+      );
+
+      if (dispute.status !== DisputeStatus.RESOLVED) {
+        await this.disputeModel
+          .updateOne(
+            { _id: dispute.id, resolvedAt: null },
+            {
+              $set: {
+                status: DisputeStatus.RESOLVED,
+                resolvedAt: now,
+                resolutionClaimedAt: now,
+                resolution: {
+                  type: DisputeResolutionType.PROVIDER_PAYMENT,
+                  justification:
+                    'Les preuves confirment la réalisation du service de démonstration.',
+                  providerPoints: reference.reservedPoints,
+                  requesterPoints: 0,
+                  resolvedById: moderator.id,
+                  resolvedAt: now,
+                },
+              },
+              $push: {
+                history: {
+                  $each: [
+                    {
+                      type: DisputeAuditEventType.RESOLVED,
+                      actorId: moderator.id,
+                      occurredAt: now,
+                      metadata: {
+                        resolutionType: DisputeResolutionType.PROVIDER_PAYMENT,
+                      },
+                    },
+                    {
+                      type: DisputeAuditEventType.FINANCIAL_OPERATION_COMPLETED,
+                      actorId: moderator.id,
+                      occurredAt: now,
+                      metadata: {
+                        providerPoints: reference.reservedPoints,
+                        requesterPoints: 0,
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          )
+          .exec();
+      }
+
+      await Promise.all([
+        this.serviceModel
+          .updateOne(
+            { _id: reference.serviceId },
+            {
+              $set: {
+                status: ServiceStatus.COMPLETED,
+                activeDisputeId: null,
+                validatedAt: now,
+                completedAt: now,
+              },
+            },
+          )
+          .exec(),
+        this.contractModel
+          .updateOne(
+            { _id: reference.contractId },
+            {
+              $set: {
+                status: ContractStatus.COMPLETED,
+                activeDisputeId: null,
+                completedAt: now,
+              },
+            },
+          )
+          .exec(),
+      ]);
+      return;
+    }
+
+    await Promise.all([
+      this.disputeModel
+        .updateOne(
+          { _id: dispute.id, resolvedAt: null },
+          {
+            $set: {
+              status: targetStatus,
+              assignedModeratorId: isReview ? moderator.id : null,
+              assignedAt: isReview ? (dispute.assignedAt ?? now) : null,
+              reviewStartedAt: isReview
+                ? (dispute.reviewStartedAt ?? now)
+                : null,
+            },
+          },
+        )
+        .exec(),
+      this.serviceModel
+        .updateOne(
+          { _id: reference.serviceId },
+          {
+            $set: {
+              status: ServiceStatus.DISPUTED,
+              activeDisputeId: dispute.id,
+            },
+          },
+        )
+        .exec(),
+      this.contractModel
+        .updateOne(
+          { _id: reference.contractId },
+          {
+            $set: {
+              status: ContractStatus.DISPUTED,
+              activeDisputeId: dispute.id,
+            },
+          },
+        )
+        .exec(),
+    ]);
+  }
+
+  private async ensureDisputeEvidence(
+    disputeId: string,
+    authorId: string,
+    message: string,
+  ) {
+    const existing = await this.disputeEvidenceModel
+      .findOne({ disputeId, authorId, message })
+      .exec();
+    if (existing) return existing;
+    return this.disputeEvidenceModel.create({
+      disputeId,
+      authorId,
+      type: DisputeEvidenceType.NOTE,
+      message,
+      fileReference: null,
+    });
+  }
   private async ensureApplication(
     service: ServiceDocument,
     applicantId: string,

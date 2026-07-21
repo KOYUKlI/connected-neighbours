@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -313,6 +314,15 @@ export class ContractsService {
     const contract = await this.findContract(id);
 
     this.assertContractParty(contract, userId);
+
+    if (
+      contract.status === ContractStatus.DISPUTED ||
+      contract.activeDisputeId
+    ) {
+      throw new ConflictException(
+        'Ce service fait actuellement l’objet d’un litige.',
+      );
+    }
 
     if (contract.status === ContractStatus.COMPLETED) {
       throw new BadRequestException(

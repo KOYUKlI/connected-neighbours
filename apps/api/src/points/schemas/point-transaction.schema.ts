@@ -31,6 +31,12 @@ export class PointTransaction {
 
   @Prop({ type: String, trim: true, default: null })
   toUserId: string | null;
+
+  @Prop({ type: String, trim: true, default: null, index: true })
+  disputeId: string | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  disputeResolutionType: string | null;
 }
 
 export const PointTransactionSchema =
@@ -39,4 +45,13 @@ export const PointTransactionSchema =
 PointTransactionSchema.index(
   { contractId: 1, type: 1 },
   { unique: true, name: 'unique_point_operation_per_contract' },
+);
+
+PointTransactionSchema.index(
+  { disputeId: 1, type: 1 },
+  {
+    unique: true,
+    name: 'unique_point_operation_per_dispute',
+    partialFilterExpression: { disputeId: { $type: 'string' } },
+  },
 );

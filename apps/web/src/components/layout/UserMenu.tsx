@@ -45,6 +45,7 @@ export function UserMenu({ onLogout, user }: { onLogout: () => void; user: AuthU
             <p className="truncate text-xs text-slate-500">{user.email}</p>
           </div>
           <Link className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200" onClick={() => setOpen(false)} role="menuitem" to="/profile"><Icon className="size-4" name="user" /> Mon profil</Link>
+          <Link className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200" onClick={() => setOpen(false)} role="menuitem" to="/disputes"><Icon className="size-4" name="contract" /> Mes litiges</Link>
           <Link className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200" onClick={() => setOpen(false)} role="menuitem" to="/profile"><Icon className="size-4" name="settings" /> Paramètres</Link>
           <button className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-100" onClick={onLogout} role="menuitem" type="button"><Icon className="size-4" name="arrow-left" /> Déconnexion</button>
         </div>

@@ -38,7 +38,6 @@ const PROOFABLE_STATUSES = [
   ServiceStatus.IN_PROGRESS,
   ServiceStatus.AWAITING_VALIDATION,
   ServiceStatus.CORRECTION_REQUESTED,
-  ServiceStatus.DISPUTED,
 ];
 const MODERATION_ROLES = new Set<Role>([Role.MODERATOR, Role.ADMIN]);
 
@@ -62,6 +61,7 @@ export class ServiceExecutionService {
 
   async start(serviceId: string, actor: AuthenticatedUser) {
     const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
     this.assertProvider(contract, actor.sub);
     this.assertActiveContract(contract);
 
@@ -104,6 +104,7 @@ export class ServiceExecutionService {
     actor: AuthenticatedUser,
   ) {
     const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
     this.assertParticipant(contract, actor.sub);
     this.assertActiveContract(contract);
 
@@ -154,6 +155,7 @@ export class ServiceExecutionService {
 
   async markDone(serviceId: string, actor: AuthenticatedUser) {
     const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
     this.assertProvider(contract, actor.sub);
     this.assertActiveContract(contract);
 
@@ -217,6 +219,7 @@ export class ServiceExecutionService {
     actor: AuthenticatedUser,
   ) {
     const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
     this.assertRequester(contract, actor.sub);
     this.assertActiveContract(contract);
 
@@ -259,6 +262,7 @@ export class ServiceExecutionService {
 
   async validate(serviceId: string, actor: AuthenticatedUser) {
     const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
     this.assertRequester(contract, actor.sub);
 
     if (
@@ -488,6 +492,22 @@ export class ServiceExecutionService {
       );
     }
     return updated;
+  }
+
+  private assertNotDisputed(
+    service: Pick<Service, 'status' | 'activeDisputeId'>,
+    contract: Pick<Contract, 'status' | 'activeDisputeId'>,
+  ) {
+    if (
+      service.status === ServiceStatus.DISPUTED ||
+      contract.status === ContractStatus.DISPUTED ||
+      service.activeDisputeId ||
+      contract.activeDisputeId
+    ) {
+      throw new ConflictException(
+        'Ce service fait actuellement l’objet d’un litige.',
+      );
+    }
   }
 
   private assertActiveContract(contract: ContractDocument) {

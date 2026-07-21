@@ -13,6 +13,7 @@ import {
 import {
   ApiError,
   getAuthToken,
+  getCurrentAdmin,
   loginAdmin,
   removeAuthToken,
   setAuthToken,
@@ -65,6 +66,7 @@ import { AdminSidebar } from './components/layout/AdminSidebar'
 import { AdminTopbar } from './components/layout/AdminTopbar'
 import { Breadcrumb } from './components/layout/Breadcrumb'
 import { ContractsListPage } from './pages/ContractsListPage'
+import { DisputesPage } from './features/disputes/DisputesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { IncidentsListPage } from './pages/IncidentsListPage'
 import { LoginPage } from './pages/LoginPage'
@@ -81,6 +83,7 @@ const navigationItems = [
   { id: 'neighborhoods', label: 'Quartiers', description: 'Zones et habitants', icon: 'neighborhoods' },
   { id: 'services', label: 'Services', description: 'Annonces voisines', icon: 'services' },
   { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts' },
+  { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes' },
   { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents' },
   { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync' },
   { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users' },
@@ -149,7 +152,35 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!token) {
+    if (!token || currentUser) {
+      return
+    }
+
+    let ignore = false
+    async function restoreSession() {
+      try {
+        const user = await getCurrentAdmin()
+        if (!['admin', 'moderator'].includes(user.role)) {
+          clearSession('Ce compte ne dispose pas d’un rôle de modération.')
+          return
+        }
+        if (!ignore) {
+          setCurrentUser(user)
+          setActiveSection(user.role === 'moderator' ? 'disputes' : 'dashboard')
+        }
+      } catch (error) {
+        if (!ignore) clearSession(getErrorMessage(error))
+      }
+    }
+
+    void restoreSession()
+    return () => {
+      ignore = true
+    }
+  }, [clearSession, currentUser, token])
+
+  useEffect(() => {
+    if (!token || !currentUser) {
       return
     }
 
@@ -214,6 +245,9 @@ function App() {
             }
             break
           }
+          case 'disputes': {
+            break
+          }
           case 'incidents': {
             const [nextIncidents, nextNeighborhoods] = await Promise.all([
               fetchIncidents(),
@@ -268,7 +302,7 @@ function App() {
     return () => {
       ignore = true
     }
-  }, [activeSection, clearSession, refreshKey, token])
+  }, [activeSection, clearSession, currentUser, refreshKey, token])
 
   useEffect(() => {
     if (!token) {
@@ -289,15 +323,15 @@ function App() {
     try {
       const response = await loginAdmin(email, password)
 
-      if (response.user.role !== 'admin') {
-        setLoginError('Ce compte ne dispose pas du rôle admin.')
+      if (!['admin', 'moderator'].includes(response.user.role)) {
+        setLoginError('Ce compte ne dispose pas d’un rôle de modération.')
         return
       }
 
       setAuthToken(response.accessToken)
       setCurrentUser(response.user)
       setToken(response.accessToken)
-      setActiveSection('dashboard')
+      setActiveSection(response.user.role === 'moderator' ? 'disputes' : 'dashboard')
       setRefreshKey((value) => value + 1)
     } catch (error) {
       setLoginError(getErrorMessage(error))
@@ -317,7 +351,7 @@ function App() {
       sidebar={
         <AdminSidebar
           activeItem={activeSection}
-          items={navigationItems}
+          items={currentUser?.role === 'moderator' ? navigationItems.filter((item) => item.id === 'disputes') : navigationItems}
           onNavigate={setActiveSection}
         />
       }
@@ -332,6 +366,7 @@ function App() {
             />
           }
           onLogout={() => clearSession()}
+          roleLabel={currentUser?.role === 'moderator' ? 'Modérateur' : 'Administrateur'}
           userEmail={currentUser?.email ?? demoEmail}
           userName={currentUser?.displayName ?? 'Session admin'}
         />
@@ -498,6 +533,8 @@ function renderSection(props: RenderSectionProps) {
           users={props.users}
         />
       )
+    case 'disputes':
+      return <DisputesPage />
     case 'incidents':
       return (
         <IncidentsListPage

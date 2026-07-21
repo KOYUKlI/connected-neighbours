@@ -6,6 +6,7 @@ import {
   ServiceApplicationSchema,
 } from '../applications/schemas/service-application.schema';
 import { Contract, ContractSchema } from '../contracts/schemas/contract.schema';
+import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
 import {
   Neighborhood,
   NeighborhoodSchema,
@@ -30,6 +31,7 @@ import { ServicesService } from './services.service';
       { name: Neighborhood.name, schema: NeighborhoodSchema },
       { name: ServiceApplication.name, schema: ServiceApplicationSchema },
       { name: Contract.name, schema: ContractSchema },
+      { name: Dispute.name, schema: DisputeSchema },
       { name: ServiceProof.name, schema: ServiceProofSchema },
     ]),
   ],

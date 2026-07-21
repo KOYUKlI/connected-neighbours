@@ -79,6 +79,9 @@ export class Service {
   @Prop({ type: String, trim: true, default: null })
   contractId: string | null;
 
+  @Prop({ type: String, trim: true, default: null, index: true })
+  activeDisputeId: string | null;
+
   @Prop({ type: Date, default: null })
   scheduledAt: Date | null;
 

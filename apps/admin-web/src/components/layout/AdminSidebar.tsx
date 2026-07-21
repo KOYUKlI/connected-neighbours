@@ -95,6 +95,8 @@ function getNavigationIcon(id: string) {
       return <path d="M8 7V6a4 4 0 0 1 8 0v1m-11 3h14l-1 10H6L5 10Zm4 0v2m6-2v2" />;
     case 'contracts':
       return <path d="M7 3h7l4 4v14H7V3Zm7 0v5h5M9.5 12h5m-5 4h7" />;
+    case 'disputes':
+      return <><path d="M7 3h10v4l3 3-3 3v8H7v-8l-3-3 3-3V3Z" /><path d="M9 9h6M9 13h6M9 17h4" /></>;
     case 'incidents':
       return <path d="M12 4 3 20h18L12 4Zm0 5v5m0 3h.01" />;
     case 'sync':

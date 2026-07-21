@@ -14,11 +14,17 @@ import {
   ServiceApplicationStatus,
 } from '../applications/schemas/service-application.schema';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { Role } from '../auth/role.enum';
 import {
   Contract,
   ContractDocument,
   ContractStatus,
 } from '../contracts/schemas/contract.schema';
+import {
+  Dispute,
+  DisputeDocument,
+  DisputeStatus,
+} from '../disputes/schemas/dispute.schema';
 import {
   Neighborhood,
   NeighborhoodDocument,
@@ -68,6 +74,7 @@ type ViewerApplicationRow = ServiceApplication & {
   createdAt?: Date;
 };
 type ContractRow = Contract & { _id: unknown; createdAt?: Date };
+type DisputeRow = Dispute & { _id: unknown; createdAt?: Date };
 type EnrichmentContext = {
   owners: Awaited<ReturnType<PublicUsersService['findByIds']>>;
   neighborhoods: Map<string, NeighborhoodSummary>;
@@ -75,6 +82,7 @@ type EnrichmentContext = {
   proofCounts: Map<string, number>;
   viewerApplications: Map<string, ViewerApplicationRow>;
   viewerContracts: Map<string, ContractRow>;
+  activeDisputes: Map<string, DisputeRow>;
 };
 type ServiceFilter = Record<string, unknown>;
 
@@ -89,6 +97,8 @@ export class ServicesService {
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Contract.name)
     private readonly contractModel: Model<ContractDocument>,
+    @InjectModel(Dispute.name)
+    private readonly disputeModel: Model<DisputeDocument>,
     @InjectModel(ServiceProof.name)
     private readonly proofModel: Model<ServiceProofDocument>,
     private readonly publicUsersService: PublicUsersService,
@@ -364,6 +374,7 @@ export class ServicesService {
       proofCounts,
       applications,
       contracts,
+      disputes,
     ] = await Promise.all([
       this.publicUsersService.findByIds(ownerIds),
       this.neighborhoodModel
@@ -405,6 +416,13 @@ export class ServicesService {
         })
         .lean<ContractRow[]>()
         .exec(),
+      this.disputeModel
+        .find({
+          serviceId: { $in: serviceIds },
+          status: { $in: [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW] },
+        })
+        .lean<DisputeRow[]>()
+        .exec(),
     ]);
 
     const neighborhoodMap = new Map<string, NeighborhoodSummary>();
@@ -438,6 +456,9 @@ export class ServicesService {
       viewerContracts: new Map(
         contracts.map((contract) => [contract.serviceId, contract]),
       ),
+      activeDisputes: new Map(
+        disputes.map((dispute) => [dispute.serviceId, dispute]),
+      ),
     };
   }
 
@@ -449,11 +470,26 @@ export class ServicesService {
     const id = String(row._id);
     const application = context.viewerApplications.get(id);
     const contract = context.viewerContracts.get(id);
+    const dispute = context.activeDisputes.get(id);
     const isOwner = row.ownerId === actor.sub;
     const isRequester = contract?.requesterId === actor.sub;
     const isProvider = contract?.providerId === actor.sub;
     const isParticipant = Boolean(isRequester || isProvider);
     const contractIsActive = contract?.status === ContractStatus.ACTIVE;
+    const canModerate = [Role.MODERATOR, Role.ADMIN].includes(actor.role);
+    const hasActiveDispute = Boolean(dispute);
+    const canOpenDispute =
+      isParticipant &&
+      contractIsActive &&
+      row.isPaid &&
+      (contract?.pricePoints ?? 0) > 0 &&
+      !hasActiveDispute &&
+      [
+        ServiceStatus.SCHEDULED,
+        ServiceStatus.IN_PROGRESS,
+        ServiceStatus.AWAITING_VALIDATION,
+        ServiceStatus.CORRECTION_REQUESTED,
+      ].includes(row.status);
     const canViewProofs = isParticipant;
     const canAddProof =
       isParticipant &&
@@ -462,7 +498,6 @@ export class ServicesService {
         ServiceStatus.IN_PROGRESS,
         ServiceStatus.AWAITING_VALIDATION,
         ServiceStatus.CORRECTION_REQUESTED,
-        ServiceStatus.DISPUTED,
       ].includes(row.status);
     const hasApplied = Boolean(application);
     const acceptsApplications = PUBLIC_SERVICE_STATUSES.includes(row.status);
@@ -556,7 +591,22 @@ export class ServicesService {
           Boolean(isRequester && contractIsActive) &&
           row.status === ServiceStatus.AWAITING_VALIDATION,
         canViewProofs,
+        canOpenDispute,
+        canViewDispute: isParticipant && hasActiveDispute,
+        canAddDisputeEvidence: isParticipant && hasActiveDispute,
+        canAssignDispute: canModerate && hasActiveDispute,
+        canStartReview: canModerate && hasActiveDispute,
+        canResolveDispute: canModerate && hasActiveDispute,
+        canCloseDispute: false,
       },
+      activeDispute:
+        isParticipant && dispute
+          ? {
+              id: String(dispute._id),
+              status: dispute.status,
+              reservedPoints: dispute.reservedPoints,
+            }
+          : null,
       contractSummary:
         canViewContract && contract
           ? {
@@ -609,6 +659,8 @@ export class ServicesService {
     isRequester: boolean,
     isProvider: boolean,
   ) {
+    if (status === ServiceStatus.DISPUTED) return 'view_dispute';
+
     if (
       isProvider &&
       [ServiceStatus.CONTRACT_ACTIVE, ServiceStatus.SCHEDULED].includes(status)

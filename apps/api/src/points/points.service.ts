@@ -13,6 +13,11 @@ import {
   PointTransactionType,
 } from './schemas/point-transaction.schema';
 
+export type PointOperationMetadata = {
+  disputeId: string;
+  disputeResolutionType: string;
+};
+
 @Injectable()
 export class PointsService {
   constructor(
@@ -122,6 +127,7 @@ export class PointsService {
     amount: number,
     contractId: string,
     serviceId: string,
+    metadata?: PointOperationMetadata,
   ) {
     this.assertPositiveAmount(amount);
 
@@ -180,6 +186,12 @@ export class PointsService {
         contractId,
         fromUserId: payerId,
         toUserId: receiverId,
+        ...(metadata
+          ? {
+              disputeId: metadata.disputeId,
+              disputeResolutionType: metadata.disputeResolutionType,
+            }
+          : {}),
       });
     } catch (error) {
       await Promise.all([
@@ -229,8 +241,16 @@ export class PointsService {
     amount: number,
     contractId: string,
     serviceId: string,
+    metadata?: PointOperationMetadata,
   ) {
     this.assertPositiveAmount(amount);
+
+    const existing = await this.transactionModel
+      .findOne({ contractId, type: PointTransactionType.RELEASE })
+      .exec();
+    if (existing) {
+      return this.userModel.findById(payerId).exec();
+    }
 
     const payer = await this.userModel
       .findOneAndUpdate(
@@ -260,6 +280,12 @@ export class PointsService {
         contractId,
         fromUserId: payerId,
         toUserId: null,
+        ...(metadata
+          ? {
+              disputeId: metadata.disputeId,
+              disputeResolutionType: metadata.disputeResolutionType,
+            }
+          : {}),
       });
     } catch (error) {
       await this.userModel
@@ -277,6 +303,32 @@ export class PointsService {
     }
 
     return payer;
+  }
+
+  async hasPointOperation(
+    contractId: string,
+    type: PointTransactionType,
+    disputeId?: string,
+  ) {
+    const transaction = await this.transactionModel
+      .findOne({
+        contractId,
+        type,
+        ...(disputeId ? { disputeId } : {}),
+      })
+      .select('_id')
+      .lean()
+      .exec();
+    return Boolean(transaction);
+  }
+
+  async hasReservedPoints(userId: string, amount: number) {
+    const user = await this.userModel
+      .findOne({ _id: userId, reservedPoints: { $gte: amount } })
+      .select('_id')
+      .lean()
+      .exec();
+    return Boolean(user);
   }
 
   async findTransactionsForUser(userId: string) {

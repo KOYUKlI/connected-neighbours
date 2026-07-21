@@ -54,6 +54,9 @@ export class Contract {
 
   @Prop({ type: Date, default: null })
   completedAt: Date | null;
+
+  @Prop({ type: String, trim: true, default: null, index: true })
+  activeDisputeId: string | null;
 }
 
 export const ContractSchema = SchemaFactory.createForClass(Contract);

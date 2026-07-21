@@ -8,6 +8,11 @@ import {
 import { AuthModule } from '../auth/auth.module';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { Contract, ContractSchema } from '../contracts/schemas/contract.schema';
+import {
+  DisputeEvidence,
+  DisputeEvidenceSchema,
+} from '../disputes/schemas/dispute-evidence.schema';
+import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
 import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
 import { PointsModule } from '../points/points.module';
 import {
@@ -27,6 +32,8 @@ import { DemoSeedService } from './demo-seed.service';
       { name: ServiceProof.name, schema: ServiceProofSchema },
       { name: ServiceApplication.name, schema: ServiceApplicationSchema },
       { name: Contract.name, schema: ContractSchema },
+      { name: Dispute.name, schema: DisputeSchema },
+      { name: DisputeEvidence.name, schema: DisputeEvidenceSchema },
       { name: Incident.name, schema: IncidentSchema },
     ]),
   ],

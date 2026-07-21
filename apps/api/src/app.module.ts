@@ -11,6 +11,7 @@ import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { DocumentsModule } from './documents/documents.module';
+import { DisputesModule } from './disputes/disputes.module';
 import { DemoSeedModule } from './demo-seed/demo-seed.module';
 import { DslModule } from './dsl/dsl.module';
 import { EventsModule } from './events/events.module';
@@ -101,6 +102,7 @@ import { VotesModule } from './votes/votes.module';
     SyncModule,
     VotesModule,
     DocumentsModule,
+    DisputesModule,
     MessagingModule,
     RgpdModule,
     SsoModule,

@@ -1,5 +1,6 @@
 import { ServiceApplicationStatus } from '../applications/schemas/service-application.schema';
 import { ContractStatus } from '../contracts/schemas/contract.schema';
+import { DisputeStatus } from '../disputes/schemas/dispute.schema';
 import { PublicUserDto } from '../users/dto/public-user.dto';
 import { ServiceStatus, ServiceType } from './schemas/service.schema';
 
@@ -56,7 +57,19 @@ export type ServiceResponse = {
     canValidate: boolean;
     canRequestCorrection: boolean;
     canViewProofs: boolean;
+    canOpenDispute: boolean;
+    canViewDispute: boolean;
+    canAddDisputeEvidence: boolean;
+    canAssignDispute: boolean;
+    canStartReview: boolean;
+    canResolveDispute: boolean;
+    canCloseDispute: boolean;
   };
+  activeDispute: {
+    id: string;
+    status: DisputeStatus;
+    reservedPoints: number;
+  } | null;
   contractSummary: {
     id: string;
     status: ContractStatus;

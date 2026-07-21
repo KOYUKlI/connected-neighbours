@@ -57,6 +57,13 @@ export type ServicePermissions = {
   canValidate: boolean;
   canRequestCorrection: boolean;
   canViewProofs: boolean;
+  canOpenDispute: boolean;
+  canViewDispute: boolean;
+  canAddDisputeEvidence: boolean;
+  canAssignDispute: boolean;
+  canStartReview: boolean;
+  canResolveDispute: boolean;
+  canCloseDispute: boolean;
 };
 
 export type ContractSummary = {
@@ -130,6 +137,11 @@ export type ServiceItem = {
   viewer?: ServiceViewer;
   permissions?: ServicePermissions;
   contractSummary?: ContractSummary | null;
+  activeDispute?: {
+    id: string;
+    status: 'open' | 'under_review';
+    reservedPoints: number;
+  } | null;
 };
 
 export type InvolvedServiceItem = ServiceItem & {

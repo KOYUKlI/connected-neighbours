@@ -27,6 +27,7 @@ describe('ServicesService', () => {
     find: jest.fn(),
   };
   const contractModel = { find: jest.fn() };
+  const disputeModel = { find: jest.fn() };
   const proofModel = { aggregate: jest.fn() };
   const publicUsersService = { findByIds: jest.fn() };
 
@@ -41,6 +42,7 @@ describe('ServicesService', () => {
       neighborhoodModel as never,
       applicationModel as never,
       contractModel as never,
+      disputeModel as never,
       proofModel as never,
       publicUsersService as never,
     );

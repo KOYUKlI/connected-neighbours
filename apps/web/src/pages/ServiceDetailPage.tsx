@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { acceptApplication, createApplication, getApplicationsForService, getMyApplications, rejectApplication, withdrawApplication, type ServiceApplication } from '../api/applications';
 import { createContractFromApplication, getContract, signContract, type ContractItem } from '../api/contracts';
+import { openServiceDispute, type OpenDisputeInput } from '../api/disputes';
 import { getNeighborhoods, type NeighborhoodItem } from '../api/neighborhoods';
 import {
   addServiceProof,
@@ -18,6 +19,7 @@ import {
   type ServiceProof,
 } from '../api/services';
 import { useAuth } from '../auth/useAuth';
+import { OpenDisputeModal } from '../components/disputes/OpenDisputeModal';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -53,6 +55,7 @@ export function ServiceDetailPage() {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!serviceId || !user) return;
@@ -115,6 +118,23 @@ export function ServiceDetailPage() {
     }
   }
 
+  async function handleOpenDispute(input: OpenDisputeInput) {
+    setPendingAction('open-dispute');
+    setError(null);
+    setSuccess(null);
+    try {
+      const dispute = await openServiceDispute(serviceId, input);
+      setSuccess('Le litige a été ouvert et les points restent gelés.');
+      await load();
+      navigate('/disputes/' + dispute.id);
+      return true;
+    } catch (caught) {
+      setError(getFriendlyError(caught, 'Impossible d’ouvrir ce litige.'));
+      return false;
+    } finally {
+      setPendingAction(null);
+    }
+  }
   async function handleApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -164,7 +184,8 @@ export function ServiceDetailPage() {
           {myApplication ? <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900"><strong>Candidature envoyée</strong><span className="mt-1 block">Statut : {myApplication.status === 'accepted' ? 'acceptée' : myApplication.status === 'rejected' ? 'refusée' : 'en attente'}</span></div> : null}
           {canPublish ? <Button disabled={pendingAction === 'publish'} onClick={() => void runAction('publish', () => publishService(serviceId), 'Votre service est maintenant publié.')} variant="primary">Publier l’annonce</Button> : null}
           {canCancel ? <Button disabled={pendingAction === 'cancel'} onClick={() => void runAction('cancel', () => cancelService(serviceId), 'Votre service a été annulé.')} variant="danger">Annuler l’annonce</Button> : null}
-          <div className="border-t border-slate-100 pt-4"><p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Publié par</p><UserSummary name={isOwner ? user.displayName ?? 'Vous' : service.owner?.displayName ?? 'Utilisateur inconnu'} subtitle={service.owner?.completedServicesCount ? `${service.owner.completedServicesCount} service${service.owner.completedServicesCount > 1 ? 's' : ''} terminé${service.owner.completedServicesCount > 1 ? 's' : ''}` : 'Profil public du quartier'} /></div>
+          {service.permissions?.canOpenDispute ? <Button disabled={pendingAction !== null} onClick={() => setDisputeModalOpen(true)} variant="danger">Ouvrir un litige</Button> : null}
+          {service.activeDispute ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><strong className="block">Service en litige</strong><span className="mt-1 block">{service.activeDispute.reservedPoints} points restent gelés pendant l’examen.</span><Link className="mt-3 inline-flex font-bold text-amber-900 underline underline-offset-4" to={'/disputes/' + service.activeDispute.id}>Consulter le litige</Link></div> : null}          <div className="border-t border-slate-100 pt-4"><p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Publié par</p><UserSummary name={isOwner ? user.displayName ?? 'Vous' : service.owner?.displayName ?? 'Utilisateur inconnu'} subtitle={service.owner?.completedServicesCount ? `${service.owner.completedServicesCount} service${service.owner.completedServicesCount > 1 ? 's' : ''} terminé${service.owner.completedServicesCount > 1 ? 's' : ''}` : 'Profil public du quartier'} /></div>
         </Card>
       </div>
 
@@ -207,6 +228,7 @@ export function ServiceDetailPage() {
 
       {tab === 'messages' ? <EmptyState icon="message" message="La messagerie persistante sera intégrée dans un prochain lot. Vous ne perdrez aucune donnée ici : aucun faux message n’est enregistré." title="Messagerie en préparation" /> : null}
 
+      <OpenDisputeModal onClose={() => setDisputeModalOpen(false)} onSubmit={handleOpenDispute} open={disputeModalOpen} pending={pendingAction === 'open-dispute'} reservedPoints={service.contractSummary?.pricePoints ?? service.pricePoints ?? 0} />
       {tab === 'history' ? <Card><h2 className="text-lg font-extrabold text-slate-950">Historique disponible</h2><ol className="mt-5 grid gap-4 border-l-2 border-emerald-100 pl-5"><li><p className="text-sm font-bold text-slate-950">Service créé</p><p className="mt-1 text-sm text-slate-500">{formatDate(service.createdAt, { dateStyle: 'long', timeStyle: 'short' })}</p></li>{service.updatedAt && service.updatedAt !== service.createdAt ? <li><p className="text-sm font-bold text-slate-950">Dernière mise à jour</p><p className="mt-1 text-sm text-slate-500">{formatDate(service.updatedAt, { dateStyle: 'long', timeStyle: 'short' })}</p></li> : null}<li><p className="text-sm font-bold text-slate-950">Statut actuel : {serviceStatusLabels[service.status]}</p><p className="mt-1 text-sm text-slate-500">Seules les étapes confirmées par l’API sont affichées.</p></li></ol></Card> : null}
     </PageContainer>
   );
