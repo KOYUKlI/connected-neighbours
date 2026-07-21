@@ -1,4 +1,6 @@
 export const WEB_TOKEN_KEY = 'connected-neighbours.web.token';
+export const WEB_SESSION_TOKEN_KEY = 'connected-neighbours.web.session-token';
+export const AUTH_EXPIRED_EVENT = 'connected-neighbours:auth-expired';
 
 type ApiRequestOptions = RequestInit & {
   auth?: boolean;
@@ -20,15 +22,25 @@ export class ApiError extends Error {
 }
 
 export function getAuthToken() {
-  return localStorage.getItem(WEB_TOKEN_KEY);
+  return (
+    sessionStorage.getItem(WEB_SESSION_TOKEN_KEY) ??
+    localStorage.getItem(WEB_TOKEN_KEY)
+  );
 }
 
-export function setAuthToken(token: string) {
-  localStorage.setItem(WEB_TOKEN_KEY, token);
+export function setAuthToken(token: string, persistent = true) {
+  clearAuthToken();
+
+  if (persistent) {
+    localStorage.setItem(WEB_TOKEN_KEY, token);
+  } else {
+    sessionStorage.setItem(WEB_SESSION_TOKEN_KEY, token);
+  }
 }
 
 export function clearAuthToken() {
   localStorage.removeItem(WEB_TOKEN_KEY);
+  sessionStorage.removeItem(WEB_SESSION_TOKEN_KEY);
 }
 
 export async function apiRequest<T>(
@@ -56,7 +68,14 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    throw new ApiError(await readErrorMessage(response), response.status);
+    const message = await readErrorMessage(response);
+
+    if (response.status === 401 && auth) {
+      clearAuthToken();
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+    }
+
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {

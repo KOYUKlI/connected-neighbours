@@ -1,13 +1,18 @@
 import { createContext } from 'react';
 
-import type { AuthUser } from '../api/auth';
+import type { AuthUser, LoginInput } from '../api/auth';
 
 export type AuthContextValue = {
-  token: string | null;
+  user: AuthUser | null;
   currentUser: AuthUser | null;
+  token: string | null;
+  isReady: boolean;
+  sessionMessage: string | null;
   loginError: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (input: LoginInput, persistent?: boolean) => Promise<void>;
+  logout: () => void;
   clearSession: (message?: string) => void;
+  refreshUser: () => Promise<void>;
   handleSessionError: (error: unknown) => boolean;
 };
 

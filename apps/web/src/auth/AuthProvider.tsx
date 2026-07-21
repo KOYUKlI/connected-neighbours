@@ -1,67 +1,95 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { getMe, login as loginRequest } from '../api/auth';
-import type { AuthUser } from '../api/auth';
-import { ApiError, clearAuthToken, getAuthToken, setAuthToken } from '../api/client';
-import { getErrorMessage } from '../shared/utils/errors';
-import { AuthContext } from './AuthContext';
+import type { AuthUser, LoginInput } from '../api/auth';
+import {
+  AUTH_EXPIRED_EVENT,
+  ApiError,
+  clearAuthToken,
+  getAuthToken,
+  setAuthToken,
+} from '../api/client';
+import { AuthContext, type AuthContextValue } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState(() => getAuthToken());
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(() => getAuthToken());
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const clearSession = useCallback((message?: string) => {
     clearAuthToken();
     setToken(null);
-    setCurrentUser(null);
+    setUser(null);
+    setSessionMessage(message ?? null);
     setLoginError(message ?? null);
   }, []);
 
   useEffect(() => {
-    if (!token || currentUser) {
-      return;
+    async function bootstrap() {
+      const storedToken = getAuthToken();
+
+      if (!storedToken) {
+        setIsReady(true);
+        return;
+      }
+
+      try {
+        const profile = await getMe();
+        setToken(storedToken);
+        setUser(profile);
+      } catch {
+        clearSession('Votre session a expiré. Connectez-vous à nouveau.');
+      } finally {
+        setIsReady(true);
+      }
     }
 
-    let ignore = false;
+    void bootstrap();
+  }, [clearSession]);
 
-    getMe()
-      .then((profile) => {
-        if (!ignore) {
-          setCurrentUser(profile);
-        }
-      })
-      .catch(() => {
-        if (!ignore) {
-          clearSession('Session expiree. Merci de vous reconnecter.');
-        }
-      });
-
-    return () => {
-      ignore = true;
+  useEffect(() => {
+    const handleExpiredSession = () => {
+      clearSession('Votre session a expiré. Connectez-vous à nouveau.');
     };
-  }, [token, currentUser, clearSession]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    setLoginError(null);
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
+    return () =>
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
+  }, [clearSession]);
 
-    try {
-      const response = await loginRequest({ email, password });
-      setAuthToken(response.accessToken);
-      setCurrentUser(response.user);
-      setToken(response.accessToken);
-      return true;
-    } catch (error) {
-      setLoginError(getErrorMessage(error));
-      return false;
-    }
+  const login = useCallback(
+    async (input: LoginInput, persistent = true) => {
+      setLoginError(null);
+      const result = await loginRequest(input);
+      setAuthToken(result.accessToken, persistent);
+      setToken(result.accessToken);
+      setUser(result.user);
+      setSessionMessage(null);
+    },
+    [],
+  );
+
+  const logout = useCallback(() => {
+    clearSession();
+  }, [clearSession]);
+
+  const refreshUser = useCallback(async () => {
+    const profile = await getMe();
+    setUser(profile);
   }, []);
 
   const handleSessionError = useCallback(
     (error: unknown) => {
-      if (error instanceof ApiError && [401, 403].includes(error.status)) {
-        clearSession('Session expiree. Merci de vous reconnecter.');
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession('Votre session a expiré. Connectez-vous à nouveau.');
         return true;
       }
 
@@ -70,11 +98,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [clearSession],
   );
 
-  return (
-    <AuthContext.Provider
-      value={{ token, currentUser, loginError, login, clearSession, handleSessionError }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      currentUser: user,
+      token,
+      isReady,
+      sessionMessage,
+      loginError,
+      login,
+      logout,
+      clearSession,
+      refreshUser,
+      handleSessionError,
+    }),
+    [
+      user,
+      token,
+      isReady,
+      sessionMessage,
+      loginError,
+      login,
+      logout,
+      clearSession,
+      refreshUser,
+      handleSessionError,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

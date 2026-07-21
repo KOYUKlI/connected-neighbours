@@ -2,13 +2,14 @@ import type { ReactNode } from 'react';
 
 import { cn } from './classNames';
 
-type BadgeTone = 'success' | 'warning' | 'danger' | 'neutral';
+type BadgeTone = 'success' | 'warning' | 'danger' | 'neutral' | 'info';
 
 const tones: Record<BadgeTone, string> = {
-  success: 'bg-emerald-100 text-emerald-700',
-  warning: 'bg-amber-100 text-amber-700',
-  danger: 'bg-red-100 text-red-700',
-  neutral: 'bg-slate-200 text-slate-600',
+  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  warning: 'border-amber-200 bg-amber-50 text-amber-800',
+  danger: 'border-red-200 bg-red-50 text-red-700',
+  neutral: 'border-slate-200 bg-slate-100 text-slate-700',
+  info: 'border-blue-200 bg-blue-50 text-blue-700',
 };
 
 export function Badge({
@@ -23,7 +24,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none',
+        'inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-bold leading-none',
         tones[tone],
         className,
       )}
