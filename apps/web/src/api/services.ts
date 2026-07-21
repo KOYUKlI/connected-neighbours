@@ -25,8 +25,11 @@ export type ServiceStatus =
   | 'contract_pending'
   | 'awaiting_signatures'
   | 'contract_active'
+  | 'scheduled'
   | 'accepted'
   | 'in_progress'
+  | 'awaiting_validation'
+  | 'correction_requested'
   | 'completed'
   | 'cancelled'
   | 'disputed';
@@ -48,6 +51,12 @@ export type ServicePermissions = {
   canViewApplications: boolean;
   canGenerateContract: boolean;
   canViewContract: boolean;
+  canStart: boolean;
+  canAddProof: boolean;
+  canMarkDone: boolean;
+  canValidate: boolean;
+  canRequestCorrection: boolean;
+  canViewProofs: boolean;
 };
 
 export type ContractSummary = {
@@ -56,6 +65,36 @@ export type ContractSummary = {
   pricePoints: number;
   signaturesCount: number;
   requiredSignaturesCount: number;
+};
+
+export type ServiceProofType = 'note' | 'image' | 'document' | 'audio';
+
+export type ServiceProof = {
+  id: string;
+  serviceId: string;
+  authorId: string;
+  type: ServiceProofType;
+  message: string | null;
+  fileReference: string | null;
+  createdAt?: string;
+  author: PublicUserSummary | null;
+};
+
+export type ExecutionMutationResult = {
+  serviceId: string;
+  contractId: string;
+  status: ServiceStatus;
+  executionStatus: ServiceStatus;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  markedDoneAt: string | null;
+  correctionRequestedAt: string | null;
+  correctionReason: string | null;
+  validatedAt: string | null;
+  completedAt: string | null;
+  contractStatus: string;
+  pointsTransferred: boolean;
+  alreadyTransferred: boolean;
 };
 
 export type ServiceItem = {
@@ -71,6 +110,16 @@ export type ServiceItem = {
   isPaid: boolean;
   pricePoints: number | null;
   status: ServiceStatus;
+  executionStatus?: ServiceStatus;
+  scheduledAt?: string | null;
+  startedAt?: string | null;
+  markedDoneAt?: string | null;
+  validatedAt?: string | null;
+  correctionRequestedAt?: string | null;
+  correctionReason?: string | null;
+  completedAt?: string | null;
+  proofsCount?: number;
+  nextAction?: string | null;
   selectedApplicationId?: string | null;
   contractId?: string | null;
   createdAt?: string;
@@ -109,7 +158,7 @@ export function getServices() {
 }
 
 export function getService(id: string) {
-  return apiRequest<ServiceItem>(`/api/services/${id}`);
+  return apiRequest<ServiceItem>('/api/services/' + id);
 }
 
 export function getMyCreatedServices() {
@@ -128,13 +177,61 @@ export function createService(input: CreateServiceInput) {
 }
 
 export function publishService(id: string) {
-  return apiRequest<ServiceItem>(`/api/services/${id}/publish`, {
+  return apiRequest<ServiceItem>('/api/services/' + id + '/publish', {
     method: 'POST',
   });
 }
 
 export function cancelService(id: string) {
-  return apiRequest<ServiceItem>(`/api/services/${id}/cancel`, {
+  return apiRequest<ServiceItem>('/api/services/' + id + '/cancel', {
     method: 'POST',
   });
+}
+
+export function startService(id: string) {
+  return apiRequest<ExecutionMutationResult>('/api/services/' + id + '/start', {
+    method: 'POST',
+  });
+}
+
+export function getServiceProofs(id: string) {
+  return apiRequest<ServiceProof[]>('/api/services/' + id + '/proofs');
+}
+
+export function addServiceProof(
+  id: string,
+  input: {
+    type: ServiceProofType;
+    message?: string;
+    fileReference?: string;
+  },
+) {
+  return apiRequest<ServiceProof>('/api/services/' + id + '/proofs', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function markServiceDone(id: string) {
+  return apiRequest<ExecutionMutationResult>(
+    '/api/services/' + id + '/mark-done',
+    { method: 'POST' },
+  );
+}
+
+export function validateService(id: string) {
+  return apiRequest<ExecutionMutationResult>(
+    '/api/services/' + id + '/validate',
+    { method: 'POST' },
+  );
+}
+
+export function requestServiceCorrection(id: string, reason: string) {
+  return apiRequest<ExecutionMutationResult>(
+    '/api/services/' + id + '/request-correction',
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    },
+  );
 }

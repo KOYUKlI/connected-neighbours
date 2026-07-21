@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 
 import {
   cancelContract,
-  completeContract,
   getContracts,
   signContract,
 } from '../../../api/contracts';
@@ -67,8 +66,6 @@ export function useContractsPage() {
     error: actionError ?? loadError,
     actionPending,
     onSignContract: (id: string) => runAction('sign-contract', () => signContract(id)),
-    onCompleteContract: (id: string) =>
-      runAction('complete-contract', () => completeContract(id)),
     onCancelContract: (id: string) =>
       runAction('cancel-contract', () => cancelContract(id)),
   };

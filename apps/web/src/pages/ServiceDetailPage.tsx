@@ -4,7 +4,19 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { acceptApplication, createApplication, getApplicationsForService, getMyApplications, rejectApplication, withdrawApplication, type ServiceApplication } from '../api/applications';
 import { createContractFromApplication, getContract, signContract, type ContractItem } from '../api/contracts';
 import { getNeighborhoods, type NeighborhoodItem } from '../api/neighborhoods';
-import { cancelService, getService, publishService, type ServiceItem } from '../api/services';
+import {
+  addServiceProof,
+  cancelService,
+  getService,
+  getServiceProofs,
+  markServiceDone,
+  publishService,
+  requestServiceCorrection,
+  startService,
+  validateService,
+  type ServiceItem,
+  type ServiceProof,
+} from '../api/services';
 import { useAuth } from '../auth/useAuth';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Badge } from '../components/ui/Badge';
@@ -22,8 +34,9 @@ import { getCategoryPresentation, getStatusTone } from '../features/services/ser
 import { getFriendlyError } from '../utils/errors';
 import { formatDate, formatNeighborhood, getEntityId, serviceStatusLabels, serviceTypeLabels } from '../utils/format';
 import { UserSummary } from '../components/ui/UserSummary';
+import { ServiceExecutionPanel } from '../components/services/ServiceExecutionPanel';
 
-type DetailTab = 'overview' | 'applications' | 'contract' | 'messages' | 'history';
+type DetailTab = 'overview' | 'applications' | 'contract' | 'execution' | 'messages' | 'history';
 
 export function ServiceDetailPage() {
   const { serviceId = '' } = useParams();
@@ -33,6 +46,8 @@ export function ServiceDetailPage() {
   const [neighborhoods, setNeighborhoods] = useState<NeighborhoodItem[]>([]);
   const [applications, setApplications] = useState<ServiceApplication[]>([]);
   const [contract, setContract] = useState<ContractItem | null>(null);
+  const [proofs, setProofs] = useState<ServiceProof[]>([]);
+  const [proofsLoading, setProofsLoading] = useState(false);
   const [tab, setTab] = useState<DetailTab>('overview');
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -52,6 +67,19 @@ export function ServiceDetailPage() {
         ? await getApplicationsForService(serviceId)
         : (await getMyApplications()).filter((item) => item.serviceId === serviceId);
       setApplications(nextApplications);
+      if (nextService.permissions?.canViewProofs) {
+        setProofsLoading(true);
+        try {
+          setProofs(await getServiceProofs(serviceId));
+        } catch (caught) {
+          setProofs([]);
+          setError(getFriendlyError(caught, 'Impossible de charger les preuves de réalisation.'));
+        } finally {
+          setProofsLoading(false);
+        }
+      } else {
+        setProofs([]);
+      }
       const contractId = nextService.contractSummary?.id ?? nextService.contractId;
       if (contractId && nextService.permissions?.canViewContract) {
         setContract(await getContract(contractId));
@@ -78,8 +106,10 @@ export function ServiceDetailPage() {
       await action();
       setSuccess(message);
       await load();
+      return true;
     } catch (caught) {
       setError(getFriendlyError(caught, 'Cette action n’a pas pu être effectuée. Réessayez dans quelques instants.'));
+      return false;
     } finally {
       setPendingAction(null);
     }
@@ -110,6 +140,7 @@ export function ServiceDetailPage() {
     { id: 'overview' as const, label: 'Présentation' },
     { id: 'applications' as const, label: 'Candidatures', count: applications.length || undefined },
     { id: 'contract' as const, label: 'Contrat' },
+    ...(service.permissions?.canViewProofs ? [{ id: 'execution' as const, label: 'Réalisation', count: proofs.length || undefined }] : []),
     { id: 'messages' as const, label: 'Messages' },
     { id: 'history' as const, label: 'Historique' },
   ];
@@ -158,6 +189,21 @@ export function ServiceDetailPage() {
       {tab === 'contract' ? contract ? (
         <Card className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Contrat lié au service</p><h2 className="mt-1 text-lg font-extrabold text-slate-950">{contract.status === 'active' ? 'Contrat actif' : contract.status === 'completed' ? 'Contrat terminé' : 'En attente de signatures'}</h2></div><Badge tone={contract.status === 'active' || contract.status === 'completed' ? 'success' : 'warning'}>{contract.status === 'active' ? 'Actif' : contract.status === 'completed' ? 'Terminé' : 'À signer'}</Badge></div><dl className="grid gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-3"><div><dt className="text-xs font-semibold text-slate-500">Points</dt><dd className="mt-1 font-extrabold text-slate-950">{contract.pricePoints}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Signatures</dt><dd className="mt-1 font-extrabold text-slate-950">{contract.signedByIds.length}/2</dd></div><div><dt className="text-xs font-semibold text-slate-500">Créé le</dt><dd className="mt-1 font-extrabold text-slate-950">{formatDate(contract.createdAt)}</dd></div></dl>{canSign ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm leading-6 text-amber-900">En signant, vous confirmez les conditions du service et le montant en points.</p><Button className="mt-3" disabled={pendingAction === 'sign'} onClick={() => void runAction('sign', () => signContract(getEntityId(contract)), 'Votre signature a été enregistrée.')} variant="primary">Signer le contrat</Button></div> : null}</Card>
       ) : <EmptyState icon="contract" message={service.isPaid ? 'Le contrat sera généré après l’acceptation d’une candidature.' : 'Un service gratuit ne nécessite pas de contrat payant.'} title="Aucun contrat pour le moment" /> : null}
+
+      {tab === 'execution' ? (
+        <ServiceExecutionPanel
+          onAddProof={(message) => runAction('proof', () => addServiceProof(serviceId, { type: 'note', message }), 'La preuve a été ajoutée.')}
+          onMarkDone={() => runAction('mark-done', () => markServiceDone(serviceId), 'Le service attend maintenant la validation du demandeur.')}
+          onRequestCorrection={(reason) => runAction('correction', () => requestServiceCorrection(serviceId, reason), 'La demande de correction a été envoyée.')}
+          onStart={() => runAction('start', () => startService(serviceId), 'Le service a démarré.')}
+          onValidate={() => runAction('validate', () => validateService(serviceId), 'La réalisation est validée et les points ont été transférés.')}
+          currentUserId={user.id}
+          pendingAction={pendingAction}
+          proofs={proofs}
+          proofsLoading={proofsLoading}
+          service={service}
+        />
+      ) : null}
 
       {tab === 'messages' ? <EmptyState icon="message" message="La messagerie persistante sera intégrée dans un prochain lot. Vous ne perdrez aucune donnée ici : aucun faux message n’est enregistré." title="Messagerie en préparation" /> : null}
 

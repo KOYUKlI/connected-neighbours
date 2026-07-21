@@ -17,7 +17,6 @@ export function ContractsPage() {
     error,
     actionPending,
     onCancelContract,
-    onCompleteContract,
     onSignContract,
   } = useContractsPage();
 
@@ -63,7 +62,6 @@ export function ContractsPage() {
           contract={contract}
           currentUserId={currentUser?.id}
           onCancel={onCancelContract}
-          onComplete={onCompleteContract}
           onSign={onSignContract}
         />
       ),

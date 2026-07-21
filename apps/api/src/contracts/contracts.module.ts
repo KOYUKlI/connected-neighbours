@@ -7,6 +7,7 @@ import {
 } from '../applications/schemas/service-application.schema';
 import { PointsModule } from '../points/points.module';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
+import { ServicesModule } from '../services/services.module';
 import { UsersModule } from '../users/users.module';
 import { ContractsController } from './contracts.controller';
 import { ContractsService } from './contracts.service';
@@ -15,6 +16,7 @@ import { Contract, ContractSchema } from './schemas/contract.schema';
 @Module({
   imports: [
     PointsModule,
+    ServicesModule,
     UsersModule,
     MongooseModule.forFeature([
       { name: Contract.name, schema: ContractSchema },

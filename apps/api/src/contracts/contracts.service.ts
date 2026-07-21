@@ -14,6 +14,7 @@ import {
   ServiceApplicationDocument,
   ServiceApplicationStatus,
 } from '../applications/schemas/service-application.schema';
+import { ServiceExecutionService } from '../services/service-execution.service';
 import {
   Service,
   ServiceDocument,
@@ -52,6 +53,7 @@ export class ContractsService {
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     private readonly pointsService: PointsService,
     private readonly publicUsersService: PublicUsersService,
+    private readonly executionService: ServiceExecutionService,
   ) {}
 
   async createFromApplication(
@@ -294,40 +296,17 @@ export class ContractsService {
 
       await this.updateServiceStatus(
         contract.serviceId,
-        ServiceStatus.CONTRACT_ACTIVE,
+        ServiceStatus.SCHEDULED,
+        { scheduledAt: contract.signedAt },
       );
     }
 
     return contract.save();
   }
 
-  async complete(id: string, userId: string) {
-    const contract = await this.findContract(id);
-
-    this.assertContractParty(contract, userId);
-
-    if (contract.status !== ContractStatus.ACTIVE) {
-      throw new BadRequestException(
-        'Seul un contrat en cours peut être terminé',
-      );
-    }
-
-    if (contract.pricePoints > 0) {
-      await this.pointsService.transferReservedPoints(
-        contract.payerId,
-        contract.receiverId,
-        contract.pricePoints,
-        contract.id,
-        contract.serviceId,
-      );
-    }
-
-    contract.status = ContractStatus.COMPLETED;
-    contract.completedAt = new Date();
-
-    await this.updateServiceStatus(contract.serviceId, ServiceStatus.COMPLETED);
-
-    return contract.save();
+  async complete(id: string, actor: AuthenticatedUser) {
+    await this.executionService.validateByContract(id, actor);
+    return this.findContract(id);
   }
 
   async cancel(id: string, userId: string) {
@@ -452,9 +431,17 @@ export class ContractsService {
     }
   }
 
-  private async updateServiceStatus(serviceId: string, status: ServiceStatus) {
+  private async updateServiceStatus(
+    serviceId: string,
+    status: ServiceStatus,
+    extra: Record<string, unknown> = {},
+  ) {
     const service = await this.serviceModel
-      .findByIdAndUpdate(serviceId, { status }, { returnDocument: 'after' })
+      .findByIdAndUpdate(
+        serviceId,
+        { status, ...extra },
+        { returnDocument: 'after' },
+      )
       .exec();
 
     if (!service) {

@@ -10,6 +10,10 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
 import { Contract, ContractSchema } from '../contracts/schemas/contract.schema';
 import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
 import { PointsModule } from '../points/points.module';
+import {
+  ServiceProof,
+  ServiceProofSchema,
+} from '../services/schemas/service-proof.schema';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
 import { DemoSeedService } from './demo-seed.service';
 
@@ -20,6 +24,7 @@ import { DemoSeedService } from './demo-seed.service';
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Service.name, schema: ServiceSchema },
+      { name: ServiceProof.name, schema: ServiceProofSchema },
       { name: ServiceApplication.name, schema: ServiceApplicationSchema },
       { name: Contract.name, schema: ContractSchema },
       { name: Incident.name, schema: IncidentSchema },

@@ -16,8 +16,11 @@ export enum ServiceStatus {
   CONTRACT_PENDING = 'contract_pending',
   AWAITING_SIGNATURES = 'awaiting_signatures',
   CONTRACT_ACTIVE = 'contract_active',
+  SCHEDULED = 'scheduled',
   ACCEPTED = 'accepted',
   IN_PROGRESS = 'in_progress',
+  AWAITING_VALIDATION = 'awaiting_validation',
+  CORRECTION_REQUESTED = 'correction_requested',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   DISPUTED = 'disputed',
@@ -75,6 +78,30 @@ export class Service {
 
   @Prop({ type: String, trim: true, default: null })
   contractId: string | null;
+
+  @Prop({ type: Date, default: null })
+  scheduledAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  startedAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  markedDoneAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  validatedAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  correctionRequestedAt: Date | null;
+
+  @Prop({ type: String, trim: true, maxlength: 500, default: null })
+  correctionReason: string | null;
+
+  @Prop({ type: Date, default: null })
+  completedAt: Date | null;
+
+  @Prop({ type: Date, default: null, select: false })
+  validationClaimedAt: Date | null;
 }
 
 export const ServiceSchema = SchemaFactory.createForClass(Service);

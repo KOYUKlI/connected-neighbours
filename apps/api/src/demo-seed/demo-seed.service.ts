@@ -25,6 +25,11 @@ import {
 } from '../incidents/schemas/incident.schema';
 import { PointsService } from '../points/points.service';
 import {
+  ServiceProof,
+  ServiceProofDocument,
+  ServiceProofType,
+} from '../services/schemas/service-proof.schema';
+import {
   Service,
   ServiceDocument,
   ServiceStatus,
@@ -54,6 +59,8 @@ export class DemoSeedService implements OnModuleInit {
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Contract.name)
     private readonly contractModel: Model<ContractDocument>,
+    @InjectModel(ServiceProof.name)
+    private readonly proofModel: Model<ServiceProofDocument>,
     @InjectModel(Incident.name)
     private readonly incidentModel: Model<IncidentDocument>,
     private readonly usersService: UsersService,
@@ -154,6 +161,7 @@ export class DemoSeedService implements OnModuleInit {
     });
 
     await this.ensureFurnitureWorkflow(furniture, alice, bob, claire);
+    await this.ensureExecutionDemos(alice, bob);
     await this.ensureApplication(
       computerHelp,
       claire.id,
@@ -202,10 +210,35 @@ export class DemoSeedService implements OnModuleInit {
     const existingContract = await this.contractModel
       .findOne({ serviceId: service.id })
       .exec();
-    if (
-      existingContract ||
-      accepted.status !== ServiceApplicationStatus.ACCEPTED
-    ) {
+    if (accepted.status !== ServiceApplicationStatus.ACCEPTED) return;
+
+    if (existingContract) {
+      if (existingContract.status === ContractStatus.SENT) {
+        const signedAt = new Date();
+        await this.contractModel
+          .updateOne(
+            { _id: existingContract.id, status: ContractStatus.SENT },
+            {
+              $set: {
+                status: ContractStatus.ACTIVE,
+                signedByIds: [alice.id, bob.id],
+                signedAt,
+              },
+            },
+          )
+          .exec();
+        await this.serviceModel
+          .updateOne(
+            { _id: service.id },
+            {
+              $set: {
+                status: ServiceStatus.SCHEDULED,
+                scheduledAt: signedAt,
+              },
+            },
+          )
+          .exec();
+      }
       return;
     }
 
@@ -231,9 +264,9 @@ export class DemoSeedService implements OnModuleInit {
       payerId: alice.id,
       receiverId: bob.id,
       pricePoints: 25,
-      status: ContractStatus.SENT,
-      signedByIds: [],
-      signedAt: null,
+      status: ContractStatus.ACTIVE,
+      signedByIds: [alice.id, bob.id],
+      signedAt: new Date(),
       completedAt: null,
     });
     await this.serviceModel
@@ -242,11 +275,124 @@ export class DemoSeedService implements OnModuleInit {
         {
           selectedApplicationId: accepted.id,
           contractId,
-          status: ServiceStatus.AWAITING_SIGNATURES,
+          status: ServiceStatus.SCHEDULED,
+          scheduledAt: new Date(),
         },
         { returnDocument: 'after', runValidators: true },
       )
       .exec();
+  }
+
+  private async ensureExecutionDemos(alice: UserDocument, bob: UserDocument) {
+    await this.ensureExecutionDemo(
+      alice,
+      bob,
+      {
+        title: 'Réglage final d une étagère',
+        description:
+          'Bob ajuste les fixations et vérifie la stabilité de l étagère.',
+        type: ServiceType.REQUEST,
+        category: 'Bricolage',
+        availability: 'Mardi soir',
+        isPaid: true,
+        pricePoints: 10,
+        status: ServiceStatus.IN_PROGRESS,
+      },
+      ServiceStatus.IN_PROGRESS,
+      null,
+    );
+    await this.ensureExecutionDemo(
+      alice,
+      bob,
+      {
+        title: 'Installation d une imprimante',
+        description:
+          'Installation du pilote, connexion au réseau et page de test.',
+        type: ServiceType.REQUEST,
+        category: 'Informatique',
+        availability: 'Jeudi après-midi',
+        isPaid: true,
+        pricePoints: 15,
+        status: ServiceStatus.AWAITING_VALIDATION,
+      },
+      ServiceStatus.AWAITING_VALIDATION,
+      'Imprimante installée et page de test imprimée avec succès.',
+    );
+  }
+
+  private async ensureExecutionDemo(
+    alice: UserDocument,
+    bob: UserDocument,
+    input: DemoServiceInput,
+    status: ServiceStatus,
+    proofMessage: string | null,
+  ) {
+    const service = await this.ensureService(alice.id, input);
+    let contract = await this.contractModel
+      .findOne({ serviceId: service.id })
+      .exec();
+
+    if (!contract) {
+      const contractId = new Types.ObjectId().toString();
+      await this.pointsService.reservePoints(
+        alice.id,
+        input.pricePoints ?? 0,
+        contractId,
+        service.id,
+      );
+      contract = await this.contractModel.create({
+        _id: contractId,
+        serviceId: service.id,
+        applicationId: null,
+        requesterId: alice.id,
+        providerId: bob.id,
+        payerId: alice.id,
+        receiverId: bob.id,
+        pricePoints: input.pricePoints ?? 0,
+        status: ContractStatus.ACTIVE,
+        signedByIds: [alice.id, bob.id],
+        signedAt: new Date(),
+        completedAt: null,
+      });
+    }
+
+    const now = new Date();
+    await this.serviceModel
+      .updateOne(
+        { _id: service.id },
+        {
+          $set: {
+            contractId: contract.id,
+            status,
+            scheduledAt: service.scheduledAt ?? now,
+            startedAt:
+              status === ServiceStatus.IN_PROGRESS ||
+              status === ServiceStatus.AWAITING_VALIDATION
+                ? (service.startedAt ?? now)
+                : null,
+            markedDoneAt:
+              status === ServiceStatus.AWAITING_VALIDATION
+                ? (service.markedDoneAt ?? now)
+                : null,
+          },
+        },
+      )
+      .exec();
+
+    if (proofMessage) {
+      const exists = await this.proofModel
+        .findOne({ serviceId: service.id, message: proofMessage })
+        .exec();
+      if (!exists) {
+        await this.proofModel.create({
+          serviceId: service.id,
+          authorId: bob.id,
+          type: ServiceProofType.NOTE,
+          message: proofMessage,
+          fileReference: null,
+        });
+      }
+    }
   }
 
   private async ensureApplication(

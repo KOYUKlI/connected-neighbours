@@ -10,15 +10,19 @@ describe('PointsService', () => {
     findById: jest.fn(),
     findOneAndUpdate: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+    updateOne: jest.fn(),
   };
 
   const transactionModelMock = {
     create: jest.fn(),
     find: jest.fn(),
+    findOne: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    transactionModelMock.findOne.mockReturnValue(execResult(null));
+    userModelMock.updateOne.mockReturnValue(execResult({ acknowledged: true }));
 
     service = new PointsService(
       userModelMock as never,
@@ -129,7 +133,27 @@ describe('PointsService', () => {
     expect(result).toEqual({
       payer,
       receiver,
+      alreadyTransferred: false,
     });
+  });
+
+  it('does not transfer points twice for the same contract', async () => {
+    transactionModelMock.findOne.mockReturnValue(
+      execResult({ id: 'existing-transfer' }),
+    );
+
+    const result = await service.transferReservedPoints(
+      'payer_1',
+      'receiver_1',
+      30,
+      'contract_1',
+      'svc_1',
+    );
+
+    expect(result.alreadyTransferred).toBe(true);
+    expect(userModelMock.findOneAndUpdate).not.toHaveBeenCalled();
+    expect(userModelMock.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(transactionModelMock.create).not.toHaveBeenCalled();
   });
 
   it('should release reserved points back to the payer balance', async () => {

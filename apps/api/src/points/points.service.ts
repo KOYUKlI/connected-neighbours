@@ -44,6 +44,15 @@ export class PointsService {
   ) {
     this.assertPositiveAmount(amount);
 
+    const existing = await this.transactionModel
+      .findOne({ contractId, type: PointTransactionType.RESERVATION })
+      .exec();
+    if (existing) {
+      throw new BadRequestException(
+        'Les points sont déjà réservés pour ce contrat.',
+      );
+    }
+
     const payer = await this.userModel
       .findOneAndUpdate(
         {
@@ -64,14 +73,29 @@ export class PointsService {
       throw new BadRequestException('Solde de points insuffisant');
     }
 
-    await this.transactionModel.create({
-      type: PointTransactionType.RESERVATION,
-      amount,
-      serviceId,
-      contractId,
-      fromUserId: payerId,
-      toUserId: null,
-    });
+    try {
+      await this.transactionModel.create({
+        type: PointTransactionType.RESERVATION,
+        amount,
+        serviceId,
+        contractId,
+        fromUserId: payerId,
+        toUserId: null,
+      });
+    } catch (error) {
+      await this.userModel
+        .updateOne(
+          { _id: payerId },
+          {
+            $inc: {
+              pointsBalance: amount,
+              reservedPoints: -amount,
+            },
+          },
+        )
+        .exec();
+      throw error;
+    }
 
     return payer;
   }
@@ -100,6 +124,17 @@ export class PointsService {
     serviceId: string,
   ) {
     this.assertPositiveAmount(amount);
+
+    const existing = await this.transactionModel
+      .findOne({ contractId, type: PointTransactionType.TRANSFER })
+      .exec();
+    if (existing) {
+      return {
+        payer: null,
+        receiver: null,
+        alreadyTransferred: true,
+      };
+    }
 
     const payer = await this.userModel
       .findOneAndUpdate(
@@ -133,22 +168,46 @@ export class PointsService {
       .exec();
 
     if (!receiver) {
+      await this.restorePayerReservation(payerId, amount);
       throw new BadRequestException('Bénéficiaire introuvable');
     }
 
-    await this.transactionModel.create({
-      type: PointTransactionType.TRANSFER,
-      amount,
-      serviceId,
-      contractId,
-      fromUserId: payerId,
-      toUserId: receiverId,
-    });
+    try {
+      await this.transactionModel.create({
+        type: PointTransactionType.TRANSFER,
+        amount,
+        serviceId,
+        contractId,
+        fromUserId: payerId,
+        toUserId: receiverId,
+      });
+    } catch (error) {
+      await Promise.all([
+        this.restorePayerReservation(payerId, amount),
+        this.userModel
+          .updateOne(
+            { _id: receiverId, pointsBalance: { $gte: amount } },
+            { $inc: { pointsBalance: -amount } },
+          )
+          .exec(),
+      ]);
+      throw error;
+    }
 
     return {
       payer,
       receiver,
+      alreadyTransferred: false,
     };
+  }
+
+  async hasFinalTransfer(contractId: string) {
+    const transaction = await this.transactionModel
+      .findOne({ contractId, type: PointTransactionType.TRANSFER })
+      .select('_id')
+      .lean()
+      .exec();
+    return Boolean(transaction);
   }
 
   async release(input: {
@@ -193,14 +252,29 @@ export class PointsService {
       throw new BadRequestException('Aucun point réservé disponible');
     }
 
-    await this.transactionModel.create({
-      type: PointTransactionType.RELEASE,
-      amount,
-      serviceId,
-      contractId,
-      fromUserId: payerId,
-      toUserId: null,
-    });
+    try {
+      await this.transactionModel.create({
+        type: PointTransactionType.RELEASE,
+        amount,
+        serviceId,
+        contractId,
+        fromUserId: payerId,
+        toUserId: null,
+      });
+    } catch (error) {
+      await this.userModel
+        .updateOne(
+          { _id: payerId, pointsBalance: { $gte: amount } },
+          {
+            $inc: {
+              pointsBalance: -amount,
+              reservedPoints: amount,
+            },
+          },
+        )
+        .exec();
+      throw error;
+    }
 
     return payer;
   }
@@ -227,6 +301,19 @@ export class PointsService {
       reservedPoints: user.reservedPoints,
       availablePoints: user.pointsBalance,
     };
+  }
+
+  private restorePayerReservation(payerId: string, amount: number) {
+    return this.userModel
+      .updateOne(
+        { _id: payerId },
+        {
+          $inc: {
+            reservedPoints: amount,
+          },
+        },
+      )
+      .exec();
   }
 
   private assertPositiveAmount(amount: number) {

@@ -1,4 +1,8 @@
+import { Link } from 'react-router-dom';
+
 import type { ContractItem } from '../../../api/contracts';
+import { Button } from '../../../components/ui/Button';
+import { buttonStyles } from '../../../components/ui/buttonStyles';
 import { getEntityId } from '../../../shared/utils/entities';
 
 type ContractActionsProps = {
@@ -6,7 +10,6 @@ type ContractActionsProps = {
   contract: ContractItem;
   currentUserId?: string;
   onCancel: (id: string) => Promise<boolean>;
-  onComplete: (id: string) => Promise<boolean>;
   onSign: (id: string) => Promise<boolean>;
 };
 
@@ -15,7 +18,6 @@ export function ContractActions({
   contract,
   currentUserId,
   onCancel,
-  onComplete,
   onSign,
 }: ContractActionsProps) {
   const contractId = getEntityId(contract);
@@ -25,42 +27,40 @@ export function ContractActions({
     ? contract.signedByIds.includes(currentUserId)
     : false;
   const canSign = isParty && contract.status === 'sent' && !hasSigned;
-  const canComplete = isParty && contract.status === 'active';
   const canCancel = isParty && !['completed', 'cancelled'].includes(contract.status);
 
   return (
-    <div className="action-row table-actions">
+    <div className="flex flex-wrap items-center gap-2">
       {canSign ? (
-        <button
-          className="secondary-button"
+        <Button
           disabled={actionPending === 'sign-contract'}
           onClick={() => void onSign(contractId)}
+          size="sm"
           type="button"
+          variant="secondary"
         >
           Signer
-        </button>
+        </Button>
       ) : null}
-      {canComplete ? (
-        <button
-          className="primary-button"
-          disabled={actionPending === 'complete-contract'}
-          onClick={() => void onComplete(contractId)}
-          type="button"
+      {contract.serviceId ? (
+        <Link
+          className={buttonStyles('ghost', 'sm')}
+          to={'/services/' + contract.serviceId}
         >
-          Completer
-        </button>
+          {contract.status === 'active' ? 'Suivre la réalisation' : 'Voir le service'}
+        </Link>
       ) : null}
       {canCancel ? (
-        <button
-          className="ghost-button danger"
+        <Button
           disabled={actionPending === 'cancel-contract'}
           onClick={() => void onCancel(contractId)}
+          size="sm"
           type="button"
+          variant="danger"
         >
           Annuler
-        </button>
+        </Button>
       ) : null}
-      {!canSign && !canComplete && !canCancel ? <span className="muted">-</span> : null}
     </div>
   );
 }

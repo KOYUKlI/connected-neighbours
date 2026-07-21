@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ServiceExecutionService } from './service-execution.service';
 import { ServicesController } from './services.controller';
 import { ServicesService } from './services.service';
 import { ServiceType } from './schemas/service.schema';
@@ -21,6 +22,10 @@ describe('ServicesController', () => {
         {
           provide: ServicesService,
           useValue: servicesServiceMock,
+        },
+        {
+          provide: ServiceExecutionService,
+          useValue: {},
         },
       ],
     }).compile();

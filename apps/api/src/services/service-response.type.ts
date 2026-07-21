@@ -17,6 +17,14 @@ export type ServiceResponse = {
   isPaid: boolean;
   pricePoints: number | null;
   status: ServiceStatus;
+  executionStatus: ServiceStatus;
+  scheduledAt: Date | null;
+  startedAt: Date | null;
+  markedDoneAt: Date | null;
+  validatedAt: Date | null;
+  correctionRequestedAt: Date | null;
+  correctionReason: string | null;
+  completedAt: Date | null;
   selectedApplicationId: string | null;
   contractId: string | null;
   createdAt: Date | undefined;
@@ -24,6 +32,8 @@ export type ServiceResponse = {
   neighborhood: NeighborhoodSummary | null;
   owner: PublicUserDto | null;
   applicationsCount: number;
+  proofsCount: number;
+  nextAction: string | null;
   viewer: {
     isOwner: boolean;
     hasApplied: boolean;
@@ -40,6 +50,12 @@ export type ServiceResponse = {
     canViewApplications: boolean;
     canGenerateContract: boolean;
     canViewContract: boolean;
+    canStart: boolean;
+    canAddProof: boolean;
+    canMarkDone: boolean;
+    canValidate: boolean;
+    canRequestCorrection: boolean;
+    canViewProofs: boolean;
   };
   contractSummary: {
     id: string;

@@ -595,19 +595,149 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       expect.arrayContaining([aliceId, bobId]),
     );
 
-    const completedContract = await request(app.getHttpServer())
-      .post(`/api/contracts/${contractId}/complete`)
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/start')
+      .set('Authorization', bearer(aliceToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/complete')
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    const startedService = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/start')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    expect(startedService.body.executionStatus).toBe('in_progress');
+    expect(startedService.body.startedAt).toBeTruthy();
+
+    const firstProof = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        type: 'note',
+        message: 'Étagère montée, fixée et niveau vérifié.',
+      })
+      .expect(201);
+
+    expect(firstProof.body).toEqual(
+      expect.objectContaining({
+        serviceId,
+        authorId: bobId,
+        type: 'note',
+      }),
+    );
+    expect(firstProof.body.author).not.toHaveProperty('email');
+
+    await request(app.getHttpServer())
+      .get('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: firstProof.body.id }),
+          ]),
+        );
+      });
+
+    const firstDone = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/mark-done')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    expect(firstDone.body.executionStatus).toBe('awaiting_validation');
+    expect(firstDone.body.pointsTransferred).toBe(false);
+
+    const aliceBeforeValidation = await getMe(aliceToken);
+    const bobBeforeValidation = await getMe(bobToken);
+    expect(aliceBeforeValidation.pointsBalance).toBe(75);
+    expect(aliceBeforeValidation.reservedPoints).toBe(25);
+    expect(bobBeforeValidation.pointsBalance).toBe(100);
+
+    const correction = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/request-correction')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        reason: 'Merci de resserrer la fixation murale avant validation.',
+      })
+      .expect(201);
+
+    expect(correction.body.executionStatus).toBe('correction_requested');
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/mark-done')
+      .set('Authorization', bearer(bobToken))
+      .expect(409);
+
+    const correctionProof = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        type: 'note',
+        message: 'Fixation murale resserrée et contrôlée une seconde fois.',
+      })
+      .expect(201);
+
+    expect(correctionProof.body.id).toBeTruthy();
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/mark-done')
+      .set('Authorization', bearer(bobToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.executionStatus).toBe('awaiting_validation');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/validate')
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+
+    const validation = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/validate')
       .set('Authorization', bearer(aliceToken))
       .expect(201);
 
-    expect(completedContract.body.status).toBe('completed');
+    expect(validation.body).toEqual(
+      expect.objectContaining({
+        executionStatus: 'completed',
+        contractStatus: 'completed',
+        pointsTransferred: true,
+      }),
+    );
 
     const completedService = await request(app.getHttpServer())
-      .get(`/api/services/${serviceId}`)
+      .get('/api/services/' + serviceId)
       .set('Authorization', bearer(aliceToken))
       .expect(200);
 
-    expect(completedService.body.status).toBe('completed');
+    expect(completedService.body).toEqual(
+      expect.objectContaining({
+        status: 'completed',
+        validatedAt: expect.any(String),
+        completedAt: expect.any(String),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/validate')
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get('/api/points/transactions')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        const transfers = body.filter(
+          (item: { contractId: string; type: string }) =>
+            item.contractId === contractId && item.type === 'transfer',
+        );
+        expect(transfers).toHaveLength(1);
+      });
 
     const aliceAfterTransfer = await getMe(aliceToken);
     const bobAfterTransfer = await getMe(bobToken);
@@ -1072,6 +1202,11 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection.collection('serviceapplications').deleteMany({
         message: {
           $in: ['E2E candidature Bob', 'E2E candidature annulation contrat'],
+        },
+      }),
+      connection.collection('serviceproofs').deleteMany({
+        serviceId: {
+          $in: [serviceId, cancellableServiceId].filter(Boolean),
         },
       }),
       connection.collection('contracts').deleteMany({

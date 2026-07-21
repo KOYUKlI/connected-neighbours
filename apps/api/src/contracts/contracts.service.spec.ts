@@ -41,6 +41,10 @@ describe('ContractsService', () => {
     findByIds: jest.fn(),
   };
 
+  const executionServiceMock = {
+    validateByContract: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -50,6 +54,7 @@ describe('ContractsService', () => {
       applicationModelMock as never,
       pointsServiceMock as unknown as PointsService,
       publicUsersServiceMock as never,
+      executionServiceMock as never,
     );
   });
 
@@ -349,7 +354,7 @@ describe('ContractsService', () => {
 
     contractModelMock.findById.mockReturnValue(execResult(contract));
     serviceModelMock.findByIdAndUpdate.mockReturnValue(
-      execResult({ _id: 'svc_1', status: ServiceStatus.CONTRACT_ACTIVE }),
+      execResult({ _id: 'svc_1', status: ServiceStatus.SCHEDULED }),
     );
 
     const result = await service.sign('contract_1', 'provider_1');
@@ -359,7 +364,11 @@ describe('ContractsService', () => {
     expect(contract.signedAt).toBeInstanceOf(Date);
     expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
       'svc_1',
-      { status: ServiceStatus.CONTRACT_ACTIVE },
+      {
+        status: ServiceStatus.SCHEDULED,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest types asymmetric matchers as any.
+        scheduledAt: expect.any(Date),
+      },
       { returnDocument: 'after' },
     );
     expect(result).toEqual(contract);
@@ -383,60 +392,41 @@ describe('ContractsService', () => {
     );
   });
 
-  it('should transfer reserved points when completing an active paid contract', async () => {
+  it('delegates the legacy completion route to the execution workflow', async () => {
     const contract = contractDocument({
       id: 'contract_1',
       serviceId: 'svc_1',
       requesterId: 'requester_1',
       providerId: 'provider_1',
-      payerId: 'requester_1',
-      receiverId: 'provider_1',
-      status: ContractStatus.ACTIVE,
+      status: ContractStatus.COMPLETED,
       pricePoints: 50,
     });
-
+    executionServiceMock.validateByContract.mockResolvedValue({
+      executionStatus: ServiceStatus.COMPLETED,
+    });
     contractModelMock.findById.mockReturnValue(execResult(contract));
-    serviceModelMock.findByIdAndUpdate.mockReturnValue(
-      execResult({ _id: 'svc_1', status: ServiceStatus.COMPLETED }),
-    );
+    const actor = authUser('requester_1');
 
-    const result = await service.complete('contract_1', 'requester_1');
+    const result = await service.complete('contract_1', actor);
 
-    expect(pointsServiceMock.transferReservedPoints).toHaveBeenCalledWith(
-      'requester_1',
-      'provider_1',
-      50,
+    expect(executionServiceMock.validateByContract).toHaveBeenCalledWith(
       'contract_1',
-      'svc_1',
+      actor,
     );
-    expect(contract.status).toBe(ContractStatus.COMPLETED);
-    expect(contract.completedAt).toBeInstanceOf(Date);
+    expect(pointsServiceMock.transferReservedPoints).not.toHaveBeenCalled();
     expect(result).toEqual(contract);
   });
 
-  it('should complete a free contract without transferring points', async () => {
-    const contract = contractDocument({
-      id: 'contract_1',
-      serviceId: 'svc_1',
-      requesterId: 'requester_1',
-      providerId: 'provider_1',
-      payerId: 'requester_1',
-      receiverId: 'provider_1',
-      status: ContractStatus.ACTIVE,
-      pricePoints: 0,
-    });
-
-    contractModelMock.findById.mockReturnValue(execResult(contract));
-    serviceModelMock.findByIdAndUpdate.mockReturnValue(
-      execResult({ _id: 'svc_1', status: ServiceStatus.COMPLETED }),
+  it('does not bypass execution workflow errors through the legacy route', async () => {
+    executionServiceMock.validateByContract.mockRejectedValue(
+      new BadRequestException("Ce service n'attend pas de validation."),
     );
 
-    await service.complete('contract_1', 'provider_1');
-
+    await expect(
+      service.complete('contract_1', authUser('requester_1')),
+    ).rejects.toThrow(BadRequestException);
     expect(pointsServiceMock.transferReservedPoints).not.toHaveBeenCalled();
-    expect(contract.status).toBe(ContractStatus.COMPLETED);
   });
-
   it('should cancel a paid contract and release reserved points', async () => {
     const contract = contractDocument({
       id: 'contract_1',

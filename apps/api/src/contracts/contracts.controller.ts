@@ -2,6 +2,7 @@ import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -24,7 +25,7 @@ export class ContractsController {
   @Post('services/:serviceId/accept')
   @ApiOperation({
     summary:
-      'Route legacy: accepter directement un service et creer un contrat si payant',
+      'Route legacy: accepter directement un service et créer un contrat si payant',
   })
   acceptService(
     @Param('serviceId') serviceId: string,
@@ -35,14 +36,14 @@ export class ContractsController {
 
   @Post('from-application/:applicationId')
   @ApiOperation({
-    summary: 'Generer un contrat depuis une candidature acceptee',
+    summary: 'Générer un contrat depuis une candidature acceptée',
   })
   @ApiBadRequestResponse({
     description:
-      'Candidature non acceptee, contrat deja existant ou points insuffisants',
+      'Candidature non acceptée, contrat déjà existant ou points insuffisants',
   })
   @ApiForbiddenResponse({
-    description: 'Seul le proprietaire du service peut generer le contrat',
+    description: 'Seul le propriétaire du service peut générer le contrat',
   })
   @ApiNotFoundResponse({
     description: 'Candidature ou service introuvable',
@@ -80,10 +81,17 @@ export class ContractsController {
 
   @Post(':id/complete')
   @ApiOperation({
-    summary: 'Clôturer un contrat et transférer les points réservés',
+    summary: 'Route legacy : valider la réalisation du service',
+    description:
+      'Dépréciée : applique les mêmes préconditions que POST /services/:id/validate.',
+    deprecated: true,
   })
-  complete(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
-    return this.contractsService.complete(id, user.sub);
+  @ApiConflictResponse({
+    description:
+      "Le prestataire n'a pas encore déclaré le service réalisé ou les points ont déjà été transférés.",
+  })
+  complete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.contractsService.complete(id, user);
   }
 
   @Post(':id/cancel')

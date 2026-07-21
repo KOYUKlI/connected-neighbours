@@ -22,8 +22,8 @@ export function getCategoryPresentation(category: string) {
 }
 
 export function getStatusTone(status: ServiceStatus) {
-  if (['completed', 'contract_active', 'published'].includes(status)) return 'success' as const;
+  if (['completed', 'contract_active', 'published', 'scheduled'].includes(status)) return 'success' as const;
   if (['cancelled', 'disputed'].includes(status)) return 'danger' as const;
-  if (['application_received', 'awaiting_signatures', 'candidate_selected', 'contract_pending'].includes(status)) return 'warning' as const;
+  if (['application_received', 'awaiting_signatures', 'awaiting_validation', 'candidate_selected', 'contract_pending', 'correction_requested'].includes(status)) return 'warning' as const;
   return 'neutral' as const;
 }

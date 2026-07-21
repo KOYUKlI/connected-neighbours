@@ -35,3 +35,8 @@ export class PointTransaction {
 
 export const PointTransactionSchema =
   SchemaFactory.createForClass(PointTransaction);
+
+PointTransactionSchema.index(
+  { contractId: 1, type: 1 },
+  { unique: true, name: 'unique_point_operation_per_contract' },
+);

@@ -28,6 +28,10 @@ import { PublicUsersService } from '../users/public-users.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import {
+  ServiceProof,
+  ServiceProofDocument,
+} from './schemas/service-proof.schema';
 import { NeighborhoodSummary, ServiceResponse } from './service-response.type';
 import {
   Service,
@@ -58,6 +62,7 @@ export type ServiceRow = Service & {
 };
 type NeighborhoodRow = Neighborhood & { _id: unknown };
 type ApplicationCountRow = { _id: string; count: number };
+type ProofCountRow = { _id: string; count: number };
 type ViewerApplicationRow = ServiceApplication & {
   _id: unknown;
   createdAt?: Date;
@@ -67,6 +72,7 @@ type EnrichmentContext = {
   owners: Awaited<ReturnType<PublicUsersService['findByIds']>>;
   neighborhoods: Map<string, NeighborhoodSummary>;
   applicationCounts: Map<string, number>;
+  proofCounts: Map<string, number>;
   viewerApplications: Map<string, ViewerApplicationRow>;
   viewerContracts: Map<string, ContractRow>;
 };
@@ -83,6 +89,8 @@ export class ServicesService {
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Contract.name)
     private readonly contractModel: Model<ContractDocument>,
+    @InjectModel(ServiceProof.name)
+    private readonly proofModel: Model<ServiceProofDocument>,
     private readonly publicUsersService: PublicUsersService,
   ) {}
 
@@ -201,6 +209,7 @@ export class ServicesService {
             actor.sub,
             application,
             contract,
+            service.status,
           ),
         },
       };
@@ -348,43 +357,55 @@ export class ServicesService {
       Types.ObjectId.isValid(id),
     );
 
-    const [owners, neighborhoods, applicationCounts, applications, contracts] =
-      await Promise.all([
-        this.publicUsersService.findByIds(ownerIds),
-        this.neighborhoodModel
-          .find({
-            $or: [
-              { slug: { $in: neighborhoodIds } },
-              { _id: { $in: objectNeighborhoodIds } },
-            ],
-          })
-          .select('_id slug name city')
-          .lean<NeighborhoodRow[]>()
-          .exec(),
-        this.applicationModel
-          .aggregate<ApplicationCountRow>([
-            {
-              $match: {
-                serviceId: { $in: serviceIds },
-                status: { $ne: ServiceApplicationStatus.WITHDRAWN },
-              },
+    const [
+      owners,
+      neighborhoods,
+      applicationCounts,
+      proofCounts,
+      applications,
+      contracts,
+    ] = await Promise.all([
+      this.publicUsersService.findByIds(ownerIds),
+      this.neighborhoodModel
+        .find({
+          $or: [
+            { slug: { $in: neighborhoodIds } },
+            { _id: { $in: objectNeighborhoodIds } },
+          ],
+        })
+        .select('_id slug name city')
+        .lean<NeighborhoodRow[]>()
+        .exec(),
+      this.applicationModel
+        .aggregate<ApplicationCountRow>([
+          {
+            $match: {
+              serviceId: { $in: serviceIds },
+              status: { $ne: ServiceApplicationStatus.WITHDRAWN },
             },
-            { $group: { _id: '$serviceId', count: { $sum: 1 } } },
-          ])
-          .exec(),
-        this.applicationModel
-          .find({ serviceId: { $in: serviceIds }, applicantId: viewerId })
-          .sort({ createdAt: -1 })
-          .lean<ViewerApplicationRow[]>()
-          .exec(),
-        this.contractModel
-          .find({
-            serviceId: { $in: serviceIds },
-            $or: [{ requesterId: viewerId }, { providerId: viewerId }],
-          })
-          .lean<ContractRow[]>()
-          .exec(),
-      ]);
+          },
+          { $group: { _id: '$serviceId', count: { $sum: 1 } } },
+        ])
+        .exec(),
+      this.proofModel
+        .aggregate<ProofCountRow>([
+          { $match: { serviceId: { $in: serviceIds } } },
+          { $group: { _id: '$serviceId', count: { $sum: 1 } } },
+        ])
+        .exec(),
+      this.applicationModel
+        .find({ serviceId: { $in: serviceIds }, applicantId: viewerId })
+        .sort({ createdAt: -1 })
+        .lean<ViewerApplicationRow[]>()
+        .exec(),
+      this.contractModel
+        .find({
+          serviceId: { $in: serviceIds },
+          $or: [{ requesterId: viewerId }, { providerId: viewerId }],
+        })
+        .lean<ContractRow[]>()
+        .exec(),
+    ]);
 
     const neighborhoodMap = new Map<string, NeighborhoodSummary>();
     for (const neighborhood of neighborhoods) {
@@ -410,6 +431,9 @@ export class ServicesService {
       applicationCounts: new Map(
         applicationCounts.map((entry) => [entry._id, entry.count]),
       ),
+      proofCounts: new Map(
+        proofCounts.map((entry) => [entry._id, entry.count]),
+      ),
       viewerApplications,
       viewerContracts: new Map(
         contracts.map((contract) => [contract.serviceId, contract]),
@@ -426,6 +450,20 @@ export class ServicesService {
     const application = context.viewerApplications.get(id);
     const contract = context.viewerContracts.get(id);
     const isOwner = row.ownerId === actor.sub;
+    const isRequester = contract?.requesterId === actor.sub;
+    const isProvider = contract?.providerId === actor.sub;
+    const isParticipant = Boolean(isRequester || isProvider);
+    const contractIsActive = contract?.status === ContractStatus.ACTIVE;
+    const canViewProofs = isParticipant;
+    const canAddProof =
+      isParticipant &&
+      contractIsActive &&
+      [
+        ServiceStatus.IN_PROGRESS,
+        ServiceStatus.AWAITING_VALIDATION,
+        ServiceStatus.CORRECTION_REQUESTED,
+        ServiceStatus.DISPUTED,
+      ].includes(row.status);
     const hasApplied = Boolean(application);
     const acceptsApplications = PUBLIC_SERVICE_STATUSES.includes(row.status);
     const canApply = !isOwner && acceptsApplications && !hasApplied;
@@ -452,6 +490,14 @@ export class ServicesService {
       isPaid: row.isPaid,
       pricePoints: row.pricePoints,
       status: row.status,
+      executionStatus: row.status,
+      scheduledAt: row.scheduledAt,
+      startedAt: row.startedAt,
+      markedDoneAt: row.markedDoneAt,
+      validatedAt: row.validatedAt,
+      correctionRequestedAt: row.correctionRequestedAt,
+      correctionReason: isParticipant ? row.correctionReason : null,
+      completedAt: row.completedAt,
       selectedApplicationId: canViewSelectedApplication
         ? row.selectedApplicationId
         : null,
@@ -461,6 +507,12 @@ export class ServicesService {
       neighborhood: context.neighborhoods.get(row.neighborhoodId) ?? null,
       owner: context.owners.get(row.ownerId) ?? null,
       applicationsCount: context.applicationCounts.get(id) ?? 0,
+      proofsCount: canViewProofs ? (context.proofCounts.get(id) ?? 0) : 0,
+      nextAction: this.getExecutionNextAction(
+        row.status,
+        Boolean(isRequester),
+        Boolean(isProvider),
+      ),
       viewer: {
         isOwner,
         hasApplied,
@@ -485,6 +537,25 @@ export class ServicesService {
           Boolean(row.selectedApplicationId) &&
           !row.contractId,
         canViewContract,
+        canStart:
+          Boolean(isProvider && contractIsActive) &&
+          [ServiceStatus.CONTRACT_ACTIVE, ServiceStatus.SCHEDULED].includes(
+            row.status,
+          ),
+        canAddProof,
+        canMarkDone:
+          Boolean(isProvider && contractIsActive) &&
+          [
+            ServiceStatus.IN_PROGRESS,
+            ServiceStatus.CORRECTION_REQUESTED,
+          ].includes(row.status),
+        canValidate:
+          Boolean(isRequester && contractIsActive) &&
+          row.status === ServiceStatus.AWAITING_VALIDATION,
+        canRequestCorrection:
+          Boolean(isRequester && contractIsActive) &&
+          row.status === ServiceStatus.AWAITING_VALIDATION,
+        canViewProofs,
       },
       contractSummary:
         canViewContract && contract
@@ -503,6 +574,7 @@ export class ServicesService {
     viewerId: string,
     application?: ViewerApplicationRow,
     contract?: ContractRow,
+    serviceStatus?: ServiceStatus,
   ) {
     if (
       contract?.status === ContractStatus.SENT &&
@@ -510,7 +582,13 @@ export class ServicesService {
     ) {
       return 'sign_contract';
     }
-    if (contract?.status === ContractStatus.ACTIVE) return 'follow_contract';
+    if (contract?.status === ContractStatus.ACTIVE) {
+      return this.getExecutionNextAction(
+        serviceStatus ?? ServiceStatus.CONTRACT_ACTIVE,
+        contract.requesterId === viewerId,
+        contract.providerId === viewerId,
+      );
+    }
     if (application?.status === ServiceApplicationStatus.ACCEPTED) {
       return 'wait_for_contract';
     }
@@ -524,6 +602,34 @@ export class ServicesService {
       return 'wait_for_owner';
     }
     return null;
+  }
+
+  private getExecutionNextAction(
+    status: ServiceStatus,
+    isRequester: boolean,
+    isProvider: boolean,
+  ) {
+    if (
+      isProvider &&
+      [ServiceStatus.CONTRACT_ACTIVE, ServiceStatus.SCHEDULED].includes(status)
+    ) {
+      return 'start_service';
+    }
+    if (
+      isProvider &&
+      [ServiceStatus.IN_PROGRESS, ServiceStatus.CORRECTION_REQUESTED].includes(
+        status,
+      )
+    ) {
+      return status === ServiceStatus.CORRECTION_REQUESTED
+        ? 'address_correction'
+        : 'mark_service_done';
+    }
+    if (isRequester && status === ServiceStatus.AWAITING_VALIDATION) {
+      return 'validate_service';
+    }
+    if (status === ServiceStatus.COMPLETED) return 'service_completed';
+    return 'follow_execution';
   }
 
   private async findRawRow(id: string): Promise<ServiceRow> {

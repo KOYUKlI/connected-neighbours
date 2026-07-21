@@ -27,10 +27,12 @@ describe('ServicesService', () => {
     find: jest.fn(),
   };
   const contractModel = { find: jest.fn() };
+  const proofModel = { aggregate: jest.fn() };
   const publicUsersService = { findByIds: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    proofModel.aggregate.mockReturnValue(execResult([]));
     neighborhoodModel.findOne.mockReturnValue(
       execResult({ slug: 'quartier-centre', status: 'active', isActive: true }),
     );
@@ -39,6 +41,7 @@ describe('ServicesService', () => {
       neighborhoodModel as never,
       applicationModel as never,
       contractModel as never,
+      proofModel as never,
       publicUsersService as never,
     );
   });
@@ -67,6 +70,7 @@ describe('ServicesService', () => {
   });
 
   it('rejects a missing neighborhood', async () => {
+    proofModel.aggregate.mockReturnValue(execResult([]));
     neighborhoodModel.findOne.mockReturnValue(execResult(null));
     await expect(
       service.create(
