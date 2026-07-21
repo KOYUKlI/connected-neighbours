@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -54,10 +55,10 @@ export class CreateServiceDto {
   pricePoints?: number;
 
   @ApiPropertyOptional({
-    enum: ServiceStatus,
+    enum: [ServiceStatus.DRAFT, ServiceStatus.PUBLISHED],
     example: ServiceStatus.PUBLISHED,
   })
   @IsOptional()
-  @IsEnum(ServiceStatus)
+  @IsIn([ServiceStatus.DRAFT, ServiceStatus.PUBLISHED])
   status?: ServiceStatus;
 }

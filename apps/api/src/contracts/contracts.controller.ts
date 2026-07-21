@@ -4,6 +4,7 @@ import {
   ApiBearerAuth,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -55,12 +56,18 @@ export class ContractsController {
 
   @Get()
   @ApiOperation({ summary: 'Lister mes contrats' })
+  @ApiOkResponse({
+    description: 'Contrats avec service et profils publics des parties.',
+  })
   findAll(@CurrentUser() user: { sub: string }) {
     return this.contractsService.findAllForUser(user.sub);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Consulter un contrat' })
+  @ApiForbiddenResponse({
+    description: "Le compte n'est pas partie au contrat.",
+  })
   findOne(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
     return this.contractsService.findOne(id, user.sub);
   }

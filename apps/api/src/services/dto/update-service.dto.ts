@@ -8,7 +8,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { ServiceStatus, ServiceType } from '../schemas/service.schema';
+import { ServiceType } from '../schemas/service.schema';
 
 export class UpdateServiceDto {
   @ApiPropertyOptional()
@@ -43,11 +43,6 @@ export class UpdateServiceDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  ownerId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
   @IsBoolean()
   isPaid?: boolean;
 
@@ -59,9 +54,4 @@ export class UpdateServiceDto {
   @IsInt()
   @Min(0)
   pricePoints?: number | null;
-
-  @ApiPropertyOptional({ enum: ServiceStatus })
-  @IsOptional()
-  @IsEnum(ServiceStatus)
-  status?: ServiceStatus;
 }

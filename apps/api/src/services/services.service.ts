@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,24 +8,69 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import {
+  ServiceApplication,
+  ServiceApplicationDocument,
+  ServiceApplicationStatus,
+} from '../applications/schemas/service-application.schema';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
-import { Role } from '../auth/role.enum';
+import {
+  Contract,
+  ContractDocument,
+  ContractStatus,
+} from '../contracts/schemas/contract.schema';
 import {
   Neighborhood,
   NeighborhoodDocument,
   NeighborhoodStatus,
 } from '../neighborhoods/schemas/neighborhood.schema';
+import { PublicUsersService } from '../users/public-users.service';
 import { CreateServiceDto } from './dto/create-service.dto';
+import { ListServicesQueryDto } from './dto/list-services-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { Service, ServiceDocument, ServiceStatus } from './schemas/service.schema';
+import { NeighborhoodSummary, ServiceResponse } from './service-response.type';
+import {
+  Service,
+  ServiceDocument,
+  ServiceStatus,
+} from './schemas/service.schema';
 
-const SERVICE_UNPUBLISHABLE_STATUSES = new Set<ServiceStatus>([
-  ServiceStatus.COMPLETED,
-  ServiceStatus.CANCELLED,
-  ServiceStatus.DISPUTED,
+const PUBLIC_SERVICE_STATUSES = [
+  ServiceStatus.PUBLISHED,
+  ServiceStatus.APPLICATION_RECEIVED,
+];
+const EDITABLE_SERVICE_STATUSES = new Set<ServiceStatus>([
+  ServiceStatus.DRAFT,
+  ServiceStatus.PUBLISHED,
+  ServiceStatus.APPLICATION_RECEIVED,
+]);
+const CANCELLABLE_SERVICE_STATUSES = new Set<ServiceStatus>([
+  ServiceStatus.DRAFT,
+  ServiceStatus.PUBLISHED,
+  ServiceStatus.APPLICATION_RECEIVED,
 ]);
 
 type ServiceActor = Pick<AuthenticatedUser, 'sub' | 'role'>;
+export type ServiceRow = Service & {
+  _id: unknown;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+type NeighborhoodRow = Neighborhood & { _id: unknown };
+type ApplicationCountRow = { _id: string; count: number };
+type ViewerApplicationRow = ServiceApplication & {
+  _id: unknown;
+  createdAt?: Date;
+};
+type ContractRow = Contract & { _id: unknown; createdAt?: Date };
+type EnrichmentContext = {
+  owners: Awaited<ReturnType<PublicUsersService['findByIds']>>;
+  neighborhoods: Map<string, NeighborhoodSummary>;
+  applicationCounts: Map<string, number>;
+  viewerApplications: Map<string, ViewerApplicationRow>;
+  viewerContracts: Map<string, ContractRow>;
+};
+type ServiceFilter = Record<string, unknown>;
 
 @Injectable()
 export class ServicesService {
@@ -33,33 +79,141 @@ export class ServicesService {
     private readonly serviceModel: Model<ServiceDocument>,
     @InjectModel(Neighborhood.name)
     private readonly neighborhoodModel: Model<NeighborhoodDocument>,
+    @InjectModel(ServiceApplication.name)
+    private readonly applicationModel: Model<ServiceApplicationDocument>,
+    @InjectModel(Contract.name)
+    private readonly contractModel: Model<ContractDocument>,
+    private readonly publicUsersService: PublicUsersService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto, ownerId: string) {
     await this.assertNeighborhoodCanBeUsed(createServiceDto.neighborhoodId);
+    if (
+      createServiceDto.status &&
+      ![ServiceStatus.DRAFT, ServiceStatus.PUBLISHED].includes(
+        createServiceDto.status,
+      )
+    ) {
+      throw new BadRequestException(
+        'Un service doit etre cree comme brouillon ou publie.',
+      );
+    }
 
     return this.serviceModel.create({
       ...createServiceDto,
       ownerId,
-      status: createServiceDto.status ?? 'published',
+      status: createServiceDto.status ?? ServiceStatus.PUBLISHED,
       pricePoints: createServiceDto.isPaid
         ? (createServiceDto.pricePoints ?? 0)
         : null,
     });
   }
 
-  async findAll() {
-    return this.serviceModel.find().sort({ createdAt: -1 }).exec();
+  async findAll(query: ListServicesQueryDto, actor: AuthenticatedUser) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 100;
+    const rows = await this.serviceModel
+      .find(this.buildListFilter(query, actor))
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean<ServiceRow[]>()
+      .exec();
+    return this.presentServices(rows, actor);
   }
 
-  async findOne(id: string) {
-    const service = await this.serviceModel.findById(id).exec();
+  async findOne(id: string, actor: AuthenticatedUser) {
+    const row = await this.findRawRow(id);
+    const [presented] = await this.presentServices([row], actor);
+    const canSee =
+      presented.viewer.isOwner ||
+      PUBLIC_SERVICE_STATUSES.includes(presented.status) ||
+      presented.viewer.hasApplied ||
+      presented.permissions.canViewContract;
+    if (!canSee) throw new NotFoundException('Service introuvable.');
+    return presented;
+  }
 
-    if (!service) {
-      throw new NotFoundException(`Service ${id} introuvable`);
-    }
+  async findCreatedByUser(actor: AuthenticatedUser) {
+    const rows = await this.serviceModel
+      .find({ ownerId: actor.sub })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean<ServiceRow[]>()
+      .exec();
+    return this.presentServices(rows, actor);
+  }
 
-    return service;
+  async findInvolvedByUser(actor: AuthenticatedUser) {
+    const [applications, contracts] = await Promise.all([
+      this.applicationModel
+        .find({ applicantId: actor.sub })
+        .select('serviceId status')
+        .lean<ViewerApplicationRow[]>()
+        .exec(),
+      this.contractModel
+        .find({
+          $or: [{ requesterId: actor.sub }, { providerId: actor.sub }],
+        })
+        .select('serviceId requesterId providerId status signedByIds')
+        .lean<ContractRow[]>()
+        .exec(),
+    ]);
+    const serviceIds = [
+      ...new Set([
+        ...applications.map((entry) => entry.serviceId),
+        ...contracts.map((entry) => entry.serviceId),
+      ]),
+    ];
+    if (serviceIds.length === 0) return [];
+
+    const rows = await this.serviceModel
+      .find({
+        _id: { $in: serviceIds.filter((id) => Types.ObjectId.isValid(id)) },
+      })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean<ServiceRow[]>()
+      .exec();
+    const presented = await this.presentServices(rows, actor);
+    const applicationByService = new Map(
+      applications.map((entry) => [entry.serviceId, entry]),
+    );
+    const contractByService = new Map(
+      contracts.map((entry) => [entry.serviceId, entry]),
+    );
+
+    return presented.map((service) => {
+      const application = applicationByService.get(service.id);
+      const contract = contractByService.get(service.id);
+      return {
+        ...service,
+        involvement: {
+          role:
+            contract?.providerId === actor.sub
+              ? 'provider'
+              : contract?.requesterId === actor.sub
+                ? 'requester'
+                : 'applicant',
+          applicationStatus: application?.status ?? null,
+          contractStatus: contract?.status ?? null,
+          nextAction: this.getNextInvolvementAction(
+            actor.sub,
+            application,
+            contract,
+          ),
+        },
+      };
+    });
+  }
+
+  async presentServices(
+    rows: ServiceRow[],
+    actor: AuthenticatedUser,
+  ): Promise<ServiceResponse[]> {
+    if (rows.length === 0) return [];
+    const context = await this.loadEnrichmentContext(rows, actor.sub);
+    return rows.map((row) => this.presentService(row, actor, context));
   }
 
   async update(
@@ -67,74 +221,326 @@ export class ServicesService {
     updateServiceDto: UpdateServiceDto,
     actor: ServiceActor,
   ) {
-    const service = await this.findOne(id);
-    this.assertCanManage(service, actor);
+    const service = await this.findRawDocument(id);
+    this.assertOwner(service, actor);
+    if (
+      !EDITABLE_SERVICE_STATUSES.has(service.status) ||
+      service.contractId ||
+      service.selectedApplicationId
+    ) {
+      throw new ConflictException(
+        'Ce service ne peut plus etre modifie dans son statut actuel.',
+      );
+    }
 
     const payload = { ...updateServiceDto };
-
     if (payload.neighborhoodId) {
       await this.assertNeighborhoodCanBeUsed(payload.neighborhoodId);
     }
-
-    if (payload.isPaid === false) {
-      payload.pricePoints = null;
+    if (payload.isPaid === false) payload.pricePoints = null;
+    if (
+      payload.isPaid === true &&
+      payload.pricePoints === undefined &&
+      !service.isPaid
+    ) {
+      throw new BadRequestException(
+        'Un prix en points est requis pour un service payant.',
+      );
     }
 
     const updated = await this.serviceModel
-      .findByIdAndUpdate(id, payload, { returnDocument: 'after', runValidators: true })
+      .findByIdAndUpdate(id, payload, {
+        returnDocument: 'after',
+        runValidators: true,
+      })
       .exec();
-
-    if (!updated) {
-      throw new NotFoundException(`Service ${id} introuvable`);
-    }
-
+    if (!updated) throw new NotFoundException('Service introuvable.');
     return updated;
   }
 
   async publish(id: string, actor: ServiceActor) {
-    const service = await this.findOne(id);
-    this.assertCanManage(service, actor);
-
-    if (SERVICE_UNPUBLISHABLE_STATUSES.has(service.status)) {
-      throw new BadRequestException('Ce service ne peut pas etre publie');
+    const service = await this.findRawDocument(id);
+    this.assertOwner(service, actor);
+    if (service.status === ServiceStatus.PUBLISHED) return service;
+    if (service.status !== ServiceStatus.DRAFT) {
+      throw new ConflictException(
+        'Seul un service en brouillon peut etre publie.',
+      );
     }
-
-    if (service.status === ServiceStatus.PUBLISHED) {
-      return service;
-    }
-
     return this.updateStatus(id, ServiceStatus.PUBLISHED);
   }
 
   async cancel(id: string, actor: ServiceActor) {
-    const service = await this.findOne(id);
-    this.assertCanManage(service, actor);
-
-    if (service.status === ServiceStatus.COMPLETED) {
-      throw new BadRequestException('Un service termine ne peut pas etre annule');
+    const service = await this.findRawDocument(id);
+    this.assertOwner(service, actor);
+    if (service.status === ServiceStatus.CANCELLED) return service;
+    if (
+      !CANCELLABLE_SERVICE_STATUSES.has(service.status) ||
+      service.contractId ||
+      service.selectedApplicationId
+    ) {
+      throw new ConflictException(
+        'Ce service est engage et ne peut pas etre annule directement.',
+      );
     }
-
-    if (service.status === ServiceStatus.CANCELLED) {
-      return service;
-    }
-
     return this.updateStatus(id, ServiceStatus.CANCELLED);
   }
 
   async remove(id: string, actor: ServiceActor) {
-    const service = await this.findOne(id);
-    this.assertCanManage(service, actor);
+    const service = await this.findRawDocument(id);
+    this.assertOwner(service, actor);
+    if (
+      service.status !== ServiceStatus.DRAFT ||
+      service.contractId ||
+      service.selectedApplicationId
+    ) {
+      throw new ConflictException(
+        'Seul un brouillon non engage peut etre supprime.',
+      );
+    }
 
     const deleted = await this.serviceModel.findByIdAndDelete(id).exec();
+    if (!deleted) throw new NotFoundException('Service introuvable.');
+    return { deleted: true, id };
+  }
 
-    if (!deleted) {
-      throw new NotFoundException(`Service ${id} introuvable`);
+  private buildListFilter(
+    query: ListServicesQueryDto,
+    actor: AuthenticatedUser,
+  ): ServiceFilter {
+    const clauses: ServiceFilter[] = [
+      {
+        $or: [
+          { ownerId: actor.sub },
+          { status: { $in: PUBLIC_SERVICE_STATUSES } },
+        ],
+      },
+    ];
+    if (query.type) clauses.push({ type: query.type });
+    if (query.category) clauses.push({ category: query.category });
+    if (query.status) clauses.push({ status: query.status });
+    if (query.ownerId) {
+      clauses.push({
+        ownerId: query.ownerId === 'me' ? actor.sub : query.ownerId,
+      });
+    }
+    if (query.search?.trim()) {
+      const pattern = new RegExp(this.escapeRegex(query.search.trim()), 'i');
+      clauses.push({
+        $or: [
+          { title: pattern },
+          { description: pattern },
+          { category: pattern },
+        ],
+      });
+    }
+    return clauses.length === 1 ? clauses[0] : { $and: clauses };
+  }
+
+  private async loadEnrichmentContext(
+    rows: ServiceRow[],
+    viewerId: string,
+  ): Promise<EnrichmentContext> {
+    const serviceIds = rows.map((row) => String(row._id));
+    const ownerIds = rows.map((row) => row.ownerId);
+    const neighborhoodIds = [...new Set(rows.map((row) => row.neighborhoodId))];
+    const objectNeighborhoodIds = neighborhoodIds.filter((id) =>
+      Types.ObjectId.isValid(id),
+    );
+
+    const [owners, neighborhoods, applicationCounts, applications, contracts] =
+      await Promise.all([
+        this.publicUsersService.findByIds(ownerIds),
+        this.neighborhoodModel
+          .find({
+            $or: [
+              { slug: { $in: neighborhoodIds } },
+              { _id: { $in: objectNeighborhoodIds } },
+            ],
+          })
+          .select('_id slug name city')
+          .lean<NeighborhoodRow[]>()
+          .exec(),
+        this.applicationModel
+          .aggregate<ApplicationCountRow>([
+            {
+              $match: {
+                serviceId: { $in: serviceIds },
+                status: { $ne: ServiceApplicationStatus.WITHDRAWN },
+              },
+            },
+            { $group: { _id: '$serviceId', count: { $sum: 1 } } },
+          ])
+          .exec(),
+        this.applicationModel
+          .find({ serviceId: { $in: serviceIds }, applicantId: viewerId })
+          .sort({ createdAt: -1 })
+          .lean<ViewerApplicationRow[]>()
+          .exec(),
+        this.contractModel
+          .find({
+            serviceId: { $in: serviceIds },
+            $or: [{ requesterId: viewerId }, { providerId: viewerId }],
+          })
+          .lean<ContractRow[]>()
+          .exec(),
+      ]);
+
+    const neighborhoodMap = new Map<string, NeighborhoodSummary>();
+    for (const neighborhood of neighborhoods) {
+      const summary = {
+        id: String(neighborhood._id),
+        name: neighborhood.name,
+        city: neighborhood.city,
+      };
+      neighborhoodMap.set(String(neighborhood._id), summary);
+      neighborhoodMap.set(neighborhood.slug, summary);
+    }
+
+    const viewerApplications = new Map<string, ViewerApplicationRow>();
+    for (const application of applications) {
+      if (!viewerApplications.has(application.serviceId)) {
+        viewerApplications.set(application.serviceId, application);
+      }
     }
 
     return {
-      deleted: true,
-      id,
+      owners,
+      neighborhoods: neighborhoodMap,
+      applicationCounts: new Map(
+        applicationCounts.map((entry) => [entry._id, entry.count]),
+      ),
+      viewerApplications,
+      viewerContracts: new Map(
+        contracts.map((contract) => [contract.serviceId, contract]),
+      ),
     };
+  }
+
+  private presentService(
+    row: ServiceRow,
+    actor: AuthenticatedUser,
+    context: EnrichmentContext,
+  ): ServiceResponse {
+    const id = String(row._id);
+    const application = context.viewerApplications.get(id);
+    const contract = context.viewerContracts.get(id);
+    const isOwner = row.ownerId === actor.sub;
+    const hasApplied = Boolean(application);
+    const acceptsApplications = PUBLIC_SERVICE_STATUSES.includes(row.status);
+    const canApply = !isOwner && acceptsApplications && !hasApplied;
+    const canViewContract = Boolean(row.contractId && (isOwner || contract));
+    const canCancel =
+      isOwner &&
+      CANCELLABLE_SERVICE_STATUSES.has(row.status) &&
+      !row.contractId &&
+      !row.selectedApplicationId;
+    const canViewSelectedApplication =
+      isOwner ||
+      (application?.status === ServiceApplicationStatus.ACCEPTED &&
+        String(application._id) === row.selectedApplicationId);
+
+    return {
+      id,
+      title: row.title,
+      description: row.description,
+      type: row.type,
+      category: row.category,
+      availability: row.availability,
+      neighborhoodId: row.neighborhoodId,
+      ownerId: row.ownerId,
+      isPaid: row.isPaid,
+      pricePoints: row.pricePoints,
+      status: row.status,
+      selectedApplicationId: canViewSelectedApplication
+        ? row.selectedApplicationId
+        : null,
+      contractId: canViewContract ? row.contractId : null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      neighborhood: context.neighborhoods.get(row.neighborhoodId) ?? null,
+      owner: context.owners.get(row.ownerId) ?? null,
+      applicationsCount: context.applicationCounts.get(id) ?? 0,
+      viewer: {
+        isOwner,
+        hasApplied,
+        applicationId: application ? String(application._id) : null,
+        applicationStatus: application?.status ?? null,
+        canApply,
+        canManage: isOwner,
+      },
+      permissions: {
+        canEdit:
+          isOwner &&
+          EDITABLE_SERVICE_STATUSES.has(row.status) &&
+          !row.contractId &&
+          !row.selectedApplicationId,
+        canPublish: isOwner && row.status === ServiceStatus.DRAFT,
+        canCancel,
+        canApply,
+        canViewApplications: isOwner,
+        canGenerateContract:
+          isOwner &&
+          row.isPaid &&
+          Boolean(row.selectedApplicationId) &&
+          !row.contractId,
+        canViewContract,
+      },
+      contractSummary:
+        canViewContract && contract
+          ? {
+              id: String(contract._id),
+              status: contract.status,
+              pricePoints: contract.pricePoints,
+              signaturesCount: contract.signedByIds.length,
+              requiredSignaturesCount: 2,
+            }
+          : null,
+    };
+  }
+
+  private getNextInvolvementAction(
+    viewerId: string,
+    application?: ViewerApplicationRow,
+    contract?: ContractRow,
+  ) {
+    if (
+      contract?.status === ContractStatus.SENT &&
+      !contract.signedByIds.includes(viewerId)
+    ) {
+      return 'sign_contract';
+    }
+    if (contract?.status === ContractStatus.ACTIVE) return 'follow_contract';
+    if (application?.status === ServiceApplicationStatus.ACCEPTED) {
+      return 'wait_for_contract';
+    }
+    if (
+      application &&
+      [
+        ServiceApplicationStatus.SUBMITTED,
+        ServiceApplicationStatus.VIEWED,
+      ].includes(application.status)
+    ) {
+      return 'wait_for_owner';
+    }
+    return null;
+  }
+
+  private async findRawRow(id: string): Promise<ServiceRow> {
+    this.assertValidId(id);
+    const service = await this.serviceModel
+      .findById(id)
+      .lean<ServiceRow | null>()
+      .exec();
+    if (!service) throw new NotFoundException('Service introuvable.');
+    return service;
+  }
+
+  private async findRawDocument(id: string): Promise<ServiceDocument> {
+    this.assertValidId(id);
+    const service = await this.serviceModel.findById(id).exec();
+    if (!service) throw new NotFoundException('Service introuvable.');
+    return service;
   }
 
   private async updateStatus(id: string, status: ServiceStatus) {
@@ -145,49 +551,50 @@ export class ServicesService {
         { returnDocument: 'after', runValidators: true },
       )
       .exec();
-
-    if (!updated) {
-      throw new NotFoundException(`Service ${id} introuvable`);
-    }
-
+    if (!updated) throw new NotFoundException('Service introuvable.');
     return updated;
   }
 
-  private assertCanManage(
-    service: Pick<Service, 'ownerId'>,
-    actor: ServiceActor,
-  ) {
-    if (actor.role === Role.ADMIN || service.ownerId === actor.sub) {
-      return;
+  private assertOwner(service: Pick<Service, 'ownerId'>, actor: ServiceActor) {
+    if (service.ownerId !== actor.sub) {
+      throw new ForbiddenException(
+        'Seul le proprietaire du service peut effectuer cette action.',
+      );
     }
-
-    throw new ForbiddenException('Seul le proprietaire du service peut agir');
   }
 
   private async assertNeighborhoodCanBeUsed(neighborhoodId: string) {
     const neighborhood = await this.neighborhoodModel
       .findOne(this.neighborhoodIdentifierFilter(neighborhoodId))
       .exec();
-
     if (!neighborhood) {
-      throw new BadRequestException('Le quartier indique est introuvable');
+      throw new BadRequestException('Le quartier indique est introuvable.');
     }
-
     if (
       neighborhood.status === NeighborhoodStatus.ARCHIVED ||
       neighborhood.isActive === false
     ) {
-      throw new BadRequestException('Un quartier archive ne peut plus etre utilise');
+      throw new BadRequestException(
+        'Un quartier archive ne peut plus etre utilise.',
+      );
     }
   }
 
   private neighborhoodIdentifierFilter(neighborhoodId: string) {
     const filters: Array<Record<string, unknown>> = [{ slug: neighborhoodId }];
-
     if (Types.ObjectId.isValid(neighborhoodId)) {
       filters.push({ _id: neighborhoodId });
     }
-
     return { $or: filters };
+  }
+
+  private assertValidId(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Service introuvable.');
+    }
+  }
+
+  private escapeRegex(value: string) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }

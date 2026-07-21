@@ -46,7 +46,7 @@ describe('ServicesController', () => {
     };
     const created = { _id: 'svc_1', ...dto, ownerId: 'user_123' };
 
-    servicesService.create.mockResolvedValue(created);
+    servicesService.create.mockResolvedValue(created as never);
 
     await expect(controller.create(dto, { sub: 'user_123' })).resolves.toEqual(
       created,

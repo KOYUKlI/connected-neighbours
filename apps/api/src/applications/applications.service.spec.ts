@@ -6,9 +6,7 @@ import {
 
 import { ServiceStatus, ServiceType } from '../services/schemas/service.schema';
 import { ApplicationsService } from './applications.service';
-import {
-  ServiceApplicationStatus,
-} from './schemas/service-application.schema';
+import { ServiceApplicationStatus } from './schemas/service-application.schema';
 
 describe('ApplicationsService', () => {
   let service: ApplicationsService;
@@ -22,8 +20,13 @@ describe('ApplicationsService', () => {
   };
 
   const serviceModelMock = {
+    find: jest.fn(),
     findById: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+  };
+
+  const publicUsersServiceMock = {
+    findByIds: jest.fn(),
   };
 
   beforeEach(() => {
@@ -32,6 +35,7 @@ describe('ApplicationsService', () => {
     service = new ApplicationsService(
       applicationModelMock as never,
       serviceModelMock as never,
+      publicUsersServiceMock as never,
     );
   });
 
@@ -135,7 +139,9 @@ describe('ApplicationsService', () => {
       ),
     );
     applicationModelMock.findById.mockReturnValue(execResult(application));
-    applicationModelMock.updateMany.mockReturnValue(execResult({ modifiedCount: 2 }));
+    applicationModelMock.updateMany.mockReturnValue(
+      execResult({ modifiedCount: 2 }),
+    );
     serviceModelMock.findByIdAndUpdate.mockReturnValue(
       execResult({ _id: 'svc_1', status: ServiceStatus.CANDIDATE_SELECTED }),
     );

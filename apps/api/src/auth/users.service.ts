@@ -84,10 +84,7 @@ export class UsersService implements OnModuleInit {
         patch.isActive = true;
       }
 
-      if (
-        existing.pointsBalance === undefined ||
-        existing.pointsBalance < 100
-      ) {
+      if (existing.pointsBalance === undefined) {
         patch.pointsBalance = 100;
       }
 

@@ -19,6 +19,14 @@ import {
   ServiceApplicationDocument,
   ServiceApplicationStatus,
 } from './schemas/service-application.schema';
+import { PublicUsersService } from '../users/public-users.service';
+
+type ApplicationRow = ServiceApplication & {
+  _id: unknown;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+type ServiceRow = Service & { _id: unknown; createdAt?: Date };
 
 const APPLICATION_CREATABLE_SERVICE_STATUSES = new Set<ServiceStatus>([
   ServiceStatus.PUBLISHED,
@@ -37,9 +45,14 @@ export class ApplicationsService {
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Service.name)
     private readonly serviceModel: Model<ServiceDocument>,
+    private readonly publicUsersService: PublicUsersService,
   ) {}
 
-  async create(serviceId: string, applicantId: string, dto: CreateApplicationDto) {
+  async create(
+    serviceId: string,
+    applicantId: string,
+    dto: CreateApplicationDto,
+  ) {
     const service = await this.findService(serviceId);
 
     if (service.ownerId === applicantId) {
@@ -95,17 +108,73 @@ export class ApplicationsService {
     const service = await this.findService(serviceId);
     this.assertServiceOwner(service, userId);
 
-    return this.applicationModel
+    const applications = await this.applicationModel
       .find({ serviceId })
       .sort({ createdAt: -1 })
+      .lean<ApplicationRow[]>()
       .exec();
+    return this.presentApplications(applications);
   }
 
   async findMine(applicantId: string) {
-    return this.applicationModel
+    const applications = await this.applicationModel
       .find({ applicantId })
       .sort({ createdAt: -1 })
+      .lean<ApplicationRow[]>()
       .exec();
+    return this.presentApplications(applications);
+  }
+
+  private async presentApplications(applications: ApplicationRow[]) {
+    if (applications.length === 0) return [];
+
+    const serviceIds = [...new Set(applications.map((item) => item.serviceId))];
+    const services = await this.serviceModel
+      .find({ _id: { $in: serviceIds } })
+      .select(
+        '_id title type category status neighborhoodId ownerId isPaid pricePoints',
+      )
+      .lean<ServiceRow[]>()
+      .exec();
+    const serviceById = new Map(
+      services.map((service) => [String(service._id), service]),
+    );
+    const publicUsers = await this.publicUsersService.findByIds([
+      ...applications.map((item) => item.applicantId),
+      ...applications.map((item) => item.ownerId),
+    ]);
+
+    return applications.map((application) => {
+      const service = serviceById.get(application.serviceId);
+      return {
+        id: String(application._id),
+        serviceId: application.serviceId,
+        applicantId: application.applicantId,
+        ownerId: application.ownerId,
+        message: application.message,
+        proposedDate: application.proposedDate,
+        proposedPricePoints: application.proposedPricePoints,
+        status: application.status,
+        acceptedAt: application.acceptedAt,
+        rejectedAt: application.rejectedAt,
+        createdAt: application.createdAt,
+        updatedAt: application.updatedAt,
+        applicant: publicUsers.get(application.applicantId) ?? null,
+        owner: publicUsers.get(application.ownerId) ?? null,
+        service: service
+          ? {
+              id: String(service._id),
+              title: service.title,
+              type: service.type,
+              category: service.category,
+              status: service.status,
+              neighborhoodId: service.neighborhoodId,
+              isPaid: service.isPaid,
+              pricePoints: service.pricePoints,
+            }
+          : null,
+      };
+    });
   }
 
   async accept(id: string, userId: string) {
@@ -201,23 +270,52 @@ export class ApplicationsService {
   }
 
   private async findService(serviceId: string) {
-    const service = await this.serviceModel.findById(serviceId).exec();
+    const service = await this.execOrNotFound(
+      () => this.serviceModel.findById(serviceId).exec(),
+      'Service introuvable.',
+    );
 
     if (!service) {
-      throw new NotFoundException(`Service ${serviceId} introuvable`);
+      throw new NotFoundException('Service introuvable.');
     }
 
     return service;
   }
 
   private async findApplication(id: string) {
-    const application = await this.applicationModel.findById(id).exec();
+    const application = await this.execOrNotFound(
+      () => this.applicationModel.findById(id).exec(),
+      'Candidature introuvable.',
+    );
 
     if (!application) {
-      throw new NotFoundException(`Candidature ${id} introuvable`);
+      throw new NotFoundException('Candidature introuvable.');
     }
 
     return application;
+  }
+
+  private async execOrNotFound<T>(
+    operation: () => Promise<T>,
+    message: string,
+  ) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (this.isMongooseCastError(error)) {
+        throw new NotFoundException(message);
+      }
+      throw error;
+    }
+  }
+
+  private isMongooseCastError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'name' in error &&
+      error.name === 'CastError'
+    );
   }
 
   private assertServiceOwner(

@@ -37,6 +37,10 @@ describe('ContractsService', () => {
     transferReservedPoints: jest.fn(),
   };
 
+  const publicUsersServiceMock = {
+    findByIds: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -45,6 +49,7 @@ describe('ContractsService', () => {
       serviceModelMock as never,
       applicationModelMock as never,
       pointsServiceMock as unknown as PointsService,
+      publicUsersServiceMock as never,
     );
   });
 
@@ -75,7 +80,9 @@ describe('ContractsService', () => {
     serviceModelMock.findById.mockReturnValue(execResult(serviceDoc));
     contractModelMock.findOne.mockReturnValue(execResult(null));
     contractModelMock.create.mockResolvedValue(contract);
-    serviceModelMock.findByIdAndUpdate.mockReturnValue(execResult(updatedService));
+    serviceModelMock.findByIdAndUpdate.mockReturnValue(
+      execResult(updatedService),
+    );
 
     const result = await service.createFromApplication(
       'app_1',

@@ -163,7 +163,9 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .send({ description: 'Quartier E2E mis a jour' })
       .expect(200);
 
-    expect(updatedNeighborhood.body.description).toBe('Quartier E2E mis a jour');
+    expect(updatedNeighborhood.body.description).toBe(
+      'Quartier E2E mis a jour',
+    );
 
     await request(app.getHttpServer())
       .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
@@ -262,6 +264,32 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(draftService.body.status).toBe('draft');
 
     await request(app.getHttpServer())
+      .get(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(bobToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.viewer.isOwner).toBe(true);
+        expect(body.permissions.canPublish).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/services')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: draftServiceId }),
+          ]),
+        );
+      });
+
+    await request(app.getHttpServer())
       .patch(`/api/services/${draftServiceId}`)
       .send({ title: 'Tentative sans session' })
       .expect(401);
@@ -270,6 +298,12 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .patch(`/api/services/${draftServiceId}`)
       .set('Authorization', bearer(bobToken))
       .send({ title: 'Tentative Bob' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .patch(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(adminToken))
+      .send({ title: 'Tentative Admin' })
       .expect(403);
 
     await request(app.getHttpServer())
@@ -302,12 +336,38 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
     expect(publishedService.body.status).toBe('published');
 
+    await request(app.getHttpServer())
+      .delete(`/api/services/${draftServiceId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
     const cancelledService = await request(app.getHttpServer())
       .post(`/api/services/${draftServiceId}/cancel`)
       .set('Authorization', bearer(aliceToken))
       .expect(201);
 
     expect(cancelledService.body.status).toBe('cancelled');
+
+    const deletableDraft = await request(app.getHttpServer())
+      .post('/api/services')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Brouillon suppression',
+        description: 'Brouillon reserve au test de suppression logique.',
+        type: 'request',
+        category: 'bricolage',
+        availability: 'A definir',
+        neighborhoodId: 'quartier-centre',
+        isPaid: false,
+        status: 'draft',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/services/${getId(deletableDraft.body)}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.deleted).toBe(true));
 
     await request(app.getHttpServer())
       .get('/api/points/balance')
@@ -356,6 +416,85 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     applicationId = getId(applicationResponse.body);
     expect(applicationResponse.body.status).toBe('submitted');
 
+    await request(app.getHttpServer())
+      .get(`/api/users/${bobId}/public`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            id: bobId,
+            displayName: 'Bob Dupont',
+            neighborhoodId: 'quartier-centre',
+            completedServicesCount: expect.any(Number),
+          }),
+        );
+        expect(body).not.toHaveProperty('email');
+        expect(body).not.toHaveProperty('passwordHash');
+        expect(body).not.toHaveProperty('pointsBalance');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/services')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: serviceId,
+              owner: expect.objectContaining({ displayName: 'Alice Martin' }),
+              neighborhood: expect.objectContaining({
+                name: 'Quartier Centre',
+              }),
+              applicationsCount: 1,
+              viewer: expect.objectContaining({
+                hasApplied: true,
+                applicationId,
+                canApply: false,
+              }),
+            }),
+          ]),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/services/${serviceId}/applications`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body[0]).toEqual(
+          expect.objectContaining({
+            id: applicationId,
+            applicant: expect.objectContaining({
+              id: bobId,
+              displayName: 'Bob Dupont',
+            }),
+            service: expect.objectContaining({
+              id: serviceId,
+              title: 'E2E Aide bricolage',
+            }),
+          }),
+        );
+        expect(body[0].applicant).not.toHaveProperty('email');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/applications/me')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: applicationId,
+              owner: expect.objectContaining({ displayName: 'Alice Martin' }),
+              service: expect.objectContaining({ title: 'E2E Aide bricolage' }),
+            }),
+          ]),
+        );
+      });
+
     const acceptedApplicationResponse = await request(app.getHttpServer())
       .post(`/api/applications/${applicationId}/accept`)
       .set('Authorization', bearer(aliceToken))
@@ -382,6 +521,57 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       }),
     );
     expect(contractResponse.body.service.status).toBe('awaiting_signatures');
+
+    await request(app.getHttpServer())
+      .delete(`/api/services/${serviceId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get(`/api/contracts/${contractId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.service).toEqual(
+          expect.objectContaining({
+            id: serviceId,
+            title: 'E2E Aide bricolage',
+          }),
+        );
+        expect(body.requester.displayName).toBe('Alice Martin');
+        expect(body.provider.displayName).toBe('Bob Dupont');
+        expect(body.requester).not.toHaveProperty('email');
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/contracts/${contractId}`)
+      .set('Authorization', bearer(adminToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/services/me/created')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: serviceId })]),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/services/me/involved')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: serviceId,
+              involvement: expect.objectContaining({ role: 'provider' }),
+            }),
+          ]),
+        );
+      });
 
     const aliceAfterReservation = await getMe(aliceToken);
     expect(aliceAfterReservation.pointsBalance).toBe(75);
@@ -500,6 +690,63 @@ describe('Connected Neighbours API P0 (e2e)', () => {
         expect(body.pointsBalance).toBe(75);
         expect(body.reservedPoints).toBe(0);
         expect(body.availablePoints).toBe(75);
+      });
+  });
+
+  it('returns a resident home response based only on persisted data', async () => {
+    await request(app.getHttpServer())
+      .get('/api/home')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.profile).toEqual(
+          expect.objectContaining({
+            id: aliceId,
+            displayName: 'Alice Martin',
+            neighborhood: expect.objectContaining({
+              name: 'Quartier Centre',
+              city: 'Paris',
+            }),
+          }),
+        );
+        expect(body.profile).not.toHaveProperty('email');
+        expect(body.points).toEqual({
+          availablePoints: 75,
+          reservedPoints: 0,
+        });
+        expect(Array.isArray(body.todoItems)).toBe(true);
+        expect(Array.isArray(body.recentServices)).toBe(true);
+        expect(Array.isArray(body.recentIncidents)).toBe(true);
+        expect(body.counts).toEqual(
+          expect.objectContaining({
+            createdServices: expect.any(Number),
+            applications: expect.any(Number),
+            contracts: expect.any(Number),
+          }),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/contracts')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: contractId,
+              service: expect.objectContaining({
+                title: 'E2E Aide bricolage',
+              }),
+              requester: expect.objectContaining({
+                displayName: 'Alice Martin',
+              }),
+              provider: expect.objectContaining({
+                displayName: 'Bob Dupont',
+              }),
+            }),
+          ]),
+        );
       });
   });
 
@@ -760,14 +1007,10 @@ describe('Connected Neighbours API P0 (e2e)', () => {
         );
         expect(body.applicationsAsApplicant).toEqual(expect.any(Array));
         expect(body.incidents).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ id: incidentId }),
-          ]),
+          expect.arrayContaining([expect.objectContaining({ id: incidentId })]),
         );
         expect(body.alerts).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ id: alertId }),
-          ]),
+          expect.arrayContaining([expect.objectContaining({ id: alertId })]),
         );
         expect(body.syncOperations).toEqual(expect.any(Array));
       });
@@ -812,43 +1055,33 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     }
 
     const operations = [
-      connection
-        .collection('services')
-        .deleteMany({
-          title: {
-            $in: [
-              'E2E Aide bricolage',
-              'E2E Service brouillon',
-              'E2E Contrat annulation',
-              'E2E Quartier introuvable',
-            ],
-          },
-        }),
+      connection.collection('services').deleteMany({
+        title: {
+          $in: [
+            'E2E Aide bricolage',
+            'E2E Service brouillon',
+            'E2E Contrat annulation',
+            'E2E Quartier introuvable',
+            'E2E Brouillon suppression',
+          ],
+        },
+      }),
       connection.collection('neighborhoods').deleteMany({
         slug: { $in: ['e2e-quartier', 'e2e-quartier-invalide'] },
       }),
-      connection
-        .collection('serviceapplications')
-        .deleteMany({
-          message: {
-            $in: [
-              'E2E candidature Bob',
-              'E2E candidature annulation contrat',
-            ],
-          },
-        }),
-      connection
-        .collection('contracts')
-        .deleteMany({
-          serviceId: {
-            $in: [serviceId, cancellableServiceId].filter(Boolean),
-          },
-        }),
-      connection
-        .collection('incidents')
-        .deleteMany({
-          title: { $in: ['E2E Local velo force', 'E2E Incident JavaFX'] },
-        }),
+      connection.collection('serviceapplications').deleteMany({
+        message: {
+          $in: ['E2E candidature Bob', 'E2E candidature annulation contrat'],
+        },
+      }),
+      connection.collection('contracts').deleteMany({
+        serviceId: {
+          $in: [serviceId, cancellableServiceId].filter(Boolean),
+        },
+      }),
+      connection.collection('incidents').deleteMany({
+        title: { $in: ['E2E Local velo force', 'E2E Incident JavaFX'] },
+      }),
       connection
         .collection('alerts')
         .deleteMany({ title: 'E2E Alerte securite' }),
@@ -858,13 +1091,11 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection
         .collection('syncstates')
         .deleteMany({ clientId: 'e2e-javafx-client' }),
-      connection
-        .collection('pointtransactions')
-        .deleteMany({
-          serviceId: {
-            $in: [serviceId, cancellableServiceId].filter(Boolean),
-          },
-        }),
+      connection.collection('pointtransactions').deleteMany({
+        serviceId: {
+          $in: [serviceId, cancellableServiceId].filter(Boolean),
+        },
+      }),
     ];
 
     if (includeUsers) {
@@ -883,10 +1114,8 @@ function configureTestEnvironment() {
   process.env.NODE_ENV = 'test';
   process.env.HOST = process.env.HOST ?? '127.0.0.1';
   process.env.PORT = process.env.PORT ?? '0';
-  process.env.CORS_ORIGIN =
-    process.env.CORS_ORIGIN ?? 'http://localhost:5173';
-  process.env.COOKIE_SECRET =
-    process.env.COOKIE_SECRET ?? 'test-cookie-secret';
+  process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+  process.env.COOKIE_SECRET = process.env.COOKIE_SECRET ?? 'test-cookie-secret';
   process.env.MONGODB_URI =
     process.env.MONGODB_URI ??
     'mongodb://127.0.0.1:27017/connected-neighbours-e2e?serverSelectionTimeoutMS=5000';

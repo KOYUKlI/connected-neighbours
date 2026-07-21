@@ -11,9 +11,11 @@ import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { DocumentsModule } from './documents/documents.module';
+import { DemoSeedModule } from './demo-seed/demo-seed.module';
 import { DslModule } from './dsl/dsl.module';
 import { EventsModule } from './events/events.module';
 import { IncidentsModule } from './incidents/incidents.module';
+import { HomeModule } from './home/home.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
@@ -21,6 +23,7 @@ import { RgpdModule } from './rgpd/rgpd.module';
 import { ServicesModule } from './services/services.module';
 import { SsoModule } from './sso/sso.module';
 import { SyncModule } from './sync/sync.module';
+import { UsersModule } from './users/users.module';
 import { VotesModule } from './votes/votes.module';
 
 @Module({
@@ -93,6 +96,7 @@ import { VotesModule } from './votes/votes.module';
     EventsModule,
     DslModule,
     IncidentsModule,
+    HomeModule,
     AlertsModule,
     SyncModule,
     VotesModule,
@@ -100,6 +104,8 @@ import { VotesModule } from './votes/votes.module';
     MessagingModule,
     RgpdModule,
     SsoModule,
+    UsersModule,
+    DemoSeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -26,6 +31,9 @@ export class ApplicationsController {
 
   @Get('services/:serviceId/applications')
   @ApiOperation({ summary: 'Lister les candidatures recues pour un service' })
+  @ApiOkResponse({
+    description: 'Candidatures enrichies avec le profil public du candidat.',
+  })
   findForService(
     @Param('serviceId') serviceId: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -35,6 +43,9 @@ export class ApplicationsController {
 
   @Get('applications/me')
   @ApiOperation({ summary: 'Lister mes candidatures' })
+  @ApiOkResponse({
+    description: 'Candidatures avec service et proprietaire lisibles.',
+  })
   findMine(@CurrentUser() user: AuthenticatedUser) {
     return this.applicationsService.findMine(user.sub);
   }

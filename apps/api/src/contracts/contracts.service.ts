@@ -25,6 +25,14 @@ import {
   ContractDocument,
   ContractStatus,
 } from './schemas/contract.schema';
+import { PublicUsersService } from '../users/public-users.service';
+
+type ContractRow = Contract & {
+  _id: unknown;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+type ServiceRow = Service & { _id: unknown };
 
 type ServiceParties = {
   requesterId: string;
@@ -43,6 +51,7 @@ export class ContractsService {
     @InjectModel(ServiceApplication.name)
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     private readonly pointsService: PointsService,
+    private readonly publicUsersService: PublicUsersService,
   ) {}
 
   async createFromApplication(
@@ -119,11 +128,7 @@ export class ContractsService {
   }
 
   async acceptService(serviceId: string, actorId: string) {
-    const service = await this.serviceModel.findById(serviceId).exec();
-
-    if (!service) {
-      throw new NotFoundException(`Service ${serviceId} introuvable`);
-    }
+    const service = await this.findService(serviceId);
 
     if (service.ownerId === actorId) {
       throw new BadRequestException(
@@ -190,32 +195,80 @@ export class ContractsService {
   }
 
   async findAllForUser(userId: string) {
-    return this.contractModel
+    const contracts = await this.contractModel
       .find({
         $or: [{ requesterId: userId }, { providerId: userId }],
       })
       .sort({ createdAt: -1 })
+      .lean<ContractRow[]>()
       .exec();
+    return this.presentContracts(contracts);
   }
 
   async findOne(id: string, userId: string) {
-    const contract = await this.contractModel.findById(id).exec();
-
-    if (!contract) {
-      throw new NotFoundException(`Contrat ${id} introuvable`);
-    }
+    const contract = await this.findContract(id);
 
     this.assertContractParty(contract, userId);
+    const [presented] = await this.presentContracts([
+      contract.toObject() as ContractRow,
+    ]);
+    return presented;
+  }
 
-    return contract;
+  private async presentContracts(contracts: ContractRow[]) {
+    if (contracts.length === 0) return [];
+
+    const serviceIds = [...new Set(contracts.map((item) => item.serviceId))];
+    const [services, publicUsers] = await Promise.all([
+      this.serviceModel
+        .find({ _id: { $in: serviceIds } })
+        .select('_id title type category status neighborhoodId')
+        .lean<ServiceRow[]>()
+        .exec(),
+      this.publicUsersService.findByIds([
+        ...contracts.map((item) => item.requesterId),
+        ...contracts.map((item) => item.providerId),
+      ]),
+    ]);
+    const serviceById = new Map(
+      services.map((service) => [String(service._id), service]),
+    );
+
+    return contracts.map((contract) => {
+      const service = serviceById.get(contract.serviceId);
+      return {
+        id: String(contract._id),
+        serviceId: contract.serviceId,
+        applicationId: contract.applicationId,
+        requesterId: contract.requesterId,
+        providerId: contract.providerId,
+        payerId: contract.payerId,
+        receiverId: contract.receiverId,
+        pricePoints: contract.pricePoints,
+        status: contract.status,
+        signedByIds: contract.signedByIds,
+        signedAt: contract.signedAt,
+        completedAt: contract.completedAt,
+        createdAt: contract.createdAt,
+        updatedAt: contract.updatedAt,
+        requester: publicUsers.get(contract.requesterId) ?? null,
+        provider: publicUsers.get(contract.providerId) ?? null,
+        service: service
+          ? {
+              id: String(service._id),
+              title: service.title,
+              type: service.type,
+              category: service.category,
+              status: service.status,
+              neighborhoodId: service.neighborhoodId,
+            }
+          : null,
+      };
+    });
   }
 
   async sign(id: string, userId: string) {
-    const contract = await this.contractModel.findById(id).exec();
-
-    if (!contract) {
-      throw new NotFoundException(`Contrat ${id} introuvable`);
-    }
+    const contract = await this.findContract(id);
 
     this.assertContractParty(contract, userId);
 
@@ -249,11 +302,7 @@ export class ContractsService {
   }
 
   async complete(id: string, userId: string) {
-    const contract = await this.contractModel.findById(id).exec();
-
-    if (!contract) {
-      throw new NotFoundException(`Contrat ${id} introuvable`);
-    }
+    const contract = await this.findContract(id);
 
     this.assertContractParty(contract, userId);
 
@@ -282,11 +331,7 @@ export class ContractsService {
   }
 
   async cancel(id: string, userId: string) {
-    const contract = await this.contractModel.findById(id).exec();
-
-    if (!contract) {
-      throw new NotFoundException(`Contrat ${id} introuvable`);
-    }
+    const contract = await this.findContract(id);
 
     this.assertContractParty(contract, userId);
 
@@ -337,7 +382,10 @@ export class ContractsService {
   }
 
   private async findService(serviceId: string) {
-    const service = await this.serviceModel.findById(serviceId).exec();
+    const service = await this.execOrNotFound(
+      () => this.serviceModel.findById(serviceId).exec(),
+      'Service introuvable.',
+    );
 
     if (!service) {
       throw new NotFoundException(`Service ${serviceId} introuvable`);
@@ -347,9 +395,10 @@ export class ContractsService {
   }
 
   private async findApplication(applicationId: string) {
-    const application = await this.applicationModel
-      .findById(applicationId)
-      .exec();
+    const application = await this.execOrNotFound(
+      () => this.applicationModel.findById(applicationId).exec(),
+      'Candidature introuvable.',
+    );
 
     if (!application) {
       throw new NotFoundException(`Candidature ${applicationId} introuvable`);
@@ -397,7 +446,9 @@ export class ContractsService {
 
   private assertContractParty(contract: ContractDocument, userId: string) {
     if (contract.requesterId !== userId && contract.providerId !== userId) {
-      throw new ForbiddenException('Accès interdit à ce contrat');
+      throw new ForbiddenException(
+        "Ce contrat n'est pas accessible avec votre compte.",
+      );
     }
   }
 
@@ -411,5 +462,33 @@ export class ContractsService {
     }
 
     return service;
+  }
+
+  private async findContract(id: string) {
+    const contract = await this.execOrNotFound(
+      () => this.contractModel.findById(id).exec(),
+      'Contrat introuvable.',
+    );
+    if (!contract) throw new NotFoundException('Contrat introuvable.');
+    return contract;
+  }
+
+  private async execOrNotFound<T>(
+    operation: () => Promise<T>,
+    message: string,
+  ) {
+    try {
+      return await operation();
+    } catch (error) {
+      const errorName = (error as { name?: unknown } | null)?.name;
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        errorName === 'CastError'
+      ) {
+        throw new NotFoundException(message);
+      }
+      throw error;
+    }
   }
 }
