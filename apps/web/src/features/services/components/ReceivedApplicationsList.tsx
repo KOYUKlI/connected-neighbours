@@ -1,6 +1,5 @@
 import type { ServiceApplication } from '../../../api/applications';
 import type { ServiceItem } from '../../../api/services';
-import { MonoValue } from '../../../shared/components/MonoValue';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { getEntityId } from '../../../shared/utils/entities';
 
@@ -34,13 +33,13 @@ export function ReceivedApplicationsList({
           const canAccept = application.status === 'submitted';
           const canReject = ['submitted', 'viewed'].includes(application.status);
           const canGenerateContract =
-            application.status === 'accepted' && !service.contractId;
+            application.status === 'accepted' && !service.contractSummary && !service.contractId && (service.permissions?.canGenerateContract ?? true);
 
           return (
             <article className="application-row" key={applicationId}>
               <div>
                 <p>
-                  <strong>Candidat</strong> <MonoValue value={application.applicantId} />
+                  <strong>{application.applicant?.displayName ?? 'Candidat du quartier'}</strong>
                 </p>
                 <p>{application.message}</p>
                 <p className="muted">

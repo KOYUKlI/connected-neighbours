@@ -46,14 +46,18 @@ export function ServiceDetailPage() {
       const [nextService, nextNeighborhoods] = await Promise.all([getService(serviceId), getNeighborhoods()]);
       setService(nextService);
       setNeighborhoods(nextNeighborhoods);
-      const isOwner = nextService.ownerId === user.id;
-      const nextApplications = isOwner
+      const canViewApplications =
+        nextService.permissions?.canViewApplications ?? nextService.ownerId === user.id;
+      const nextApplications = canViewApplications
         ? await getApplicationsForService(serviceId)
         : (await getMyApplications()).filter((item) => item.serviceId === serviceId);
       setApplications(nextApplications);
-      const isContractParticipant = isOwner || nextApplications.some((item) => item.applicantId === user.id && item.status === 'accepted');
-      if (nextService.contractId && isContractParticipant) setContract(await getContract(nextService.contractId));
-      else setContract(null);
+      const contractId = nextService.contractSummary?.id ?? nextService.contractId;
+      if (contractId && nextService.permissions?.canViewContract) {
+        setContract(await getContract(contractId));
+      } else {
+        setContract(null);
+      }
     } catch (caught) {
       setError(getFriendlyError(caught, 'Impossible de charger ce service. Il a peut-être été retiré.'));
     } finally {
@@ -63,7 +67,7 @@ export function ServiceDetailPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const isOwner = service?.ownerId === user?.id;
+  const isOwner = service?.viewer?.isOwner ?? service?.ownerId === user?.id;
   const myApplication = useMemo(() => applications.find((item) => item.applicantId === user?.id), [applications, user]);
 
   async function runAction(key: string, action: () => Promise<unknown>, message: string) {
@@ -97,9 +101,9 @@ export function ServiceDetailPage() {
   if (!service || !user) return null;
 
   const category = getCategoryPresentation(service.category);
-  const canApply = !isOwner && service.status === 'published' && !myApplication;
-  const canPublish = isOwner && service.status === 'draft';
-  const canCancel = isOwner && !['completed', 'cancelled'].includes(service.status);
+  const canApply = service.permissions?.canApply ?? (!isOwner && service.status === 'published' && !myApplication);
+  const canPublish = service.permissions?.canPublish ?? (isOwner && service.status === 'draft');
+  const canCancel = service.permissions?.canCancel ?? (isOwner && !['completed', 'cancelled'].includes(service.status));
   const canSign = contract && ['draft', 'sent'].includes(contract.status) && [contract.requesterId, contract.providerId].includes(user.id) && !contract.signedByIds.includes(user.id);
 
   const tabs = [
@@ -120,7 +124,7 @@ export function ServiceDetailPage() {
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2"><Badge tone={service.type === 'request' ? 'info' : 'success'}>{serviceTypeLabels[service.type]}</Badge><Badge tone={getStatusTone(service.status)}>{serviceStatusLabels[service.status]}</Badge><Badge>{category.label}</Badge></div>
           <h1 className="mt-3 text-2xl font-extrabold leading-tight text-slate-950 sm:text-4xl">{service.title}</h1>
-          <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600"><span className="inline-flex items-center gap-1.5"><Icon className="size-4" name="map-pin" />{formatNeighborhood(service.neighborhoodId, neighborhoods)}</span><span className="inline-flex items-center gap-1.5"><Icon className="size-4" name="clock" />{service.availability || 'À convenir'}</span></p>
+          <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600"><span className="inline-flex items-center gap-1.5"><Icon className="size-4" name="map-pin" />{formatNeighborhood(service.neighborhoodId, neighborhoods, service)}</span><span className="inline-flex items-center gap-1.5"><Icon className="size-4" name="clock" />{service.availability || 'À convenir'}</span></p>
         </div>
         <Card className="grid content-start gap-4 lg:row-span-2">
           <div className="flex items-center justify-between gap-3"><span className={`grid size-11 place-items-center rounded-lg ${category.surface}`}><Icon className="size-5" name={category.icon} /></span><strong className="text-lg text-slate-950">{service.isPaid ? `${service.pricePoints ?? 0} points` : 'Gratuit'}</strong></div>
@@ -129,7 +133,7 @@ export function ServiceDetailPage() {
           {myApplication ? <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900"><strong>Candidature envoyée</strong><span className="mt-1 block">Statut : {myApplication.status === 'accepted' ? 'acceptée' : myApplication.status === 'rejected' ? 'refusée' : 'en attente'}</span></div> : null}
           {canPublish ? <Button disabled={pendingAction === 'publish'} onClick={() => void runAction('publish', () => publishService(serviceId), 'Votre service est maintenant publié.')} variant="primary">Publier l’annonce</Button> : null}
           {canCancel ? <Button disabled={pendingAction === 'cancel'} onClick={() => void runAction('cancel', () => cancelService(serviceId), 'Votre service a été annulé.')} variant="danger">Annuler l’annonce</Button> : null}
-          <div className="border-t border-slate-100 pt-4"><p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Publié par</p><UserSummary name={isOwner ? user.displayName ?? 'Vous' : 'Un voisin du quartier'} subtitle="Profil vérifié par la plateforme" /></div>
+          <div className="border-t border-slate-100 pt-4"><p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Publié par</p><UserSummary name={isOwner ? user.displayName ?? 'Vous' : service.owner?.displayName ?? 'Utilisateur inconnu'} subtitle={service.owner?.completedServicesCount ? `${service.owner.completedServicesCount} service${service.owner.completedServicesCount > 1 ? 's' : ''} terminé${service.owner.completedServicesCount > 1 ? 's' : ''}` : 'Profil public du quartier'} /></div>
         </Card>
       </div>
 
@@ -138,7 +142,7 @@ export function ServiceDetailPage() {
       {tab === 'overview' ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <Card><h2 className="text-lg font-extrabold text-slate-950">Description</h2><p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700">{service.description}</p></Card>
-          <Card><h2 className="text-lg font-extrabold text-slate-950">Informations pratiques</h2><dl className="mt-4 grid gap-3 text-sm"><div><dt className="font-semibold text-slate-500">Disponibilité</dt><dd className="mt-1 text-slate-900">{service.availability || 'À convenir'}</dd></div><div><dt className="font-semibold text-slate-500">Quartier</dt><dd className="mt-1 text-slate-900">{formatNeighborhood(service.neighborhoodId, neighborhoods)}</dd></div><div><dt className="font-semibold text-slate-500">Échange</dt><dd className="mt-1 text-slate-900">{service.isPaid ? `${service.pricePoints ?? 0} points, avec contrat après acceptation` : 'Service gratuit'}</dd></div></dl></Card>
+          <Card><h2 className="text-lg font-extrabold text-slate-950">Informations pratiques</h2><dl className="mt-4 grid gap-3 text-sm"><div><dt className="font-semibold text-slate-500">Disponibilité</dt><dd className="mt-1 text-slate-900">{service.availability || 'À convenir'}</dd></div><div><dt className="font-semibold text-slate-500">Quartier</dt><dd className="mt-1 text-slate-900">{formatNeighborhood(service.neighborhoodId, neighborhoods, service)}</dd></div><div><dt className="font-semibold text-slate-500">Échange</dt><dd className="mt-1 text-slate-900">{service.isPaid ? `${service.pricePoints ?? 0} points, avec contrat après acceptation` : 'Service gratuit'}</dd></div></dl></Card>
         </div>
       ) : null}
 
@@ -146,7 +150,7 @@ export function ServiceDetailPage() {
         <section className="grid gap-4">
           {canApply ? <Card><h2 className="text-lg font-extrabold text-slate-950">Proposer votre aide</h2><p className="mt-1 text-sm text-slate-600">Présentez brièvement votre disponibilité au propriétaire.</p><form className="mt-5 grid gap-4" onSubmit={handleApplication}><label className="grid gap-2 text-sm font-bold text-slate-900">Votre message<Textarea minLength={10} name="message" placeholder="Bonjour, je suis disponible et j’ai l’habitude de…" required rows={4} /></label><div className="grid gap-4 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-900">Date proposée<Input name="proposedDate" type="datetime-local" /></label>{service.isPaid ? <label className="grid gap-2 text-sm font-bold text-slate-900">Points proposés<Input defaultValue={service.pricePoints ?? undefined} min={1} name="proposedPricePoints" type="number" /></label> : null}</div><Button className="w-fit" disabled={pendingAction === 'apply'} type="submit" variant="primary">{pendingAction === 'apply' ? 'Envoi…' : 'Envoyer ma candidature'}</Button></form></Card> : null}
           {!isOwner && myApplication ? <Card><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-extrabold text-slate-950">Votre candidature</h2><p className="mt-1 text-sm text-slate-600">{myApplication.message}</p></div>{['submitted', 'viewed'].includes(myApplication.status) ? <Button disabled={pendingAction === getEntityId(myApplication)} onClick={() => void runAction(getEntityId(myApplication), () => withdrawApplication(getEntityId(myApplication)), 'Votre candidature a été retirée.')} variant="danger">Retirer</Button> : <Badge tone={myApplication.status === 'accepted' ? 'success' : 'neutral'}>{myApplication.status === 'accepted' ? 'Acceptée' : 'Clôturée'}</Badge>}</div></Card> : null}
-          {isOwner && applications.length > 0 ? applications.map((application, index) => <Card as="article" className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start" key={getEntityId(application)}><span className="grid size-10 place-items-center rounded-full bg-blue-50 text-xs font-extrabold text-blue-700">C{index + 1}</span><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-extrabold text-slate-950">Candidat du quartier</h2><Badge tone={application.status === 'accepted' ? 'success' : application.status === 'rejected' ? 'danger' : 'info'}>{application.status === 'accepted' ? 'Acceptée' : application.status === 'rejected' ? 'Refusée' : 'À étudier'}</Badge></div><p className="mt-2 text-sm leading-6 text-slate-600">{application.message}</p>{application.proposedPricePoints ? <p className="mt-2 text-sm font-bold text-slate-900">Proposition : {application.proposedPricePoints} points</p> : null}</div><div className="flex flex-wrap gap-2 sm:justify-end">{['submitted', 'viewed'].includes(application.status) ? <><Button disabled={pendingAction === getEntityId(application)} onClick={() => void runAction(getEntityId(application), () => acceptApplication(getEntityId(application)), 'La candidature a été acceptée.')} size="sm" variant="primary">Accepter</Button><Button disabled={pendingAction === getEntityId(application)} onClick={() => void runAction(getEntityId(application), () => rejectApplication(getEntityId(application)), 'La candidature a été refusée.')} size="sm" variant="ghost">Refuser</Button></> : null}{application.status === 'accepted' && !service.contractId && service.isPaid ? <Button disabled={pendingAction === `contract-${getEntityId(application)}`} onClick={() => void runAction(`contract-${getEntityId(application)}`, () => createContractFromApplication(getEntityId(application)), 'Le contrat a été généré.')} size="sm" variant="secondary">Générer le contrat</Button> : null}</div></Card>) : null}
+          {isOwner && applications.length > 0 ? applications.map((application, index) => <Card as="article" className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start" key={getEntityId(application)}><span className="grid size-10 place-items-center rounded-full bg-blue-50 text-xs font-extrabold text-blue-700">C{index + 1}</span><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-extrabold text-slate-950">{application.applicant?.displayName ?? 'Candidat du quartier'}</h2><Badge tone={application.status === 'accepted' ? 'success' : application.status === 'rejected' ? 'danger' : 'info'}>{application.status === 'accepted' ? 'Acceptée' : application.status === 'rejected' ? 'Refusée' : 'À étudier'}</Badge></div><p className="mt-2 text-sm leading-6 text-slate-600">{application.message}</p>{application.proposedPricePoints ? <p className="mt-2 text-sm font-bold text-slate-900">Proposition : {application.proposedPricePoints} points</p> : null}</div><div className="flex flex-wrap gap-2 sm:justify-end">{['submitted', 'viewed'].includes(application.status) ? <><Button disabled={pendingAction === getEntityId(application)} onClick={() => void runAction(getEntityId(application), () => acceptApplication(getEntityId(application)), 'La candidature a été acceptée.')} size="sm" variant="primary">Accepter</Button><Button disabled={pendingAction === getEntityId(application)} onClick={() => void runAction(getEntityId(application), () => rejectApplication(getEntityId(application)), 'La candidature a été refusée.')} size="sm" variant="ghost">Refuser</Button></> : null}{application.status === 'accepted' && !service.contractSummary && !service.contractId && service.isPaid && (service.permissions?.canGenerateContract ?? true) ? <Button disabled={pendingAction === `contract-${getEntityId(application)}`} onClick={() => void runAction(`contract-${getEntityId(application)}`, () => createContractFromApplication(getEntityId(application)), 'Le contrat a été généré.')} size="sm" variant="secondary">Générer le contrat</Button> : null}</div></Card>) : null}
           {isOwner && applications.length === 0 ? <EmptyState icon="users" message="Les candidatures apparaîtront ici après la publication de votre annonce." title="Aucune candidature reçue" /> : null}
         </section>
       ) : null}

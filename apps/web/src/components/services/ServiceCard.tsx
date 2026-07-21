@@ -20,7 +20,7 @@ export function ServiceCard({
 }) {
   const id = getEntityId(service);
   const category = getCategoryPresentation(service.category);
-  const isOwner = service.ownerId === currentUserId;
+  const isOwner = service.viewer?.isOwner ?? service.ownerId === currentUserId;
 
   return (
     <Card as="article" className="group flex min-h-full flex-col overflow-hidden p-0 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg">
@@ -41,7 +41,7 @@ export function ServiceCard({
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{service.description}</p>
         <dl className="mt-4 grid gap-2 text-sm text-slate-600">
           <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="user" /><dt className="sr-only">Propriétaire</dt><dd>{formatOwner(service, currentUserId)}</dd></div>
-          <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="map-pin" /><dt className="sr-only">Quartier</dt><dd>{formatNeighborhood(service.neighborhoodId, neighborhoods)}</dd></div>
+          <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="map-pin" /><dt className="sr-only">Quartier</dt><dd>{formatNeighborhood(service.neighborhoodId, neighborhoods, service)}</dd></div>
           <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="clock" /><dt className="sr-only">Disponibilité</dt><dd className="line-clamp-1">{service.availability || 'À convenir'}</dd></div>
         </dl>
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-4">

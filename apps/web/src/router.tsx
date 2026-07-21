@@ -7,20 +7,89 @@ import { IncidentAlertsPage } from './features/alerts/IncidentAlertsPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { IncidentsPage } from './features/incidents/IncidentsPage';
-import LandingPage from './landing/LandingPage';
-import { NotFoundPage } from './NotFoundPage';
 import { PointsPage } from './features/points/PointsPage';
 import { RgpdPage } from './features/rgpd/RgpdPage';
 import { ServicesPage } from './features/services/ServicesPage';
 import { DesktopLoginPage } from './features/sso/DesktopLoginPage';
+import LandingPage from './landing/LandingPage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
+import { HomePage } from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { ServiceCreatePage } from './pages/ServiceCreatePage';
+import { ServiceDetailPage } from './pages/ServiceDetailPage';
+import { ServicesExplorePage } from './pages/ServicesExplorePage';
+
+const residentRoutes = [
+  { index: true, element: <HomePage /> },
+  { path: 'services', element: <ServicesExplorePage /> },
+  { path: 'services/new', element: <ServiceCreatePage /> },
+  { path: 'services/:serviceId', element: <ServiceDetailPage /> },
+  {
+    path: 'neighbors',
+    element: (
+      <ComingSoonPage
+        description="Découvrez bientôt les profils publics des habitants de votre quartier."
+        icon="users"
+        title="Voisins"
+      />
+    ),
+  },
+  {
+    path: 'activities',
+    element: (
+      <ComingSoonPage
+        description="Vos candidatures, contrats et actions personnelles seront regroupés ici."
+        icon="activity"
+        title="Mes activités"
+      />
+    ),
+  },
+  {
+    path: 'local',
+    element: (
+      <ComingSoonPage
+        description="Événements, votes et incidents seront réunis dans cet espace."
+        icon="map-pin"
+        title="Vie locale"
+      />
+    ),
+  },
+  {
+    path: 'messages',
+    element: (
+      <ComingSoonPage
+        description="La messagerie persistante sera intégrée dans un lot dédié."
+        icon="message"
+        title="Messages"
+      />
+    ),
+  },
+  {
+    path: 'profile',
+    element: (
+      <ComingSoonPage
+        description="La gestion détaillée du compte, des points et de la confidentialité arrive prochainement."
+        icon="user"
+        title="Mon profil"
+      />
+    ),
+  },
+];
 
 export const router = createBrowserRouter([
-  { path: '/', element: <LandingPage /> },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/welcome', element: <LandingPage /> },
+  {
+    path: '/',
+    element: <App />,
+    children: [...residentRoutes, { path: '*', element: <NotFoundPage /> }],
+  },
   {
     path: '/app',
     element: <App />,
     children: [
-      { index: true, element: <Navigate replace to="/app/dashboard" /> },
+      { index: true, element: <Navigate replace to="/" /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'services', element: <ServicesPage /> },
       { path: 'applications', element: <ApplicationsPage /> },

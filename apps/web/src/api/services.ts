@@ -1,5 +1,20 @@
 import { apiRequest } from './client';
 
+export type PublicUserSummary = {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  neighborhoodId: string;
+  reputationScore: number | null;
+  completedServicesCount: number;
+};
+
+export type NeighborhoodSummary = {
+  id: string;
+  name: string;
+  city?: string | null;
+};
+
 export type ServiceType = 'offer' | 'request';
 
 export type ServiceStatus =
@@ -15,6 +30,33 @@ export type ServiceStatus =
   | 'completed'
   | 'cancelled'
   | 'disputed';
+
+export type ServiceViewer = {
+  isOwner: boolean;
+  hasApplied: boolean;
+  applicationId: string | null;
+  applicationStatus: string | null;
+  canApply: boolean;
+  canManage: boolean;
+};
+
+export type ServicePermissions = {
+  canEdit: boolean;
+  canPublish: boolean;
+  canCancel: boolean;
+  canApply: boolean;
+  canViewApplications: boolean;
+  canGenerateContract: boolean;
+  canViewContract: boolean;
+};
+
+export type ContractSummary = {
+  id: string;
+  status: string;
+  pricePoints: number;
+  signaturesCount: number;
+  requiredSignaturesCount: number;
+};
 
 export type ServiceItem = {
   _id?: string;
@@ -33,6 +75,21 @@ export type ServiceItem = {
   contractId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  neighborhood?: NeighborhoodSummary | null;
+  owner?: PublicUserSummary | null;
+  applicationsCount?: number;
+  viewer?: ServiceViewer;
+  permissions?: ServicePermissions;
+  contractSummary?: ContractSummary | null;
+};
+
+export type InvolvedServiceItem = ServiceItem & {
+  involvement: {
+    role: 'applicant' | 'requester' | 'provider';
+    applicationStatus: string | null;
+    contractStatus: string | null;
+    nextAction: string | null;
+  };
 };
 
 export type CreateServiceInput = {
@@ -53,6 +110,14 @@ export function getServices() {
 
 export function getService(id: string) {
   return apiRequest<ServiceItem>(`/api/services/${id}`);
+}
+
+export function getMyCreatedServices() {
+  return apiRequest<ServiceItem[]>('/api/services/me/created');
+}
+
+export function getMyInvolvedServices() {
+  return apiRequest<InvolvedServiceItem[]>('/api/services/me/involved');
 }
 
 export function createService(input: CreateServiceInput) {

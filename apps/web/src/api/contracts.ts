@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import type { ServiceItem } from './services';
+import type { PublicUserSummary, ServiceItem, ServiceStatus, ServiceType } from './services';
 
 export type ContractStatus =
   | 'draft'
@@ -8,6 +8,15 @@ export type ContractStatus =
   | 'completed'
   | 'cancelled'
   | 'disputed';
+
+export type ContractServiceSummary = {
+  id: string;
+  title: string;
+  type: ServiceType;
+  category: string;
+  status: ServiceStatus;
+  neighborhoodId: string;
+};
 
 export type ContractItem = {
   _id?: string;
@@ -25,6 +34,9 @@ export type ContractItem = {
   completedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  requester?: PublicUserSummary | null;
+  provider?: PublicUserSummary | null;
+  service?: ContractServiceSummary | null;
 };
 
 export type ContractCreationResult = {

@@ -29,7 +29,7 @@ export function ApplicationsPage() {
     {
       header: 'Service',
       render: (application) =>
-        serviceById.get(application.serviceId)?.title ?? application.serviceId,
+        application.service?.title ?? serviceById.get(application.serviceId)?.title ?? 'Service indisponible',
     },
     { header: 'Statut', render: (application) => <StatusBadge value={application.status} /> },
     { header: 'Message', render: (application) => application.message },

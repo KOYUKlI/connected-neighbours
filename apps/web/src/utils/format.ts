@@ -9,24 +9,41 @@ export function formatDate(value?: string, options?: Intl.DateTimeFormatOptions)
   if (!value) return 'Date non renseignée';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Date non renseignée';
-  return new Intl.DateTimeFormat('fr-FR', options ?? { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat(
+    'fr-FR',
+    options ?? { day: '2-digit', month: 'short', year: 'numeric' },
+  ).format(date);
 }
 
 export function formatInitials(value?: string) {
   const words = value?.trim().split(/\s+/).filter(Boolean) ?? [];
   if (words.length === 0) return 'CN';
-  return words.slice(0, 2).map((word) => word[0]?.toUpperCase()).join('');
+  return words
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join('');
 }
 
-export function formatNeighborhood(neighborhoodId: string | undefined, neighborhoods: NeighborhoodItem[]) {
-  const neighborhood = neighborhoods.find((item) => getEntityId(item) === neighborhoodId || item.slug === neighborhoodId);
+export function formatNeighborhood(
+  neighborhoodId: string | undefined,
+  neighborhoods: NeighborhoodItem[],
+  service?: ServiceItem,
+) {
+  if (service?.neighborhood) {
+    return [service.neighborhood.name, service.neighborhood.city]
+      .filter(Boolean)
+      .join(', ');
+  }
+  const neighborhood = neighborhoods.find(
+    (item) => getEntityId(item) === neighborhoodId || item.slug === neighborhoodId,
+  );
   if (!neighborhood) return 'Quartier non renseigné';
   return [neighborhood.name, neighborhood.city].filter(Boolean).join(', ');
 }
 
 export function formatOwner(service: ServiceItem, currentUserId?: string) {
-  if (service.ownerId === currentUserId) return 'Vous';
-  return 'Un voisin du quartier';
+  if (service.viewer?.isOwner || service.ownerId === currentUserId) return 'Vous';
+  return service.owner?.displayName?.trim() || 'Utilisateur inconnu';
 }
 
 export const serviceTypeLabels: Record<ServiceType, string> = {

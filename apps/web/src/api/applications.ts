@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import type { PublicUserSummary, ServiceStatus, ServiceType } from './services';
 
 export type ApplicationStatus =
   | 'submitted'
@@ -6,6 +7,17 @@ export type ApplicationStatus =
   | 'accepted'
   | 'rejected'
   | 'withdrawn';
+
+export type ApplicationServiceSummary = {
+  id: string;
+  title: string;
+  type: ServiceType;
+  category: string;
+  status: ServiceStatus;
+  neighborhoodId: string;
+  isPaid: boolean;
+  pricePoints: number | null;
+};
 
 export type ServiceApplication = {
   _id?: string;
@@ -21,6 +33,9 @@ export type ServiceApplication = {
   rejectedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  applicant?: PublicUserSummary | null;
+  owner?: PublicUserSummary | null;
+  service?: ApplicationServiceSummary | null;
 };
 
 export type CreateApplicationInput = {

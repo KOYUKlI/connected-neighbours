@@ -1,7 +1,6 @@
 import type { AuthUser } from '../../../api/auth';
 import type { CreateApplicationInput, ServiceApplication } from '../../../api/applications';
 import type { ServiceItem } from '../../../api/services';
-import { MonoValue } from '../../../shared/components/MonoValue';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { formatDate } from '../../../shared/utils/format';
 import { getEntityId } from '../../../shared/utils/entities';
@@ -40,13 +39,14 @@ export function ServiceCard({
   service,
 }: ServiceCardProps) {
   const serviceId = getEntityId(service);
-  const isOwner = service.ownerId === currentUser?.id;
-  const canApply =
+  const isOwner = service.viewer?.isOwner ?? service.ownerId === currentUser?.id;
+  const canApply = service.permissions?.canApply ?? (
     !isOwner &&
     service.status === 'published' &&
-    !isActiveApplication(myApplication?.status);
-  const canPublish = isOwner && service.status === 'draft';
-  const canCancel = isOwner && !['completed', 'cancelled'].includes(service.status);
+    !isActiveApplication(myApplication?.status)
+  );
+  const canPublish = service.permissions?.canPublish ?? (isOwner && service.status === 'draft');
+  const canCancel = service.permissions?.canCancel ?? (isOwner && !['completed', 'cancelled'].includes(service.status));
 
   return (
     <article className="service-card">
@@ -73,13 +73,11 @@ export function ServiceCard({
         </div>
         <div>
           <dt>Proprietaire</dt>
-          <dd>
-            <MonoValue value={service.ownerId} />
-          </dd>
+          <dd>{isOwner ? 'Vous' : service.owner?.displayName ?? 'Utilisateur inconnu'}</dd>
         </div>
         <div>
           <dt>Quartier</dt>
-          <dd>{service.neighborhoodId}</dd>
+          <dd>{service.neighborhood ? [service.neighborhood.name, service.neighborhood.city].filter(Boolean).join(', ') : 'Quartier non renseigné'}</dd>
         </div>
         <div>
           <dt>Creation</dt>

@@ -2,7 +2,6 @@ import type { ContractItem } from '../../api/contracts';
 import { useAuth } from '../../auth/useAuth';
 import { DataTable } from '../../shared/components/DataTable';
 import type { TableColumn } from '../../shared/components/DataTable';
-import { MonoValue } from '../../shared/components/MonoValue';
 import { StatusBadge } from '../../shared/components/StatusBadge';
 import { formatNumber } from '../../shared/utils/format';
 import { getEntityId } from '../../shared/utils/entities';
@@ -34,7 +33,7 @@ export function ContractsPage() {
     {
       header: 'Service',
       render: (contract) =>
-        serviceById.get(contract.serviceId)?.title ?? <MonoValue value={contract.serviceId} />,
+        contract.service?.title ?? serviceById.get(contract.serviceId)?.title ?? 'Service indisponible',
     },
     { header: 'Statut', render: (contract) => <StatusBadge value={contract.status} /> },
     {
@@ -51,7 +50,8 @@ export function ContractsPage() {
       header: 'Parties',
       render: (contract) => (
         <span>
-          <MonoValue value={contract.requesterId} /> / <MonoValue value={contract.providerId} />
+          {contract.requester?.displayName ?? 'Demandeur inconnu'} /{' '}
+          {contract.provider?.displayName ?? 'Prestataire inconnu'}
         </span>
       ),
     },
