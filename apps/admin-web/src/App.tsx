@@ -67,6 +67,7 @@ import { AdminTopbar } from './components/layout/AdminTopbar'
 import { Breadcrumb } from './components/layout/Breadcrumb'
 import { ContractsListPage } from './pages/ContractsListPage'
 import { DisputesPage } from './features/disputes/DisputesPage'
+import { DocumentsPage } from './features/documents/DocumentsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { IncidentsListPage } from './pages/IncidentsListPage'
 import { LoginPage } from './pages/LoginPage'
@@ -83,6 +84,7 @@ const navigationItems = [
   { id: 'neighborhoods', label: 'Quartiers', description: 'Zones et habitants', icon: 'neighborhoods' },
   { id: 'services', label: 'Services', description: 'Annonces voisines', icon: 'services' },
   { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts' },
+  { id: 'documents', label: 'Documents', description: 'PDF et signatures', icon: 'documents' },
   { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes' },
   { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents' },
   { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync' },
@@ -243,6 +245,9 @@ function App() {
               setServices(nextServices)
               setUsers(nextUsers)
             }
+            break
+          }
+          case 'documents': {
             break
           }
           case 'disputes': {
@@ -533,6 +538,8 @@ function renderSection(props: RenderSectionProps) {
           users={props.users}
         />
       )
+    case 'documents':
+      return <DocumentsPage />
     case 'disputes':
       return <DisputesPage />
     case 'incidents':

@@ -409,7 +409,12 @@ export default function DashboardApp() {
             onRejectApplication: (id) =>
               runAction('reject-application', () => rejectApplication(id)),
             onSignContract: (id) =>
-              runAction('sign-contract', () => signContract(id)),
+              runAction('sign-contract', () =>
+                signContract(
+                  id,
+                  currentUser?.displayName ?? currentUser?.email ?? 'Signature applicative',
+                ),
+              ),
             onWithdrawApplication: (id) =>
               runAction('withdraw-application', () => withdrawApplication(id)),
             pointBalance,

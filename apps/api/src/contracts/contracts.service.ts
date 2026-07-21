@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { DocumentsService } from '../documents/documents.service';
 import { PointsService } from '../points/points.service';
 import {
   ServiceApplication,
@@ -55,6 +56,7 @@ export class ContractsService {
     private readonly pointsService: PointsService,
     private readonly publicUsersService: PublicUsersService,
     private readonly executionService: ServiceExecutionService,
+    private readonly documentsService: DocumentsService,
   ) {}
 
   async createFromApplication(
@@ -252,6 +254,9 @@ export class ContractsService {
         signedByIds: contract.signedByIds,
         signedAt: contract.signedAt,
         completedAt: contract.completedAt,
+        documentId: contract.documentId,
+        finalizedDocumentFileId: contract.finalizedDocumentFileId,
+        documentFinalSha256: contract.documentFinalSha256,
         createdAt: contract.createdAt,
         updatedAt: contract.updatedAt,
         requester: publicUsers.get(contract.requesterId) ?? null,
@@ -270,41 +275,13 @@ export class ContractsService {
     });
   }
 
-  async sign(id: string, userId: string) {
-    const contract = await this.findContract(id);
-
-    this.assertContractParty(contract, userId);
-
-    if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException('Ce contrat ne peut plus être signé');
-    }
-
-    if (contract.signedByIds.includes(userId)) {
-      throw new BadRequestException(
-        'Ce contrat est deja signe par cet utilisateur',
-      );
-    }
-
-    contract.signedByIds.push(userId);
-
-    const allPartiesSigned =
-      contract.signedByIds.includes(contract.requesterId) &&
-      contract.signedByIds.includes(contract.providerId);
-
-    if (allPartiesSigned) {
-      contract.status = ContractStatus.ACTIVE;
-      contract.signedAt = new Date();
-
-      await this.updateServiceStatus(
-        contract.serviceId,
-        ServiceStatus.SCHEDULED,
-        { scheduledAt: contract.signedAt },
-      );
-    }
-
-    return contract.save();
+  async sign(
+    id: string,
+    actor: AuthenticatedUser,
+    input: { consent: true; signatureText: string },
+  ) {
+    return this.documentsService.legacySignContract(id, actor, input);
   }
-
   async complete(id: string, actor: AuthenticatedUser) {
     await this.executionService.validateByContract(id, actor);
     return this.findContract(id);

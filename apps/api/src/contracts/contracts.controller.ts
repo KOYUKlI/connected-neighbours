@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -13,6 +13,7 @@ import {
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LegacyContractSignDto } from '../documents/dto/legacy-contract-sign.dto';
 import { ContractsService } from './contracts.service';
 
 @ApiTags('contracts')
@@ -74,9 +75,18 @@ export class ContractsController {
   }
 
   @Post(':id/sign')
-  @ApiOperation({ summary: 'Signer un contrat' })
-  sign(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
-    return this.contractsService.sign(id, user.sub);
+  @ApiOperation({
+    summary: 'Route legacy : signer le document contractuel',
+    description:
+      'Conservée pour compatibilité. Génère le PDF si nécessaire, recueille le consentement puis applique la signature au document.',
+    deprecated: true,
+  })
+  sign(
+    @Param('id') id: string,
+    @Body() input: LegacyContractSignDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.contractsService.sign(id, user, input);
   }
 
   @Post(':id/complete')

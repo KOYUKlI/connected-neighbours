@@ -45,6 +45,10 @@ describe('ContractsService', () => {
     validateByContract: jest.fn(),
   };
 
+  const documentsServiceMock = {
+    legacySignContract: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -55,6 +59,7 @@ describe('ContractsService', () => {
       pointsServiceMock as unknown as PointsService,
       publicUsersServiceMock as never,
       executionServiceMock as never,
+      documentsServiceMock as never,
     );
   });
 
@@ -341,55 +346,33 @@ describe('ContractsService', () => {
     );
   });
 
-  it('should activate a contract when both parties have signed', async () => {
-    const contract = contractDocument({
-      id: 'contract_1',
-      serviceId: 'svc_1',
-      requesterId: 'requester_1',
-      providerId: 'provider_1',
-      status: ContractStatus.SENT,
-      signedByIds: ['requester_1'],
-      pricePoints: 50,
-    });
+  it('delegates legacy signatures to the document workflow', async () => {
+    const actor = authUser('provider_1');
+    const input = { consent: true as const, signatureText: 'Bob Dupont' };
+    const signedContract = { id: 'contract_1', status: ContractStatus.ACTIVE };
+    documentsServiceMock.legacySignContract.mockResolvedValue(signedContract);
 
-    contractModelMock.findById.mockReturnValue(execResult(contract));
-    serviceModelMock.findByIdAndUpdate.mockReturnValue(
-      execResult({ _id: 'svc_1', status: ServiceStatus.SCHEDULED }),
+    const result = await service.sign('contract_1', actor, input);
+
+    expect(documentsServiceMock.legacySignContract).toHaveBeenCalledWith(
+      'contract_1',
+      actor,
+      input,
     );
-
-    const result = await service.sign('contract_1', 'provider_1');
-
-    expect(contract.status).toBe(ContractStatus.ACTIVE);
-    expect(contract.signedByIds).toEqual(['requester_1', 'provider_1']);
-    expect(contract.signedAt).toBeInstanceOf(Date);
-    expect(serviceModelMock.findByIdAndUpdate).toHaveBeenCalledWith(
-      'svc_1',
-      {
-        status: ServiceStatus.SCHEDULED,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest types asymmetric matchers as any.
-        scheduledAt: expect.any(Date),
-      },
-      { returnDocument: 'after' },
-    );
-    expect(result).toEqual(contract);
+    expect(result).toEqual(signedContract);
   });
 
-  it('should reject duplicate signatures', async () => {
-    const contract = contractDocument({
-      id: 'contract_1',
-      serviceId: 'svc_1',
-      requesterId: 'requester_1',
-      providerId: 'provider_1',
-      status: ContractStatus.SENT,
-      signedByIds: ['requester_1'],
-      pricePoints: 50,
-    });
+  it('does not bypass document signature errors through the legacy route', async () => {
+    const actor = authUser('requester_1');
+    const error = new BadRequestException('Consentement requis');
+    documentsServiceMock.legacySignContract.mockRejectedValue(error);
 
-    contractModelMock.findById.mockReturnValue(execResult(contract));
-
-    await expect(service.sign('contract_1', 'requester_1')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(
+      service.sign('contract_1', actor, {
+        consent: true,
+        signatureText: 'Alice Martin',
+      }),
+    ).rejects.toBe(error);
   });
 
   it('delegates the legacy completion route to the execution workflow', async () => {

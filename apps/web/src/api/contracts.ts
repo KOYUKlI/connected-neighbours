@@ -1,13 +1,18 @@
-import { apiRequest } from './client';
-import type { PublicUserSummary, ServiceItem, ServiceStatus, ServiceType } from './services';
+import { apiRequest } from "./client";
+import type {
+  PublicUserSummary,
+  ServiceItem,
+  ServiceStatus,
+  ServiceType,
+} from "./services";
 
 export type ContractStatus =
-  | 'draft'
-  | 'sent'
-  | 'active'
-  | 'completed'
-  | 'cancelled'
-  | 'disputed';
+  | "draft"
+  | "sent"
+  | "active"
+  | "completed"
+  | "cancelled"
+  | "disputed";
 
 export type ContractServiceSummary = {
   id: string;
@@ -32,6 +37,9 @@ export type ContractItem = {
   signedByIds: string[];
   signedAt?: string | null;
   completedAt?: string | null;
+  documentId?: string | null;
+  finalizedDocumentFileId?: string | null;
+  documentFinalSha256?: string | null;
   createdAt?: string;
   updatedAt?: string;
   requester?: PublicUserSummary | null;
@@ -48,33 +56,33 @@ export function createContractFromApplication(applicationId: string) {
   return apiRequest<ContractCreationResult>(
     `/api/contracts/from-application/${applicationId}`,
     {
-      method: 'POST',
+      method: "POST",
     },
   );
 }
 
 export function getContracts() {
-  return apiRequest<ContractItem[]>('/api/contracts');
+  return apiRequest<ContractItem[]>("/api/contracts");
 }
 
 export function getContract(id: string) {
   return apiRequest<ContractItem>(`/api/contracts/${id}`);
 }
 
-export function signContract(id: string) {
+export function signContract(id: string, signatureText: string) {
   return apiRequest<ContractItem>(`/api/contracts/${id}/sign`, {
-    method: 'POST',
+    method: "POST",
+    body: JSON.stringify({ consent: true, signatureText }),
   });
 }
-
 export function completeContract(id: string) {
   return apiRequest<ContractItem>(`/api/contracts/${id}/complete`, {
-    method: 'POST',
+    method: "POST",
   });
 }
 
 export function cancelContract(id: string) {
   return apiRequest<ContractItem>(`/api/contracts/${id}/cancel`, {
-    method: 'POST',
+    method: "POST",
   });
 }

@@ -57,6 +57,15 @@ export class Contract {
 
   @Prop({ type: String, trim: true, default: null, index: true })
   activeDisputeId: string | null;
+
+  @Prop({ type: String, trim: true, default: null, index: true })
+  documentId: string | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  finalizedDocumentFileId: string | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  documentFinalSha256: string | null;
 }
 
 export const ContractSchema = SchemaFactory.createForClass(Contract);

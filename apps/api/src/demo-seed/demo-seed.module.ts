@@ -14,6 +14,7 @@ import {
 } from '../disputes/schemas/dispute-evidence.schema';
 import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
 import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
+import { DocumentsModule } from '../documents/documents.module';
 import { PointsModule } from '../points/points.module';
 import {
   ServiceProof,
@@ -25,6 +26,7 @@ import { DemoSeedService } from './demo-seed.service';
 @Module({
   imports: [
     AuthModule,
+    DocumentsModule,
     PointsModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },

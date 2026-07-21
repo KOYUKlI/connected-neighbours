@@ -1,17 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from "react";
 
-import {
-  cancelContract,
-  getContracts,
-  signContract,
-} from '../../../api/contracts';
-import type { ContractItem } from '../../../api/contracts';
-import { getServices } from '../../../api/services';
-import type { ServiceItem } from '../../../api/services';
-import { useAuth } from '../../../auth/useAuth';
-import { useResource } from '../../../shared/hooks/useResource';
-import { getErrorMessage } from '../../../shared/utils/errors';
-import { getEntityId } from '../../../shared/utils/entities';
+import { cancelContract, getContracts } from "../../../api/contracts";
+import type { ContractItem } from "../../../api/contracts";
+import { getServices } from "../../../api/services";
+import type { ServiceItem } from "../../../api/services";
+import { useAuth } from "../../../auth/useAuth";
+import { useResource } from "../../../shared/hooks/useResource";
+import { getErrorMessage } from "../../../shared/utils/errors";
+import { getEntityId } from "../../../shared/utils/entities";
 
 type ContractsPageData = {
   contracts: ContractItem[];
@@ -29,7 +25,10 @@ export function useContractsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fetcher = useCallback(async (): Promise<ContractsPageData> => {
-    const [contracts, services] = await Promise.all([getContracts(), getServices()]);
+    const [contracts, services] = await Promise.all([
+      getContracts(),
+      getServices(),
+    ]);
     const serviceById = new Map(
       services.map((service) => [getEntityId(service), service] as const),
     );
@@ -37,7 +36,12 @@ export function useContractsPage() {
     return { contracts, serviceById };
   }, []);
 
-  const { data, isLoading, error: loadError, reload } = useResource(fetcher, initialValue);
+  const {
+    data,
+    isLoading,
+    error: loadError,
+    reload,
+  } = useResource(fetcher, initialValue);
 
   async function runAction(label: string, action: () => Promise<unknown>) {
     setActionPending(label);
@@ -65,8 +69,7 @@ export function useContractsPage() {
     isLoading,
     error: actionError ?? loadError,
     actionPending,
-    onSignContract: (id: string) => runAction('sign-contract', () => signContract(id)),
     onCancelContract: (id: string) =>
-      runAction('cancel-contract', () => cancelContract(id)),
+      runAction("cancel-contract", () => cancelContract(id)),
   };
 }

@@ -7,6 +7,7 @@ import {
   ServiceApplicationDocument,
   ServiceApplicationStatus,
 } from '../applications/schemas/service-application.schema';
+import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import { UsersService } from '../auth/users.service';
@@ -38,6 +39,8 @@ import {
   IncidentStatus,
   IncidentType,
 } from '../incidents/schemas/incident.schema';
+import { DocumentsService } from '../documents/documents.service';
+import { ManagedDocumentStatus } from '../documents/schemas/managed-document.schema';
 import { PointsService } from '../points/points.service';
 import {
   ServiceProof,
@@ -90,6 +93,7 @@ export class DemoSeedService implements OnModuleInit {
     private readonly incidentModel: Model<IncidentDocument>,
     private readonly usersService: UsersService,
     private readonly pointsService: PointsService,
+    private readonly documentsService: DocumentsService,
   ) {}
 
   async onModuleInit() {
@@ -100,7 +104,7 @@ export class DemoSeedService implements OnModuleInit {
       return;
     }
 
-    const [alice, bob, claire, moderator] = await Promise.all([
+    const [alice, bob, claire, moderator, admin] = await Promise.all([
       this.usersService.ensureDevUser({
         email: 'alice@connected-neighbours.local',
         displayName: 'Alice Martin',
@@ -128,6 +132,13 @@ export class DemoSeedService implements OnModuleInit {
         role: Role.MODERATOR,
         neighborhoodId: 'quartier-centre',
         password: 'moderator123',
+      }),
+      this.usersService.ensureDevUser({
+        email: 'admin@connected-neighbours.local',
+        displayName: 'Admin Demo',
+        role: Role.ADMIN,
+        neighborhoodId: 'quartier-centre',
+        password: 'admin123',
       }),
     ]);
 
@@ -193,7 +204,39 @@ export class DemoSeedService implements OnModuleInit {
     });
 
     await this.ensureFurnitureWorkflow(furniture, alice, bob, claire);
+    const furnitureContract = await this.contractModel
+      .findOne({ serviceId: furniture.id })
+      .exec();
+    if (furnitureContract)
+      await this.ensureDocumentState(
+        furnitureContract.id,
+        alice,
+        bob,
+        admin,
+        'archived',
+      );
     const disputeDemos = await this.ensureExecutionDemos(alice, bob);
+    await this.ensureDocumentState(
+      disputeDemos.open.contractId,
+      alice,
+      bob,
+      admin,
+      'prepared',
+    );
+    await this.ensureDocumentState(
+      disputeDemos.review.contractId,
+      alice,
+      bob,
+      admin,
+      'sent',
+    );
+    await this.ensureDocumentState(
+      disputeDemos.resolved.contractId,
+      alice,
+      bob,
+      admin,
+      'partial',
+    );
     await this.ensureDisputeDemos(disputeDemos, alice, bob, moderator);
     await this.ensureApplication(
       computerHelp,
@@ -205,6 +248,68 @@ export class DemoSeedService implements OnModuleInit {
     await this.ensureIncident(alice.id);
   }
 
+  private async ensureDocumentState(
+    contractId: string,
+    alice: UserDocument,
+    bob: UserDocument,
+    admin: UserDocument,
+    target: 'prepared' | 'sent' | 'partial' | 'archived',
+  ) {
+    const aliceActor = this.seedActor(alice, Role.RESIDENT);
+    const bobActor = this.seedActor(bob, Role.RESIDENT);
+    const adminActor = this.seedActor(admin, Role.ADMIN);
+    let document = await this.documentsService.findForContract(
+      contractId,
+      aliceActor,
+    );
+    if (!document)
+      document = await this.documentsService.generateContractDocument(
+        contractId,
+        aliceActor,
+      );
+    if (target === 'prepared') return;
+    if (document.status === ManagedDocumentStatus.PREPARED) {
+      document = await this.documentsService.sendForSignature(
+        document.id,
+        aliceActor,
+      );
+    }
+    if (target === 'sent') return;
+    if (document.status === ManagedDocumentStatus.SENT_FOR_SIGNATURE) {
+      await this.documentsService.legacySignContract(contractId, aliceActor, {
+        consent: true,
+        signatureText: alice.displayName,
+      });
+      document = await this.documentsService.findForContract(
+        contractId,
+        aliceActor,
+      );
+    }
+    if (!document || target === 'partial') return;
+    if (document.status === ManagedDocumentStatus.PARTIALLY_SIGNED) {
+      await this.documentsService.legacySignContract(contractId, bobActor, {
+        consent: true,
+        signatureText: bob.displayName,
+      });
+      document = await this.documentsService.findForContract(
+        contractId,
+        aliceActor,
+      );
+    }
+    if (document?.status === ManagedDocumentStatus.FINALIZED) {
+      await this.documentsService.archive(document.id, adminActor);
+    }
+  }
+
+  private seedActor(user: UserDocument, role: Role): AuthenticatedUser {
+    return {
+      sub: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      neighborhoodId: user.neighborhoodId,
+      role,
+    };
+  }
   private async ensureService(ownerId: string, input: DemoServiceInput) {
     const existing = await this.serviceModel
       .findOne({ ownerId, title: input.title })

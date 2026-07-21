@@ -11,6 +11,7 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { Role } from './../src/auth/role.enum';
 import { UsersService } from './../src/auth/users.service';
+import { StorageService } from './../src/storage/storage.service';
 
 jest.setTimeout(60000);
 
@@ -48,6 +49,7 @@ const DEMO_USERS = [
 describe('Connected Neighbours API P0 (e2e)', () => {
   let app: NestFastifyApplication;
   let connection: Connection;
+  let storageService: StorageService;
 
   let adminToken: string;
   let aliceToken: string;
@@ -93,6 +95,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     await app.getHttpAdapter().getInstance().ready();
 
     connection = app.get<Connection>(getConnectionToken());
+    storageService = app.get(StorageService);
 
     await cleanE2eData(true);
     await seedDemoUsers(app.get(UsersService));
@@ -591,24 +594,264 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(aliceAfterReservation.pointsBalance).toBe(75);
     expect(aliceAfterReservation.reservedPoints).toBe(25);
 
-    const aliceSignedContract = await request(app.getHttpServer())
-      .post(`/api/contracts/${contractId}/sign`)
+    type DocumentFieldBody = {
+      id: string;
+      type: 'signature' | 'initials' | 'date' | 'text' | 'checkbox';
+      pageNumber: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      assignedToUserId: string;
+      required: boolean;
+      label?: string;
+    };
+    type DocumentBody = {
+      id: string;
+      status: string;
+      fields: DocumentFieldBody[];
+      files: {
+        original: { id: string };
+        final: { id: string };
+      };
+      hashes: {
+        original: string;
+        current: string;
+        final: string;
+      };
+      progress: { signed: number; total: number };
+      version: number;
+    };
+    const responseBody = <T>(response: { body: unknown }) => response.body as T;
+
+    const invalidPdf = Buffer.from('not-a-real-pdf');
+    const invalidUpload = await request(app.getHttpServer())
+      .post('/api/storage/presign-upload')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'invalid-contract.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: invalidPdf.length,
+        contextType: 'contract_document',
+        contextId: contractId,
+      })
+      .expect(201);
+    const invalidUploadBody = responseBody<{ fileId: string }>(invalidUpload);
+    await storageService.putMemoryUploadForTest(
+      invalidUploadBody.fileId,
+      invalidPdf,
+    );
+    await request(app.getHttpServer())
+      .post(`/api/storage/files/${invalidUploadBody.fileId}/complete`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(400);
+    await request(app.getHttpServer())
+      .post(`/api/contracts/${contractId}/document`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ fileId: invalidUploadBody.fileId, title: 'Contrat invalide' })
+      .expect(409);
+
+    const generatedDocument = await request(app.getHttpServer())
+      .post(`/api/contracts/${contractId}/document/generate`)
       .set('Authorization', bearer(aliceToken))
       .expect(201);
+    const generatedDocumentBody = responseBody<DocumentBody>(generatedDocument);
+    const documentId = generatedDocumentBody.id;
+    const originalFileId = generatedDocumentBody.files.original.id;
+    const original = await storageService.getVerifiedBuffer(originalFileId);
+    expect(original.buffer.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(generatedDocumentBody.status).toBe('prepared');
+    expect(generatedDocumentBody.hashes.original).toMatch(/^[a-f0-9]{64}$/);
 
-    expect(aliceSignedContract.body.signedByIds).toContain(aliceId);
-    expect(aliceSignedContract.body.status).toBe('sent');
+    await request(app.getHttpServer())
+      .put(`/api/documents/${documentId}/fields`)
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        fields: [
+          {
+            type: 'signature',
+            pageNumber: 1,
+            x: 0.95,
+            y: 0.8,
+            width: 0.2,
+            height: 0.08,
+            assignedToUserId: aliceId,
+            required: true,
+          },
+        ],
+      })
+      .expect(400);
 
-    const activeContract = await request(app.getHttpServer())
-      .post(`/api/contracts/${contractId}/sign`)
-      .set('Authorization', bearer(bobToken))
+    const defaultFields = generatedDocumentBody.fields.map((field) => ({
+      id: field.id,
+      type: field.type,
+      pageNumber: field.pageNumber,
+      x: field.x,
+      y: field.y,
+      width: field.width,
+      height: field.height,
+      assignedToUserId: field.assignedToUserId,
+      required: field.required,
+      ...(field.label ? { label: field.label } : {}),
+    }));
+    const incompleteFields = defaultFields.filter(
+      (field) => field.assignedToUserId === aliceId,
+    );
+    await request(app.getHttpServer())
+      .put(`/api/documents/${documentId}/fields`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ fields: incompleteFields })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/send-for-signature`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(400);
+    await request(app.getHttpServer())
+      .put(`/api/documents/${documentId}/fields`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ fields: defaultFields })
+      .expect(200);
+
+    const sentDocument = await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/send-for-signature`)
+      .set('Authorization', bearer(aliceToken))
       .expect(201);
+    const sentDocumentBody = responseBody<DocumentBody>(sentDocument);
+    expect(sentDocumentBody.status).toBe('sent_for_signature');
 
-    expect(activeContract.body.status).toBe('active');
-    expect(activeContract.body.signedByIds).toEqual(
-      expect.arrayContaining([aliceId, bobId]),
+    await request(app.getHttpServer())
+      .put(`/api/documents/${documentId}/fields`)
+      .set('Authorization', bearer(aliceToken))
+      .send({ fields: [] })
+      .expect(409);
+
+    const aliceField = sentDocumentBody.fields.find(
+      (field) => field.assignedToUserId === aliceId,
+    );
+    const bobField = sentDocumentBody.fields.find(
+      (field) => field.assignedToUserId === bobId,
+    );
+    if (!aliceField || !bobField) {
+      throw new Error('Les zones de signature E2E sont absentes.');
+    }
+
+    await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/sign`)
+      .set('Authorization', bearer(bobToken))
+      .send({
+        consent: true,
+        signatureText: 'Bob Dupont',
+        values: [
+          { fieldId: aliceField.id, value: 'Alice Martin' },
+          { fieldId: bobField.id, value: 'Bob Dupont' },
+        ],
+      })
+      .expect(403);
+
+    const aliceSignedDocument = await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/sign`)
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        consent: true,
+        signatureText: 'Alice Martin',
+        values: [{ fieldId: aliceField.id, value: 'Alice Martin' }],
+      })
+      .expect(201);
+    const aliceSignedDocumentBody =
+      responseBody<DocumentBody>(aliceSignedDocument);
+    expect(aliceSignedDocumentBody.status).toBe('partially_signed');
+    expect(aliceSignedDocumentBody.hashes.current).not.toBe(
+      aliceSignedDocumentBody.hashes.original,
+    );
+    expect(aliceSignedDocumentBody.progress).toEqual({ signed: 1, total: 2 });
+
+    const pendingContract = await request(app.getHttpServer())
+      .get(`/api/contracts/${contractId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+    expect(responseBody<{ status: string }>(pendingContract).status).toBe(
+      'sent',
     );
 
+    const finalizedDocument = await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/sign`)
+      .set('Authorization', bearer(bobToken))
+      .send({
+        consent: true,
+        signatureText: 'Bob Dupont',
+        values: [{ fieldId: bobField.id, value: 'Bob Dupont' }],
+      })
+      .expect(201);
+    const finalizedDocumentBody = responseBody<DocumentBody>(finalizedDocument);
+    expect(finalizedDocumentBody.status).toBe('finalized');
+    expect(finalizedDocumentBody.hashes.final).toMatch(/^[a-f0-9]{64}$/);
+    expect(finalizedDocumentBody.files.final.id).toBeTruthy();
+    expect(finalizedDocumentBody.progress).toEqual({ signed: 2, total: 2 });
+    expect(finalizedDocumentBody.version).toBeGreaterThan(
+      aliceSignedDocumentBody.version,
+    );
+
+    const finalFile = await storageService.getVerifiedBuffer(
+      finalizedDocumentBody.files.final.id,
+    );
+    expect(finalFile.buffer.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(finalFile.file.sha256).toBe(finalizedDocumentBody.hashes.final);
+    expect(finalizedDocumentBody.files.original.id).toBe(originalFileId);
+
+    for (const token of [aliceToken, bobToken]) {
+      const download = await request(app.getHttpServer())
+        .get(`/api/documents/${documentId}/download-url`)
+        .query({ variant: 'final', disposition: 'attachment' })
+        .set('Authorization', bearer(token))
+        .expect(200);
+      const downloadBody = responseBody<{ url: string; expiresAt: string }>(
+        download,
+      );
+      expect(downloadBody.url).toBeTruthy();
+      expect(downloadBody.expiresAt).toBeTruthy();
+    }
+
+    await request(app.getHttpServer())
+      .get(`/api/documents/${documentId}/download-url`)
+      .query({ variant: 'final' })
+      .set('Authorization', bearer(moderatorToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/sign`)
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        consent: true,
+        signatureText: 'Alice Martin',
+        values: [{ fieldId: aliceField.id, value: 'Alice Martin' }],
+      })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post(`/api/documents/${documentId}/cancel`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(409);
+
+    const activeContract = await request(app.getHttpServer())
+      .get(`/api/contracts/${contractId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+    const activeContractBody = responseBody<{
+      status: string;
+      signedByIds: string[];
+      finalizedDocumentFileId: string;
+      documentFinalSha256: string;
+    }>(activeContract);
+    expect(activeContractBody.status).toBe('active');
+    expect(activeContractBody.signedByIds).toEqual(
+      expect.arrayContaining([aliceId, bobId]),
+    );
+    expect(activeContractBody.finalizedDocumentFileId).toBe(
+      finalizedDocumentBody.files.final.id,
+    );
+    expect(activeContractBody.documentFinalSha256).toBe(
+      finalizedDocumentBody.hashes.final,
+    );
     await request(app.getHttpServer())
       .post('/api/services/' + serviceId + '/start')
       .set('Authorization', bearer(aliceToken))
@@ -1206,11 +1449,13 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/contracts/' + disputeContractId + '/sign')
       .set('Authorization', bearer(aliceToken))
+      .send({ consent: true, signatureText: 'Alice Martin' })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/api/contracts/' + disputeContractId + '/sign')
       .set('Authorization', bearer(bobToken))
+      .send({ consent: true, signatureText: 'Bob Dupont' })
       .expect(201)
       .expect(({ body }) => expect(body.status).toBe('active'));
 
@@ -1571,10 +1816,12 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/contracts/' + scenarioContractId + '/sign')
       .set('Authorization', bearer(aliceToken))
+      .send({ consent: true, signatureText: 'Alice Martin' })
       .expect(201);
     await request(app.getHttpServer())
       .post('/api/contracts/' + scenarioContractId + '/sign')
       .set('Authorization', bearer(bobToken))
+      .send({ consent: true, signatureText: 'Bob Dupont' })
       .expect(201);
 
     await request(app.getHttpServer())
@@ -1622,6 +1869,12 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .find({ title: /^E2E/ }, { projection: { _id: 1 } })
       .toArray();
     const serviceIds = staleServices.map((service) => String(service._id));
+    const staleContracts = await connection
+      .collection('contracts')
+      .find({ serviceId: { $in: serviceIds } }, { projection: { _id: 1 } })
+      .toArray();
+    const contractIds = staleContracts.map((contract) => String(contract._id));
+
     const staleDisputes = await connection
       .collection('disputes')
       .find(
@@ -1645,6 +1898,12 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       }),
       connection.collection('serviceproofs').deleteMany({
         serviceId: { $in: serviceIds },
+      }),
+      connection.collection('manageddocuments').deleteMany({
+        serviceId: { $in: serviceIds },
+      }),
+      connection.collection('storagefiles').deleteMany({
+        contextId: { $in: contractIds },
       }),
       connection.collection('contracts').deleteMany({
         serviceId: { $in: serviceIds },

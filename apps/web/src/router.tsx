@@ -15,6 +15,9 @@ import LandingPage from './landing/LandingPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { HomePage } from './pages/HomePage';
 import { DisputeDetailPage } from './pages/DisputeDetailPage';
+import { ContractDocumentPage } from './features/documents/ContractDocumentPage';
+import { DocumentDetailPage } from './features/documents/DocumentDetailPage';
+import { DocumentsPage } from './features/documents/DocumentsPage';
 import { DisputesPage } from './pages/DisputesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -27,6 +30,9 @@ const residentRoutes = [
   { path: 'services', element: <ServicesExplorePage /> },
   { path: 'services/new', element: <ServiceCreatePage /> },
   { path: 'services/:serviceId', element: <ServiceDetailPage /> },
+  { path: 'documents', element: <DocumentsPage /> },
+  { path: 'documents/:documentId', element: <DocumentDetailPage /> },
+  { path: 'contracts/:contractId/document', element: <ContractDocumentPage /> },
   { path: 'disputes', element: <DisputesPage /> },
   { path: 'disputes/:disputeId', element: <DisputeDetailPage /> },
   {
