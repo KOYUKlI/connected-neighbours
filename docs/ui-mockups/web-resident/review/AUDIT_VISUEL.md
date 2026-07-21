@@ -1,6 +1,6 @@
 # Audit visuel des maquettes web résident
 
-Date : 21 juillet 2026  
+Date : 21 juillet 2026
 Périmètre : `docs/ui-mockups/web-resident/`
 
 ## Résumé

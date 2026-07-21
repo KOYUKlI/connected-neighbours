@@ -10,31 +10,31 @@ L'interface actuelle ne correspond pas assez : elle garde un style trop compact,
 
 Les images ci-dessous sont les références prioritaires. Elles doivent guider la structure, les tailles, les espacements et la hiérarchie visuelle.
 
-1. `tableau_de_bord_administratif_moderne.png`  
+1. `tableau_de_bord_administratif_moderne.png`
    Référence globale du shell : sidebar, topbar, cartes, espacements, couleurs.
 
-2. `tableau_de_gestion_des_quartiers.png`  
+2. `tableau_de_gestion_des_quartiers.png`
    Référence pour toutes les pages de liste : header, onglets, filtres, table, pagination.
 
-3. `tableau_de_bord_quartier_centre_ville.png`  
+3. `tableau_de_bord_quartier_centre_ville.png`
    Référence pour les pages détail : résumé, onglets, stats, infos clés.
 
-4. `tableau_de_bord_administration_de_quartier.png`  
+4. `tableau_de_bord_administration_de_quartier.png`
    Référence pour création/modification d'un quartier : recherche de ville, formulaire, carte.
 
-5. `tableau_de_bord_des_services_en_ligne.png`  
+5. `tableau_de_bord_des_services_en_ligne.png`
    Référence pour la page Services.
 
-6. `tableau_de_gestion_des_contrats.png`  
+6. `tableau_de_gestion_des_contrats.png`
    Référence pour la page Contrats.
 
-7. `tableau_de_gestion_des_incidents.png`  
+7. `tableau_de_gestion_des_incidents.png`
    Référence pour la page Incidents.
 
-8. `tableau_de_bord_de_synchronisation_admin.png`  
+8. `tableau_de_bord_de_synchronisation_admin.png`
    Référence pour la page Synchronisation.
 
-9. `tableau_de_gestion_des_utilisateurs.png`  
+9. `tableau_de_gestion_des_utilisateurs.png`
    Référence pour la page Utilisateurs.
 
 ## Style global attendu
