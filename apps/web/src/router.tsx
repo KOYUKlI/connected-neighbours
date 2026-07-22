@@ -21,6 +21,8 @@ import { DocumentDetailPage } from "./features/documents/DocumentDetailPage";
 import { DocumentsPage } from "./features/documents/DocumentsPage";
 import { DisputesPage } from "./pages/DisputesPage";
 import { LoginPage } from "./pages/LoginPage";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { SecurityPage } from "./pages/SecurityPage";
 import { NeighborhoodPage } from "./pages/NeighborhoodPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -79,11 +81,13 @@ const residentRoutes = [
     ),
   },
   { path: "profile", element: <ProfilePage /> },
+  { path: "security", element: <SecurityPage /> },
   { path: "neighborhood", element: <NeighborhoodPage /> },
 ];
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
+  { path: "/auth/callback", element: <AuthCallbackPage /> },
   { path: "/welcome", element: <LandingPage /> },
   {
     path: "/",

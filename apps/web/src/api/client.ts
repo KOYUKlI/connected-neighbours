@@ -9,16 +9,27 @@ type ApiRequestOptions = RequestInit & {
 type ApiErrorBody = {
   message?: unknown;
   error?: unknown;
+  code?: unknown;
 };
+
+type AuthTokenProvider = () => Promise<string | null>;
+
+let authTokenProvider: AuthTokenProvider | null = null;
 
 export class ApiError extends Error {
   public readonly status: number;
+  public readonly code: string | null;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code: string | null = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
+}
+
+export function configureAuthTokenProvider(provider: AuthTokenProvider | null) {
+  authTokenProvider = provider;
 }
 
 export function getAuthToken() {
@@ -55,7 +66,19 @@ export async function apiRequest<T>(
   }
 
   if (auth) {
-    const token = getAuthToken();
+    let token: string | null;
+    try {
+      token = authTokenProvider
+        ? await authTokenProvider()
+        : getAuthToken();
+    } catch {
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+      throw new ApiError(
+        'Votre session a expiré. Connectez-vous à nouveau.',
+        401,
+        'session_expired',
+      );
+    }
 
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
@@ -68,14 +91,14 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    const message = await readErrorMessage(response);
+    const error = await readError(response);
 
     if (response.status === 401 && auth) {
       clearAuthToken();
       window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
     }
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(error.message, response.status, error.code);
   }
 
   if (response.status === 204) {
@@ -85,24 +108,27 @@ export async function apiRequest<T>(
   return response.json() as Promise<T>;
 }
 
-async function readErrorMessage(response: Response) {
+async function readError(response: Response) {
+  const fallback = response.statusText || 'Erreur API';
   const contentType = response.headers.get('content-type') ?? '';
 
-  if (contentType.includes('application/json')) {
-    const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-
-    if (typeof body?.message === 'string') {
-      return body.message;
-    }
-
-    if (Array.isArray(body?.message)) {
-      return body.message.filter(Boolean).join(', ');
-    }
-
-    if (typeof body?.error === 'string') {
-      return body.error;
-    }
+  if (!contentType.includes('application/json')) {
+    return { message: fallback, code: null };
   }
 
-  return response.statusText || 'Erreur API';
+  const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
+  let message = fallback;
+
+  if (typeof body?.message === 'string') {
+    message = body.message;
+  } else if (Array.isArray(body?.message)) {
+    message = body.message.filter(Boolean).join(', ');
+  } else if (typeof body?.error === 'string') {
+    message = body.error;
+  }
+
+  return {
+    message,
+    code: typeof body?.code === 'string' ? body.code : null,
+  };
 }
