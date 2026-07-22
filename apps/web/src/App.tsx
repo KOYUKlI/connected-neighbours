@@ -2,7 +2,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth } from './auth/useAuth';
 import { AppShell } from './components/layout/AppShell';
-import { ChatWidget } from './features/messaging/ChatWidget';
 
 export default function App() {
   const { isReady, user } = useAuth();
@@ -21,7 +20,6 @@ export default function App() {
   return (
     <AppShell>
       <Outlet />
-      <ChatWidget />
     </AppShell>
   );
 }

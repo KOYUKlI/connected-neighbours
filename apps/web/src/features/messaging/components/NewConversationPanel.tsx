@@ -1,19 +1,17 @@
 import { useState } from 'react';
 
 import type { AuthUser } from '../../../api/auth';
-import { EmptyState } from '../../../shared/components/EmptyState';
+import { Button } from '../../../components/ui/Button';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { Input } from '../../../components/ui/Input';
+import { ConversationAvatar } from './ConversationAvatar';
 
 type NewConversationPanelProps = {
   neighbours: AuthUser[];
-  onCancel: () => void;
   onCreate: (participantIds: string[], title?: string) => void;
 };
 
-export function NewConversationPanel({
-  neighbours,
-  onCancel,
-  onCreate,
-}: NewConversationPanelProps) {
+export function NewConversationPanel({ neighbours, onCreate }: NewConversationPanelProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
 
@@ -32,27 +30,24 @@ export function NewConversationPanel({
   }
 
   return (
-    <div className="chat-widget-new-conversation">
-      <div className="chat-widget-list-header">
-        <button className="ghost-button" onClick={onCancel} type="button">
-          Retour
-        </button>
-        <h3>Nouvelle discussion</h3>
-      </div>
-
+    <div className="flex flex-col gap-4">
       {neighbours.length === 0 ? (
-        <EmptyState message="Aucun voisin trouvé dans votre quartier." />
+        <EmptyState icon="users" message="Aucun voisin trouvé dans votre quartier." title="Personne à contacter" />
       ) : (
-        <ul className="chat-widget-neighbours">
+        <ul className="max-h-80 space-y-1 overflow-y-auto">
           {neighbours.map((neighbour) => (
             <li key={neighbour.id}>
-              <label className="chat-widget-neighbour-item">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50">
                 <input
                   checked={selectedIds.includes(neighbour.id)}
+                  className="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-200"
                   onChange={() => toggle(neighbour.id)}
                   type="checkbox"
                 />
-                <span>{neighbour.displayName}</span>
+                <ConversationAvatar name={neighbour.displayName ?? neighbour.email} seed={neighbour.id} />
+                <span className="text-sm font-semibold text-slate-900">
+                  {neighbour.displayName ?? neighbour.email}
+                </span>
               </label>
             </li>
           ))}
@@ -60,8 +55,7 @@ export function NewConversationPanel({
       )}
 
       {selectedIds.length > 1 ? (
-        <input
-          className="chat-widget-group-title"
+        <Input
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Nom du groupe (optionnel)"
           type="text"
@@ -69,14 +63,9 @@ export function NewConversationPanel({
         />
       ) : null}
 
-      <button
-        className="primary-button"
-        disabled={selectedIds.length === 0}
-        onClick={handleSubmit}
-        type="button"
-      >
+      <Button disabled={selectedIds.length === 0} onClick={handleSubmit} variant="primary">
         {selectedIds.length > 1 ? 'Créer le groupe' : 'Démarrer la discussion'}
-      </button>
+      </Button>
     </div>
   );
 }

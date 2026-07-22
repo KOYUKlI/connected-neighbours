@@ -21,11 +21,10 @@ import { getErrorMessage } from '../../../shared/utils/errors';
 import { useMessagingSocket } from './useMessagingSocket';
 import type { VoiceRecording } from './useVoiceRecorder';
 
-export function useMessagingWidget() {
+export function useMessaging() {
   const { token, currentUser } = useAuth();
   const socketRef = useMessagingSocket(token);
 
-  const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
@@ -35,8 +34,6 @@ export function useMessagingWidget() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [neighbours, setNeighbours] = useState<AuthUser[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const unreadCount = 0;
 
   const applyReadPayload = useCallback((payload: ConversationReadPayload) => {
     setConversations((prev) =>
@@ -69,10 +66,8 @@ export function useMessagingWidget() {
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      void loadConversations();
-    }
-  }, [isOpen, loadConversations]);
+    void loadConversations();
+  }, [loadConversations]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -179,13 +174,6 @@ export function useMessagingWidget() {
     };
   }, [socketRef, selectedConversationId, applyReadPayload]);
 
-  const openWidget = useCallback(() => setIsOpen(true), []);
-  const closeWidget = useCallback(() => {
-    setIsOpen(false);
-    setSelectedConversationId(null);
-  }, []);
-  const toggleWidget = useCallback(() => setIsOpen((prev) => !prev), []);
-
   const selectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
   }, []);
@@ -281,10 +269,6 @@ export function useMessagingWidget() {
 
   return {
     currentUserId: currentUser?.id ?? null,
-    isOpen,
-    toggleWidget,
-    openWidget,
-    closeWidget,
     conversations,
     isLoadingConversations,
     selectedConversationId,
@@ -299,6 +283,5 @@ export function useMessagingWidget() {
     sendText,
     sendVocal,
     error,
-    unreadCount,
   };
 }

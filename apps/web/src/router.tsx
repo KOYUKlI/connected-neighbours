@@ -7,6 +7,7 @@ import { IncidentAlertsPage } from './features/alerts/IncidentAlertsPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { LocalLifePage } from './features/local/LocalLifePage';
+import { MessagesPage } from './features/messaging/MessagesPage';
 import { PointsPage } from './features/points/PointsPage';
 import { RgpdPage } from './features/rgpd/RgpdPage';
 import { ServicesPage } from './features/services/ServicesPage';
@@ -65,16 +66,7 @@ const residentRoutes = [
       />
     ),
   },
-  {
-    path: 'messages',
-    element: (
-      <ComingSoonPage
-        description="La messagerie persistante sera intégrée dans un lot dédié."
-        icon="message"
-        title="Messages"
-      />
-    ),
-  },
+  { path: 'messages', element: <MessagesPage /> },
   {
     path: 'profile',
     element: (
