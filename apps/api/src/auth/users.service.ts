@@ -183,6 +183,108 @@ export class UsersService implements OnModuleInit {
     return this.userModel.find({ _id: { $in: ids } }).exec();
   }
 
+  async findIdentityById(id: string) {
+    return this.userModel.findById(id).select('+passwordHash').exec();
+  }
+
+  async findIdentityByEmail(email: string) {
+    return this.userModel.findOne({ email: email.toLowerCase() }).exec();
+  }
+
+  async findByKeycloakSubject(keycloakSubject: string) {
+    return this.userModel.findOne({ keycloakSubject }).exec();
+  }
+
+  async createKeycloakUser(input: {
+    keycloakSubject: string;
+    email: string;
+    displayName: string;
+  }) {
+    const now = new Date();
+    const created = await this.userModel.create({
+      keycloakSubject: input.keycloakSubject,
+      email: input.email.toLowerCase(),
+      displayName: input.displayName,
+      role: Role.RESIDENT,
+      neighborhoodId: '',
+      passwordHash: null,
+      identityProvider: IdentityProvider.KEYCLOAK,
+      identityMigrationStatus: IdentityMigrationStatus.KEYCLOAK_ONLY,
+      emailVerified: true,
+      identityLinkedAt: now,
+      lastIdentitySyncAt: now,
+      onboardingCompleted: false,
+      isActive: true,
+      pointsBalance: 100,
+      reservedPoints: 0,
+    });
+
+    this.queueUserProjection(created.id);
+    return created;
+  }
+
+  async markIdentityLinkRequired(userId: string) {
+    await this.userModel
+      .updateOne(
+        {
+          _id: userId,
+          identityProvider: { $ne: IdentityProvider.LINKED },
+        },
+        {
+          $set: {
+            identityMigrationStatus: IdentityMigrationStatus.LINK_REQUIRED,
+          },
+        },
+      )
+      .exec();
+  }
+
+  async touchIdentitySync(userId: string, emailVerified: boolean) {
+    await this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $set: {
+            emailVerified,
+            lastIdentitySyncAt: new Date(),
+          },
+        },
+      )
+      .exec();
+  }
+
+  async linkKeycloakIdentity(input: {
+    userId: string;
+    keycloakSubject: string;
+    emailVerified: boolean;
+  }) {
+    const linked = await this.userModel
+      .findOneAndUpdate(
+        {
+          _id: input.userId,
+          $or: [
+            { keycloakSubject: null },
+            { keycloakSubject: { $exists: false } },
+          ],
+        },
+        {
+          $set: {
+            keycloakSubject: input.keycloakSubject,
+            identityProvider: IdentityProvider.LINKED,
+            identityMigrationStatus: IdentityMigrationStatus.LINKED,
+            emailVerified: input.emailVerified,
+            identityLinkedAt: new Date(),
+            lastIdentitySyncAt: new Date(),
+          },
+        },
+        { returnDocument: 'after' },
+      )
+      .exec();
+
+    if (linked) this.queueUserProjection(linked.id);
+    return linked;
+  }
+
   async findByNeighborhood(neighborhoodId: string, excludeUserId: string) {
     return this.userModel
       .find({
@@ -204,6 +306,10 @@ export class UsersService implements OnModuleInit {
       isActive: user.isActive,
       pointsBalance: user.pointsBalance,
       reservedPoints: user.reservedPoints,
+      identityProvider: user.identityProvider,
+      emailVerified: user.emailVerified,
+      identityLinkedAt: user.identityLinkedAt,
+      onboardingCompleted: user.onboardingCompleted,
     };
   }
 

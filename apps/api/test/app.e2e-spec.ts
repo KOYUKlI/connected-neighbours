@@ -5,6 +5,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { createHash } from 'crypto';
 import { Connection } from 'mongoose';
 import request from 'supertest';
 
@@ -169,6 +170,68 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(moderator.user.role).toBe(Role.MODERATOR);
     expect(alice.user.pointsBalance).toBeGreaterThanOrEqual(100);
     expect(bob.user.pointsBalance).toBeGreaterThanOrEqual(100);
+    expect(alice).toEqual(
+      expect.objectContaining({
+        accessToken: expect.any(String),
+        user: expect.objectContaining({
+          email: DEMO_USERS[1].email,
+          displayName: DEMO_USERS[1].displayName,
+          role: Role.RESIDENT,
+        }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.id).toBe(aliceId);
+        expect(body.role).toBe(Role.RESIDENT);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/auth/security')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.identityProvider).toBe('local');
+        expect(body.session.provider).toBe('local');
+        expect(body.session.mfaSatisfied).toBe(false);
+      });
+  });
+
+  it('preserves the JavaFX PKCE bridge and response contract', async () => {
+    const codeVerifier = 'javafx-e2e-code-verifier-with-sufficient-entropy';
+    const codeChallenge = createHash('sha256')
+      .update(codeVerifier)
+      .digest('base64url');
+
+    const authorization = await request(app.getHttpServer())
+      .post('/api/auth/sso/authorize')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        callbackUrl: 'http://127.0.0.1:53721/callback',
+        codeChallenge,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/sso/token')
+      .send({ code: authorization.body.code, codeVerifier })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            accessToken: expect.any(String),
+            user: expect.objectContaining({
+              email: DEMO_USERS[0].email,
+              displayName: DEMO_USERS[0].displayName,
+              role: 'admin',
+            }),
+          }),
+        );
+      });
   });
 
   it('keeps recommendations available through the MongoDB fallback', async () => {
@@ -2915,13 +2978,20 @@ function configureTestEnvironment() {
   process.env.MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY ?? 'minioadmin';
   process.env.MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY ?? 'minioadmin';
   process.env.MINIO_BUCKET = process.env.MINIO_BUCKET ?? 'connected-neighbours';
-  process.env.KEYCLOAK_BASE_URL =
-    process.env.KEYCLOAK_BASE_URL ?? 'http://localhost:8080';
-  process.env.KEYCLOAK_REALM = process.env.KEYCLOAK_REALM ?? 'connected';
-  process.env.KEYCLOAK_CLIENT_ID =
-    process.env.KEYCLOAK_CLIENT_ID ?? 'connected-api';
-  process.env.KEYCLOAK_CLIENT_SECRET =
-    process.env.KEYCLOAK_CLIENT_SECRET ?? 'secret';
+  process.env.AUTH_LOCAL_ENABLED = 'true';
+  process.env.KEYCLOAK_ENABLED = 'false';
+  process.env.KEYCLOAK_INTERNAL_URL =
+    process.env.KEYCLOAK_INTERNAL_URL ?? 'http://localhost:8080';
+  process.env.KEYCLOAK_PUBLIC_URL =
+    process.env.KEYCLOAK_PUBLIC_URL ?? 'http://localhost:8080';
+  process.env.KEYCLOAK_REALM =
+    process.env.KEYCLOAK_REALM ?? 'connected-neighbours';
+  process.env.KEYCLOAK_API_AUDIENCE =
+    process.env.KEYCLOAK_API_AUDIENCE ?? 'connected-neighbours-api';
+  process.env.KEYCLOAK_WEB_CLIENT_ID =
+    process.env.KEYCLOAK_WEB_CLIENT_ID ?? 'connected-neighbours-web';
+  process.env.KEYCLOAK_ADMIN_CLIENT_ID =
+    process.env.KEYCLOAK_ADMIN_CLIENT_ID ?? 'connected-neighbours-admin';
   process.env.JWT_SECRET =
     process.env.JWT_SECRET ?? 'test-jwt-secret-with-enough-length';
   process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? '1h';
