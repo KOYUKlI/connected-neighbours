@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -25,6 +26,8 @@ import {
   DisputeDocument,
   DisputeStatus,
 } from '../disputes/schemas/dispute.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType, GraphSyncOperation } from '../graph/graph.types';
 import {
   Neighborhood,
   NeighborhoodDocument,
@@ -108,6 +111,7 @@ export class ServicesService {
     private readonly proofModel: Model<ServiceProofDocument>,
     private readonly publicUsersService: PublicUsersService,
     private readonly reviewsService: ReviewsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto, actor: ServiceActor) {
@@ -142,7 +146,7 @@ export class ServicesService {
       );
     }
 
-    return this.serviceModel.create({
+    const created = await this.serviceModel.create({
       ...createServiceDto,
       neighborhoodId,
       ownerId: actor.sub,
@@ -151,6 +155,8 @@ export class ServicesService {
         ? (createServiceDto.pricePoints ?? 0)
         : null,
     });
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, created.id);
+    return created;
   }
 
   async findAll(query: ListServicesQueryDto, actor: AuthenticatedUser) {
@@ -313,6 +319,7 @@ export class ServicesService {
       })
       .exec();
     if (!updated) throw new NotFoundException('Service introuvable.');
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, updated.id);
     return updated;
   }
 
@@ -359,6 +366,11 @@ export class ServicesService {
 
     const deleted = await this.serviceModel.findByIdAndDelete(id).exec();
     if (!deleted) throw new NotFoundException('Service introuvable.');
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.SERVICE,
+      id,
+      GraphSyncOperation.DELETE,
+    );
     return { deleted: true, id };
   }
 
@@ -767,6 +779,7 @@ export class ServicesService {
       )
       .exec();
     if (!updated) throw new NotFoundException('Service introuvable.');
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, updated.id);
     return updated;
   }
 

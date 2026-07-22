@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { randomUUID } from 'crypto';
@@ -11,6 +12,8 @@ import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import {
   Contract,
   ContractDocument,
@@ -81,6 +84,7 @@ export class DocumentsService {
     private readonly storageService: StorageService,
     private readonly pdfService: DocumentPdfService,
     private readonly publicUsersService: PublicUsersService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async generateContractDocument(contractId: string, actor: AuthenticatedUser) {
@@ -1027,6 +1031,10 @@ export class DocumentsService {
           scheduledAt: updated.signedAt,
         },
       },
+    );
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.SERVICE,
+      document.serviceId,
     );
   }
 

@@ -262,6 +262,30 @@ export class RgpdService {
       disputeEvidenceAuthored: disputeEvidenceAuthored.map((evidence) =>
         this.presentProofExport(evidence),
       ),
+      graphProjection: {
+        sourceOfTruth: 'MongoDB',
+        derivedDataOnly: true,
+        projectedUserId: user.id,
+        categories: [
+          'profil public minimal',
+          'quartier attribué',
+          'services publics',
+          'participations publiques aux événements',
+          'avis publiés',
+        ],
+        relationships: [
+          'appartenance au quartier',
+          'services créés ou réalisés',
+          'participations publiques aux événements',
+          'relations de confiance issues de services terminés',
+          'avis publiés',
+        ],
+        lastSynchronizationAt: null,
+        rebuildableFromMongoDb: true,
+        exactPositionStored: false,
+        privateMessagesStored: false,
+        anonymousVoteAnswersStored: false,
+      },
     };
   }
 

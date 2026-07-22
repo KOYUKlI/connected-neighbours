@@ -3,12 +3,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import {
   ProfileVisibility,
   User,
@@ -67,6 +70,7 @@ export class ReviewsService {
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly reputationService: ReputationService,
     private readonly storageService: StorageService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async create(
@@ -118,6 +122,7 @@ export class ReviewsService {
         moderatedAt: null,
         moderationReason: null,
       });
+      this.queueReviewProjection(review.id, targetUserId);
       return this.presentOne(review.toObject() as ReviewRow, actor);
     } catch (error) {
       if ((error as { code?: number }).code === 11000) {
@@ -357,6 +362,7 @@ export class ReviewsService {
       createdAt: now,
     });
     await review.save();
+    this.queueReviewProjection(review.id, review.targetUserId);
     return this.presentOne(review.toObject() as ReviewRow, actor);
   }
 
@@ -378,7 +384,13 @@ export class ReviewsService {
       createdAt: now,
     });
     await review.save();
+    this.queueReviewProjection(review.id, review.targetUserId);
     return this.presentOne(review.toObject() as ReviewRow, actor);
+  }
+
+  private queueReviewProjection(reviewId: string, targetUserId: string) {
+    void this.graphSyncService?.enqueue(GraphEntityType.REVIEW, reviewId);
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, targetUserId);
   }
 
   async reputation(userId: string, actor: AuthenticatedUser) {

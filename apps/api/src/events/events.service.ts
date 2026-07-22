@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { randomUUID } from 'crypto';
@@ -13,6 +14,8 @@ import { isValidObjectId, Model } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType, GraphSyncOperation } from '../graph/graph.types';
 import {
   Neighborhood,
   NeighborhoodDocument,
@@ -80,6 +83,7 @@ export class EventsService implements OnModuleInit {
     @InjectModel(Neighborhood.name)
     private readonly neighborhoodModel: Model<NeighborhoodDocument>,
     private readonly publicUsersService: PublicUsersService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async onModuleInit() {
@@ -142,6 +146,7 @@ export class EventsService implements OnModuleInit {
         },
       ],
     });
+    this.queueGraphProjection(event.id);
     return this.presentOne(event.toObject() as EventRow, actor);
   }
 
@@ -271,6 +276,7 @@ export class EventsService implements OnModuleInit {
       .exec();
     if (!updated)
       throw new ConflictException('L’événement a changé. Rechargez la page.');
+    this.queueGraphProjection(id);
     return this.presentOne(updated, actor);
   }
 
@@ -288,6 +294,7 @@ export class EventsService implements OnModuleInit {
       );
     }
     await event.deleteOne();
+    this.queueGraphProjection(id, GraphSyncOperation.DELETE);
     return { deleted: true };
   }
 
@@ -323,6 +330,7 @@ export class EventsService implements OnModuleInit {
       .exec();
     if (!updated)
       throw new ConflictException('Cet événement ne peut plus être publié.');
+    this.queueGraphProjection(id);
     return this.presentOne(updated, actor);
   }
 
@@ -479,6 +487,7 @@ export class EventsService implements OnModuleInit {
       .lean()
       .exec();
     const refreshed = await this.findDocument(id);
+    this.queueGraphProjection(id);
     return {
       response: response ? normalizeEventResponseRecord(response) : null,
       event: await this.presentOne(refreshed.toObject() as EventRow, actor),
@@ -580,6 +589,7 @@ export class EventsService implements OnModuleInit {
       .exec();
     if (!updated)
       throw new ConflictException('L’événement a changé. Rechargez la page.');
+    this.queueGraphProjection(id);
     return this.presentOne(updated, actor, admin);
   }
 
@@ -618,6 +628,7 @@ export class EventsService implements OnModuleInit {
         'L’événement ne peut être démarré qu’à partir de son heure de début.',
       );
     }
+    this.queueGraphProjection(id);
     return this.presentOne(updated, actor);
   }
 
@@ -659,6 +670,7 @@ export class EventsService implements OnModuleInit {
       .exec();
     if (!updated)
       throw new ConflictException('L’événement a changé. Rechargez la page.');
+    this.queueGraphProjection(id);
     return this.presentOne(updated, actor);
   }
 
@@ -693,7 +705,23 @@ export class EventsService implements OnModuleInit {
       .exec();
     if (!updated)
       throw new ConflictException('L’événement a changé. Rechargez la page.');
+    this.queueGraphProjection(id);
     return this.presentOne(updated, actor, admin);
+  }
+
+  async presentRecommendations(rows: EventRow[], actor: EventActor) {
+    return this.presentMany(rows, actor);
+  }
+
+  private queueGraphProjection(
+    eventId: string,
+    operation = GraphSyncOperation.UPSERT,
+  ) {
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.EVENT,
+      eventId,
+      operation,
+    );
   }
 
   async homeSummary(actor: EventActor) {

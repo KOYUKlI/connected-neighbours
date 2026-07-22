@@ -4,12 +4,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import {
   Contract,
   ContractDocument,
@@ -64,6 +67,7 @@ export class ServiceExecutionService {
     private readonly pointsService: PointsService,
     private readonly publicUsersService: PublicUsersService,
     private readonly storageService: StorageService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async presignProofUpload(
@@ -584,6 +588,7 @@ export class ServiceExecutionService {
     contract: ContractDocument,
     alreadyTransferred: boolean,
   ) {
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, service.id);
     return {
       serviceId: service.id,
       contractId: contract.id,

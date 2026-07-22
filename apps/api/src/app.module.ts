@@ -15,6 +15,7 @@ import { DisputesModule } from './disputes/disputes.module';
 import { DemoSeedModule } from './demo-seed/demo-seed.module';
 import { DslModule } from './dsl/dsl.module';
 import { EventsModule } from './events/events.module';
+import { GraphModule } from './graph/graph.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { HomeModule } from './home/home.module';
 import { MessagingModule } from './messaging/messaging.module';
@@ -22,6 +23,7 @@ import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
 import { RgpdModule } from './rgpd/rgpd.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 import { ServicesModule } from './services/services.module';
 import { SsoModule } from './sso/sso.module';
 import { SyncModule } from './sync/sync.module';
@@ -46,9 +48,32 @@ import { VotesModule } from './votes/votes.module';
 
         MONGODB_URI: Joi.string().uri().required(),
 
-        NEO4J_URI: Joi.string().required(),
-        NEO4J_USERNAME: Joi.string().required(),
-        NEO4J_PASSWORD: Joi.string().required(),
+        NEO4J_ENABLED: Joi.boolean().default(false),
+        NEO4J_URI: Joi.string().optional().allow(''),
+        NEO4J_USERNAME: Joi.string().optional().allow(''),
+        NEO4J_PASSWORD: Joi.string().optional().allow(''),
+        NEO4J_DATABASE: Joi.string().default('neo4j'),
+        NEO4J_TIMEOUT_MS: Joi.number()
+          .integer()
+          .min(250)
+          .max(10000)
+          .default(2500),
+        NEO4J_RETRY_COOLDOWN_MS: Joi.number()
+          .integer()
+          .min(1000)
+          .max(300000)
+          .default(15000),
+        GRAPH_SYNC_WORKER_ENABLED: Joi.boolean().default(true),
+        GRAPH_SYNC_INTERVAL_MS: Joi.number()
+          .integer()
+          .min(1000)
+          .max(300000)
+          .default(15000),
+        GRAPH_SYNC_BATCH_SIZE: Joi.number()
+          .integer()
+          .min(1)
+          .max(100)
+          .default(20),
 
         MINIO_ENDPOINT: Joi.string().required(),
         MINIO_PORT: Joi.number().port().required(),
@@ -88,6 +113,7 @@ import { VotesModule } from './votes/votes.module';
       },
     }),
 
+    GraphModule,
     AdminModule,
     ServicesModule,
     ApplicationsModule,
@@ -107,6 +133,7 @@ import { VotesModule } from './votes/votes.module';
     MessagingModule,
     RgpdModule,
     ReviewsModule,
+    RecommendationsModule,
     SsoModule,
     UsersModule,
     DemoSeedModule,

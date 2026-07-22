@@ -171,6 +171,30 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(bob.user.pointsBalance).toBeGreaterThanOrEqual(100);
   });
 
+  it('keeps recommendations available through the MongoDB fallback', async () => {
+    const recommendations = await request(app.getHttpServer())
+      .get('/api/recommendations/neighbors?limit=5')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+
+    expect(recommendations.body.source).toBe('fallback');
+    expect(Array.isArray(recommendations.body.items)).toBe(true);
+    expect(
+      recommendations.body.items.every(
+        (item: Record<string, unknown>) => !('score' in item),
+      ),
+    ).toBe(true);
+
+    await request(app.getHttpServer())
+      .get('/api/admin/graph/status')
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.health.state).toBe('disabled');
+        expect(body.mode).toBe('disabled');
+      });
+  });
+
   it('covers geographic neighborhoods', async () => {
     const invalidNeighborhood = neighborhoodPayload('e2e-quartier-invalide');
     invalidNeighborhood.geometry.coordinates[0][4] = [2.36, 48.861];
@@ -2856,6 +2880,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection
         .collection('syncstates')
         .deleteMany({ clientId: 'e2e-javafx-client' }),
+      connection.collection('graphsyncjobs').deleteMany({}),
     ];
 
     if (includeUsers) {
@@ -2880,6 +2905,8 @@ function configureTestEnvironment() {
     process.env.MONGODB_URI ??
     'mongodb://127.0.0.1:27017/connected-neighbours-e2e?serverSelectionTimeoutMS=5000';
   process.env.NEO4J_URI = process.env.NEO4J_URI ?? 'bolt://localhost:7687';
+  process.env.NEO4J_ENABLED = 'false';
+  process.env.GRAPH_SYNC_WORKER_ENABLED = 'false';
   process.env.NEO4J_USERNAME = process.env.NEO4J_USERNAME ?? 'neo4j';
   process.env.NEO4J_PASSWORD = process.env.NEO4J_PASSWORD ?? 'password';
   process.env.MINIO_ENDPOINT = process.env.MINIO_ENDPOINT ?? 'localhost';

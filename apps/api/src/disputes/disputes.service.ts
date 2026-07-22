@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -11,6 +12,8 @@ import { Model, Types } from 'mongoose';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
 import { User, UserDocument } from '../auth/schemas/user.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import {
   Contract,
   ContractDocument,
@@ -98,6 +101,7 @@ export class DisputesService {
     private readonly pointsService: PointsService,
     private readonly publicUsersService: PublicUsersService,
     private readonly storageService: StorageService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async openForService(
@@ -239,6 +243,7 @@ export class DisputesService {
           }),
         ],
       });
+      this.queueServiceProjection(service.id);
       return this.presentDispute(dispute, actor);
     } catch (error) {
       await this.restoreOpeningClaims(
@@ -877,6 +882,11 @@ export class DisputesService {
         );
       }
     }
+    this.queueServiceProjection(service.id);
+  }
+
+  private queueServiceProjection(serviceId: string) {
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, serviceId);
   }
 
   private async assertFinancialResolutionComplete(

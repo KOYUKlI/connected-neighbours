@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -85,6 +85,8 @@ import {
   ReviewDocument,
   ReviewStatus,
 } from '../reviews/schemas/review.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 
 type DemoExecutionReference = {
   serviceId: string;
@@ -136,6 +138,7 @@ export class DemoSeedService implements OnModuleInit {
     private readonly usersService: UsersService,
     private readonly pointsService: PointsService,
     private readonly documentsService: DocumentsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async onModuleInit() {
@@ -292,6 +295,44 @@ export class DemoSeedService implements OnModuleInit {
     );
     await this.ensureIncident(alice.id);
     await this.ensureLocalLife(alice, bob, claire, admin);
+    await this.enqueueGraphSeed();
+  }
+
+  private async enqueueGraphSeed() {
+    if (!this.graphSyncService) return;
+    const [users, services, events, reviews] = await Promise.all([
+      this.userModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.serviceModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.eventModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.reviewModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const groups: Array<[GraphEntityType, Array<{ _id: unknown }>]> = [
+      [GraphEntityType.USER, users],
+      [GraphEntityType.SERVICE, services],
+      [GraphEntityType.EVENT, events],
+      [GraphEntityType.REVIEW, reviews],
+    ];
+    for (const [entityType, rows] of groups) {
+      for (const row of rows) {
+        await this.graphSyncService.enqueue(entityType, String(row._id));
+      }
+    }
   }
 
   private async ensureLocalLife(

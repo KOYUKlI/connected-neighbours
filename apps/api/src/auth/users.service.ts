@@ -1,6 +1,8 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 
 import { PasswordService } from './password.service';
 import { Role } from './role.enum';
@@ -16,6 +18,7 @@ export class UsersService implements OnModuleInit {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly passwordService: PasswordService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async onModuleInit() {
@@ -124,13 +127,15 @@ export class UsersService implements OnModuleInit {
         await existing.save();
       }
 
+      this.queueUserProjection(existing.id);
+
       return existing;
     }
 
     const passwordHash = await this.passwordService.hash(input.password);
 
     const occurredAt = new Date();
-    return this.userModel.create({
+    const created = await this.userModel.create({
       email: input.email,
       displayName: input.displayName,
       role: input.role,
@@ -153,6 +158,8 @@ export class UsersService implements OnModuleInit {
       pointsBalance: 100,
       reservedPoints: 0,
     });
+    this.queueUserProjection(created.id);
+    return created;
   }
 
   async findByEmail(email: string) {
@@ -189,5 +196,9 @@ export class UsersService implements OnModuleInit {
       pointsBalance: user.pointsBalance,
       reservedPoints: user.reservedPoints,
     };
+  }
+
+  private queueUserProjection(userId: string) {
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, userId);
   }
 }

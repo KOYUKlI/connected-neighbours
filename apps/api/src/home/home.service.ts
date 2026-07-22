@@ -31,6 +31,7 @@ import {
 import { ServiceRow, ServicesService } from '../services/services.service';
 import { PublicUsersService } from '../users/public-users.service';
 import { VotesService } from '../votes/votes.service';
+import { RecommendationsService } from '../recommendations/recommendations.service';
 
 type UserRow = User & { _id: unknown };
 type NeighborhoodRow = Neighborhood & { _id: unknown };
@@ -58,6 +59,7 @@ export class HomeService {
     private readonly servicesService: ServicesService,
     private readonly eventsService: EventsService,
     private readonly votesService: VotesService,
+    private readonly recommendationsService: RecommendationsService,
   ) {}
 
   async getHome(actor: AuthenticatedUser) {
@@ -153,9 +155,21 @@ export class HomeService {
       recentServiceRows,
       actor,
     );
-    const [localEvents, localVotes] = await Promise.all([
+    const [
+      localEvents,
+      localVotes,
+      recommendedServices,
+      recommendedEvents,
+      recommendedNeighbors,
+    ] = await Promise.all([
       this.eventsService.homeSummary(actor),
       this.votesService.homeSummary(actor),
+      this.recommendationsService.services(actor, { limit: 3, excludeIds: [] }),
+      this.recommendationsService.events(actor, { limit: 2, excludeIds: [] }),
+      this.recommendationsService.neighbors(actor, {
+        limit: 3,
+        excludeIds: [],
+      }),
     ]);
 
     return {
@@ -203,6 +217,9 @@ export class HomeService {
           })),
       ],
       recentServices,
+      recommendedServices: recommendedServices.items,
+      recommendedEvents: recommendedEvents.items,
+      recommendedNeighbors: recommendedNeighbors.items,
       recentIncidents: recentIncidents.map((incident) => ({
         id: String(incident._id),
         title: incident.title,

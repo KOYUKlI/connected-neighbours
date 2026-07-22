@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -23,6 +24,8 @@ import {
 } from '../incidents/schemas/incident.schema';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
 import { Vote, VoteDocument } from '../votes/schemas/vote.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import { AdminListNeighborhoodsQueryDto } from './dto/admin-list-neighborhoods-query.dto';
 import { AssignUserNeighborhoodDto } from './dto/assign-user-neighborhood.dto';
 import { ContainsPointDto } from './dto/contains-point.dto';
@@ -119,6 +122,7 @@ export class NeighborhoodsService implements OnModuleInit {
     private readonly eventModel: Model<EventDocument>,
     @InjectModel(Vote.name)
     private readonly voteModel: Model<VoteDocument>,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async onModuleInit() {
@@ -136,7 +140,7 @@ export class NeighborhoodsService implements OnModuleInit {
     );
     const now = new Date();
     try {
-      return await this.neighborhoodModel.create({
+      const created = await this.neighborhoodModel.create({
         name: dto.name.trim(),
         slug: dto.slug.trim().toLowerCase(),
         description: dto.description.trim(),
@@ -162,6 +166,11 @@ export class NeighborhoodsService implements OnModuleInit {
           },
         ],
       });
+      void this.graphSyncService?.enqueue(
+        GraphEntityType.NEIGHBORHOOD,
+        created.id,
+      );
+      return created;
     } catch (error) {
       if (this.isDuplicateKey(error)) {
         throw new ConflictException('Un quartier utilise déjà ce slug.');
@@ -335,6 +344,7 @@ export class NeighborhoodsService implements OnModuleInit {
         'Le rattachement a changé. Relancez la résolution.',
       );
     }
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, userId);
     return {
       assigned: true,
       neighborhood: this.presentPublic(
@@ -441,6 +451,10 @@ export class NeighborhoodsService implements OnModuleInit {
         )
         .exec();
       if (!updated) throw new NotFoundException('Quartier introuvable.');
+      void this.graphSyncService?.enqueue(
+        GraphEntityType.NEIGHBORHOOD,
+        updated.id,
+      );
       return updated;
     } catch (error) {
       if (this.isDuplicateKey(error)) {
@@ -477,6 +491,10 @@ export class NeighborhoodsService implements OnModuleInit {
       .exec();
     if (!neighborhood)
       throw new ConflictException('Ce quartier a déjà changé.');
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.NEIGHBORHOOD,
+      neighborhood.id,
+    );
     return neighborhood;
   }
 
@@ -509,6 +527,10 @@ export class NeighborhoodsService implements OnModuleInit {
       .exec();
     if (!neighborhood)
       throw new ConflictException('Ce quartier a déjà changé.');
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.NEIGHBORHOOD,
+      neighborhood.id,
+    );
     return neighborhood;
   }
 
@@ -573,6 +595,11 @@ export class NeighborhoodsService implements OnModuleInit {
         },
       )
       .exec();
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, dto.userId);
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.NEIGHBORHOOD,
+      neighborhood.id,
+    );
     return {
       assigned: true,
       userId: dto.userId,

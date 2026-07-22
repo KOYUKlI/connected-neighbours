@@ -4,11 +4,14 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import { DocumentsService } from '../documents/documents.service';
 import { PointsService } from '../points/points.service';
 import {
@@ -59,6 +62,7 @@ export class ContractsService {
     private readonly executionService: ServiceExecutionService,
     private readonly documentsService: DocumentsService,
     private readonly reviewsService: ReviewsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async createFromApplication(
@@ -127,6 +131,7 @@ export class ContractsService {
     if (!updatedService) {
       throw new NotFoundException(`Service ${service.id} introuvable`);
     }
+    this.queueServiceProjection(service.id);
 
     return {
       service: updatedService,
@@ -373,7 +378,13 @@ export class ContractsService {
       throw new NotFoundException(`Service ${serviceId} introuvable`);
     }
 
+    this.queueServiceProjection(serviceId);
+
     return service;
+  }
+
+  private queueServiceProjection(serviceId: string) {
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, serviceId);
   }
 
   private async findApplication(applicationId: string) {

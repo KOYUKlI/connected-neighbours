@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -14,6 +15,8 @@ import {
   User,
   UserDocument,
 } from '../auth/schemas/user.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import {
   Neighborhood,
   NeighborhoodDocument,
@@ -45,6 +48,7 @@ export class UserProfilesService {
     private readonly storageService: StorageService,
     private readonly reputationService: ReputationService,
     private readonly reviewsService: ReviewsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async getMe(actor: AuthenticatedUser) {
@@ -83,6 +87,7 @@ export class UserProfilesService {
       user.showReputation = dto.showReputation;
     user.profileUpdatedAt = new Date();
     await user.save();
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, user.id);
     return this.presentOwnProfile(user);
   }
 
@@ -108,6 +113,7 @@ export class UserProfilesService {
     user.avatarFileId = fileId;
     user.profileUpdatedAt = new Date();
     await user.save();
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, user.id);
     if (previousAvatarId && previousAvatarId !== fileId) {
       await this.storageService.removeOrphan(previousAvatarId);
     }
@@ -121,6 +127,7 @@ export class UserProfilesService {
     user.avatarFileId = null;
     user.profileUpdatedAt = new Date();
     await user.save();
+    void this.graphSyncService?.enqueue(GraphEntityType.USER, user.id);
     await this.storageService.removeOrphan(previousAvatarId);
     return this.presentOwnProfile(user);
   }
