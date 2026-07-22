@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import type { LatLngExpression } from 'leaflet'
+import type { LatLngExpression, LeafletEvent } from 'leaflet'
 import {
-  CircleMarker,
   MapContainer,
+  Marker,
   Polygon,
   TileLayer,
   useMap,
   useMapEvents,
 } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 
 import {
   ApiError,
@@ -41,6 +42,7 @@ import {
   fetchNeighborhoods,
   fetchNeighborhoodMembers,
   fetchNeighborhoodStats,
+  restoreNeighborhood,
   updateNeighborhood,
 } from './api/neighborhoods'
 import type {
@@ -83,18 +85,19 @@ import { SyncPage } from './pages/SyncPage'
 import { UsersListPage } from './pages/UsersListPage'
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', description: 'Vue globale', icon: 'dashboard' },
-  { id: 'neighborhoods', label: 'Quartiers', description: 'Zones et habitants', icon: 'neighborhoods' },
-  { id: 'services', label: 'Services', description: 'Annonces voisines', icon: 'services' },
-  { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts' },
-  { id: 'documents', label: 'Documents', description: 'PDF et signatures', icon: 'documents' },
-  { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes' },
-  { id: 'events', label: 'Événements', description: 'Vie du quartier', icon: 'events' },
-  { id: 'votes', label: 'Votes', description: 'Consultations locales', icon: 'votes' },
-  { id: 'reviews', label: 'Avis', description: 'Réputation et modération', icon: 'reviews' },
-  { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents' },
-  { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync' },
-  { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users' },
+  { id: 'dashboard', label: 'Dashboard', description: 'Vue globale', icon: 'dashboard', group: 'Vue d’ensemble' },
+  { id: 'neighborhoods', label: 'Quartiers', description: 'Zones et habitants', icon: 'neighborhoods', group: 'Communauté' },
+  { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users', group: 'Communauté' },
+  { id: 'reviews', label: 'Avis', description: 'Réputation et modération', icon: 'reviews', group: 'Communauté' },
+  { id: 'services', label: 'Services', description: 'Annonces voisines', icon: 'services', group: 'Activité' },
+  { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts', group: 'Activité' },
+  { id: 'documents', label: 'Documents', description: 'PDF et signatures', icon: 'documents', group: 'Activité' },
+  { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes', group: 'Activité' },
+  { id: 'events', label: 'Événements', description: 'Vie du quartier', icon: 'events', group: 'Vie locale' },
+  { id: 'votes', label: 'Votes', description: 'Consultations locales', icon: 'votes', group: 'Vie locale' },
+  { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents', group: 'Opérations' },
+  { id: 'alerts', label: 'Alertes', description: 'Suivi par incident', icon: 'alerts', group: 'Opérations' },
+  { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync', group: 'Opérations' },
 ] as const
 
 type SectionId = (typeof navigationItems)[number]['id']
@@ -269,6 +272,9 @@ function App() {
             break
           }
           case 'incidents': {
+            break
+          }
+          case 'alerts': {
             break
           }
           case 'sync': {
@@ -562,6 +568,8 @@ function renderSection(props: RenderSectionProps) {
     case 'reviews':
       return <AdminReviewsPage />
     case 'incidents':
+      return <IncidentsPage />
+    case 'alerts':
       return <IncidentsPage />
     case 'sync':
       return <SyncPage syncStates={props.syncStates} />
@@ -893,6 +901,26 @@ function NeighborhoodsView({
     }
   }
 
+  async function handleRestore(neighborhood: NeighborhoodItem) {
+    const neighborhoodId = getNeighborhoodId(neighborhood)
+    const confirmed = window.confirm(`Réactiver le quartier "${neighborhood.name}" ?`)
+
+    if (!confirmed) return
+
+    setIsArchiving(true)
+    setArchivingId(neighborhoodId)
+    setDetailError(null)
+    try {
+      await restoreNeighborhood(neighborhoodId)
+      onReload()
+    } catch (error) {
+      setDetailError(getErrorMessage(error))
+    } finally {
+      setIsArchiving(false)
+      setArchivingId(null)
+    }
+  }
+
   function startNewNeighborhood() {
     setEditingNeighborhood(null)
     setPageMode('create')
@@ -951,6 +979,7 @@ function NeighborhoodsView({
         />
         <Card>
           <NeighborhoodForm
+            existingNeighborhoods={neighborhoods}
             formId="neighborhood-create-form"
             key={`create-${formVersion}`}
             neighborhood={null}
@@ -986,6 +1015,7 @@ function NeighborhoodsView({
         />
         <Card>
           <NeighborhoodForm
+            existingNeighborhoods={neighborhoods}
             formId="neighborhood-edit-form"
             key={getNeighborhoodId(editingNeighborhood ?? selectedNeighborhood)}
             neighborhood={editingNeighborhood ?? selectedNeighborhood}
@@ -1015,14 +1045,11 @@ function NeighborhoodsView({
               <button className={buttonClasses.secondary} onClick={() => startEditNeighborhood(selectedNeighborhood)} type="button">
                 Modifier
               </button>
-              <button
-                className={buttonClasses.danger}
-                disabled={isArchiving || neighborhoodStatus(selectedNeighborhood) === 'archived'}
-                onClick={() => void handleArchive(selectedNeighborhood)}
-                type="button"
-              >
-                Archiver
-              </button>
+              {neighborhoodStatus(selectedNeighborhood) === 'archived' ? (
+                <button className={buttonClasses.secondary} disabled={isArchiving} onClick={() => void handleRestore(selectedNeighborhood)} type="button">Réactiver</button>
+              ) : (
+                <button className={buttonClasses.danger} disabled={isArchiving} onClick={() => void handleArchive(selectedNeighborhood)} type="button">Archiver</button>
+              )}
             </>
           }
         />
@@ -1090,6 +1117,10 @@ function NeighborhoodsView({
                 focusKey={selectedRing.length}
                 heightClassName="h-[560px] min-h-[420px]"
                 onChange={() => undefined}
+                otherPolygons={neighborhoods
+                  .filter((item) => getNeighborhoodId(item) !== effectiveSelectedId)
+                  .map((item) => item.geometry ?? item.boundary)
+                  .filter((polygon): polygon is GeoJsonPolygon => Boolean(polygon))}
                 readOnly
                 ring={selectedRing}
               />
@@ -1132,17 +1163,19 @@ function NeighborhoodsView({
 
         {activeTab === 'history' ? (
           <Card className="grid gap-3">
-            <SectionHeader title="Historique" description="Traces disponibles dans les données actuelles." />
-            <dl className="grid grid-cols-2 gap-3 max-[760px]:grid-cols-1 [&_dd]:m-0 [&_div]:rounded-lg [&_div]:bg-slate-50 [&_div]:p-3 [&_dt]:text-xs [&_dt]:font-extrabold [&_dt]:uppercase [&_dt]:text-slate-500">
-              <div>
-                <dt>Création</dt>
-                <dd>{formatDate(selectedNeighborhood.createdAt)}</dd>
+            <SectionHeader title="Historique" description="Créations, modifications, archivages et affectations tracés par l’API." />
+            {selectedNeighborhood.history?.length ? (
+              <div className="grid gap-2">
+                {[...selectedNeighborhood.history].reverse().map((entry, index) => (
+                  <div className="flex items-start justify-between gap-4 rounded-lg bg-slate-50 p-3" key={`${entry.type}-${entry.occurredAt}-${index}`}>
+                    <div><strong className="text-sm text-slate-900">{formatNeighborhoodHistoryType(entry.type)}</strong><p className="mt-1 text-xs text-slate-500">Acteur : {formatShortId(entry.actorId)}</p></div>
+                    <time className="whitespace-nowrap text-xs text-slate-500">{formatDate(entry.occurredAt)}</time>
+                  </div>
+                ))}
               </div>
-              <div>
-                <dt>Dernière modification</dt>
-                <dd>{formatDate(selectedNeighborhood.updatedAt)}</dd>
-              </div>
-            </dl>
+            ) : (
+              <p className="text-sm text-slate-500">Créé le {formatDate(selectedNeighborhood.createdAt)} · dernière modification {formatDate(selectedNeighborhood.updatedAt)}</p>
+            )}
           </Card>
         ) : null}
       </NeighborhoodDetailPage>
@@ -1169,6 +1202,10 @@ function NeighborhoodsView({
           startEditNeighborhood(neighborhood)
         }
       }}
+      onRestore={(id) => {
+        const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
+        if (neighborhood) void handleRestore(neighborhood)
+      }}
       onView={(id) => {
         const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
 
@@ -1182,11 +1219,13 @@ function NeighborhoodsView({
 }
 
 function NeighborhoodForm({
+  existingNeighborhoods,
   formId,
   neighborhood,
   onCancelEdit,
   onSaved,
 }: {
+  existingNeighborhoods: NeighborhoodItem[]
   formId?: string
   neighborhood: NeighborhoodItem | null
   onCancelEdit: () => void
@@ -1215,6 +1254,17 @@ function NeighborhoodForm({
   )
   const [mapFocusKey, setMapFocusKey] = useState(0)
   const lastPlaceSearchAtRef = useRef(0)
+  const postalCodes = postalCode
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  const otherPolygons = existingNeighborhoods
+    .filter((item) => !neighborhood || getNeighborhoodId(item) !== getNeighborhoodId(neighborhood))
+    .map((item) => item.geometry ?? item.boundary)
+    .filter((polygon): polygon is GeoJsonPolygon => Boolean(polygon))
+  const potentialOverlap = otherPolygons.some((polygon) =>
+    boundingBoxesOverlap(ring, openRingFromPolygon(polygon)),
+  )
 
   const isEditing = !!neighborhood
   const canSubmit =
@@ -1249,7 +1299,9 @@ function NeighborhoodForm({
       slug: slug.trim().toLowerCase(),
       description: description.trim(),
       city: city.trim(),
-      postalCode: postalCode.trim(),
+      postalCode: postalCodes[0] ?? '',
+      postalCodes,
+      geometry: toGeoJsonPolygon(ring),
       boundary: toGeoJsonPolygon(ring),
     }
 
@@ -1304,7 +1356,7 @@ function NeighborhoodForm({
     }
   }
 
-  function usePlaceResult(place: PlaceSearchResult) {
+  function applyPlaceResult(place: PlaceSearchResult) {
     const placeName = getPlaceName(place)
     const placeCity = extractCity(place.address)
     const placePostcode = extractPostcode(place.address)
@@ -1432,7 +1484,7 @@ function NeighborhoodForm({
                   </div>
                   <button
                     className={buttonClasses.compactSecondary}
-                    onClick={() => usePlaceResult(place)}
+                    onClick={() => applyPlaceResult(place)}
                     type="button"
                   >
                     Utiliser ce résultat
@@ -1492,9 +1544,10 @@ function NeighborhoodForm({
               />
             </label>
             <label>
-              Code postal
+              Codes postaux
               <input
                 onChange={(event) => setPostalCode(event.target.value)}
+                placeholder="75001, 75002"
                 required
                 value={postalCode}
               />
@@ -1517,6 +1570,12 @@ function NeighborhoodForm({
           <div className="flex flex-wrap items-center justify-between gap-2 text-slate-500">
             <span className="text-sm font-semibold">{ring.length} point(s) placé(s)</span>
             <div className="flex flex-wrap gap-2">
+              <button className={buttonClasses.compact} disabled={ring.length === 0} onClick={() => setRing((current) => current.slice(0, -1))} type="button">
+                Annuler le dernier point
+              </button>
+              <button className={buttonClasses.compact} disabled={ring.length === 0} onClick={() => { setMapCenter(getMapCenterFromRing(ring)); setMapFocusKey((value) => value + 1) }} type="button">
+                Recentrer
+              </button>
               {suggestedRing ? (
                 <button className={buttonClasses.compactSecondary} onClick={useSuggestedArea} type="button">
                   Utiliser la zone détectée
@@ -1533,14 +1592,35 @@ function NeighborhoodForm({
             </div>
           </div>
 
+          {potentialOverlap ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+              La zone semble croiser un quartier existant. L’API vérifiera précisément le chevauchement avant enregistrement.
+            </p>
+          ) : null}
+
           <NeighborhoodMapEditor
             center={mapCenter}
             focusKey={mapFocusKey}
             heightClassName="h-[520px] min-h-[380px]"
             ring={ring}
+            otherPolygons={otherPolygons}
             suggestedRing={suggestedRing}
             onChange={setRing}
           />
+          {ring.length > 0 ? (
+            <div aria-label="Sommets du polygone" className="flex flex-wrap gap-2">
+              {ring.map((point, index) => (
+                <button
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:border-red-200 hover:text-red-700"
+                  key={`${point[0]}-${point[1]}-${index}`}
+                  onClick={() => setRing((current) => current.filter((_, pointIndex) => pointIndex !== index))}
+                  type="button"
+                >
+                  Point {index + 1} <span aria-hidden="true">×</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </section>
       </div>
 
@@ -1576,6 +1656,7 @@ function NeighborhoodMapEditor({
   ring,
   suggestedRing = null,
   onChange,
+  otherPolygons = [],
 }: {
   center?: LatLngExpression
   focusKey?: number
@@ -1584,6 +1665,7 @@ function NeighborhoodMapEditor({
   ring: CoordinatePair[]
   suggestedRing?: CoordinatePair[] | null
   onChange: (ring: CoordinatePair[]) => void
+  otherPolygons?: GeoJsonPolygon[]
 }) {
   const positions = toLeafletPositions(closeRing(ring))
   const suggestedPositions = toLeafletPositions(closeRing(suggestedRing ?? []))
@@ -1604,6 +1686,13 @@ function NeighborhoodMapEditor({
         {readOnly ? null : (
           <MapClickHandler onPoint={(point) => onChange([...ring, point])} />
         )}
+        {otherPolygons.map((polygon, index) => (
+          <Polygon
+            key={`other-${index}`}
+            pathOptions={{ color: '#64748b', dashArray: '5 5', fillOpacity: 0.05, weight: 1.5 }}
+            positions={toLeafletPositions(polygon.coordinates[0] ?? [])}
+          />
+        ))}
         {positions.length >= 3 ? (
           <Polygon pathOptions={{ color: '#047857', weight: 3 }} positions={positions} />
         ) : null}
@@ -1618,14 +1707,20 @@ function NeighborhoodMapEditor({
             positions={suggestedPositions}
           />
         ) : null}
-        {ring.map((point, index) => (
-          <CircleMarker
-            center={[point[1], point[0]]}
+        {!readOnly ? ring.map((point, index) => (
+          <Marker
+            draggable
+            eventHandlers={{
+              dragend(event: LeafletEvent) {
+                const marker = event.target as unknown as { getLatLng: () => { lat: number; lng: number } }
+                const position = marker.getLatLng()
+                onChange(ring.map((current, pointIndex) => pointIndex === index ? [Number(position.lng.toFixed(6)), Number(position.lat.toFixed(6))] : current))
+              },
+            }}
             key={`${point[0]}-${point[1]}-${index}`}
-            pathOptions={{ color: '#047857', fillColor: '#10b981', fillOpacity: 0.9 }}
-            radius={6}
+            position={[point[1], point[0]]}
           />
-        ))}
+        )) : null}
       </MapContainer>
     </div>
   )
@@ -1862,6 +1957,17 @@ function getSectionLabel(section: SectionId) {
   return navigationItems.find((item) => item.id === section)?.label ?? 'Dashboard'
 }
 
+function formatNeighborhoodHistoryType(type: NonNullable<NeighborhoodItem['history']>[number]['type']) {
+  const labels = {
+    archived: 'Quartier archivé',
+    created: 'Quartier créé',
+    restored: 'Quartier réactivé',
+    updated: 'Informations modifiées',
+    user_assigned: 'Habitant affecté',
+  }
+  return labels[type]
+}
+
 function getNeighborhoodId(neighborhood: NeighborhoodItem) {
   return neighborhood.id ?? neighborhood._id ?? neighborhood.slug
 }
@@ -1885,6 +1991,32 @@ function openRingFromPolygon(polygon?: GeoJsonPolygon) {
   }
 
   return ring
+}
+
+function boundingBoxesOverlap(left: CoordinatePair[], right: CoordinatePair[]) {
+  if (left.length < 3 || right.length < 3) return false
+  const bounds = (ring: CoordinatePair[]) => ring.reduce(
+    (result, [longitude, latitude]) => ({
+      maxLatitude: Math.max(result.maxLatitude, latitude),
+      maxLongitude: Math.max(result.maxLongitude, longitude),
+      minLatitude: Math.min(result.minLatitude, latitude),
+      minLongitude: Math.min(result.minLongitude, longitude),
+    }),
+    {
+      maxLatitude: -Infinity,
+      maxLongitude: -Infinity,
+      minLatitude: Infinity,
+      minLongitude: Infinity,
+    },
+  )
+  const leftBounds = bounds(left)
+  const rightBounds = bounds(right)
+  return !(
+    leftBounds.maxLongitude <= rightBounds.minLongitude ||
+    leftBounds.minLongitude >= rightBounds.maxLongitude ||
+    leftBounds.maxLatitude <= rightBounds.minLatitude ||
+    leftBounds.minLatitude >= rightBounds.maxLatitude
+  )
 }
 
 function closeRing(ring: CoordinatePair[]) {

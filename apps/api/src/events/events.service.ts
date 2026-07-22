@@ -16,6 +16,7 @@ import { Role } from '../auth/role.enum';
 import {
   Neighborhood,
   NeighborhoodDocument,
+  NeighborhoodStatus,
 } from '../neighborhoods/schemas/neighborhood.schema';
 import { PublicUsersService } from '../users/public-users.service';
 import { CancelEventDto } from './dto/cancel-event.dto';
@@ -105,6 +106,13 @@ export class EventsService implements OnModuleInit {
 
   async create(dto: CreateEventDto, actor: EventActor) {
     this.assertCanCreate(dto, actor);
+    const requestedNeighborhoodId = await this.resolveActiveNeighborhoodId(
+      dto.neighborhoodId,
+    );
+    const neighborhoodId =
+      actor.role === Role.RESIDENT
+        ? await this.resolveResidentNeighborhood(actor, requestedNeighborhoodId)
+        : requestedNeighborhoodId;
     const dates = this.validateDates(
       dto.startsAt,
       dto.endsAt,
@@ -115,7 +123,7 @@ export class EventsService implements OnModuleInit {
       title: dto.title,
       description: dto.description,
       category: dto.category,
-      neighborhoodId: dto.neighborhoodId,
+      neighborhoodId,
       organizerId: actor.sub,
       ...dates,
       locationLabel: dto.locationLabel,
@@ -321,6 +329,7 @@ export class EventsService implements OnModuleInit {
   async respond(id: string, actor: EventActor, dto: RespondEventDto) {
     const desired = dto.response ?? dto.interest;
     if (!desired) throw new BadRequestException('Une réponse est requise.');
+    await this.assertActiveResidentNeighborhood(actor);
     const event = await this.findDocument(id, true);
     this.assertCanRespond(event, actor);
     await this.ensureCounters(event);
@@ -1049,6 +1058,60 @@ export class EventsService implements OnModuleInit {
         'Les inscriptions à cet événement sont closes.',
       );
     }
+  }
+
+  private async resolveActiveNeighborhoodId(identifier: string) {
+    const filters: Array<Record<string, unknown>> = [{ slug: identifier }];
+    if (isValidObjectId(identifier)) filters.push({ _id: identifier });
+    const neighborhood = await this.neighborhoodModel
+      .findOne({
+        $and: [
+          { $or: filters },
+          {
+            status: { $ne: NeighborhoodStatus.ARCHIVED },
+            isActive: { $ne: false },
+          },
+        ],
+      })
+      .select('_id slug')
+      .lean<{ _id: unknown; slug?: string } | null>()
+      .exec();
+    if (!neighborhood) {
+      throw new BadRequestException(
+        'Le quartier sélectionné est introuvable ou archivé.',
+      );
+    }
+    return neighborhood.slug || String(neighborhood._id);
+  }
+
+  private async resolveResidentNeighborhood(
+    actor: EventActor,
+    requestedNeighborhoodId: string,
+  ) {
+    if (!actor.neighborhoodId) {
+      throw new ConflictException(
+        'Vous devez être rattaché à un quartier pour créer un événement.',
+      );
+    }
+    const actorNeighborhoodId = await this.resolveActiveNeighborhoodId(
+      actor.neighborhoodId,
+    );
+    if (requestedNeighborhoodId !== actorNeighborhoodId) {
+      throw new ForbiddenException(
+        'Vous pouvez créer un événement uniquement dans votre quartier.',
+      );
+    }
+    return actorNeighborhoodId;
+  }
+
+  private async assertActiveResidentNeighborhood(actor: EventActor) {
+    if (actor.role !== Role.RESIDENT) return;
+    if (!actor.neighborhoodId) {
+      throw new ConflictException(
+        'Vous devez être rattaché à un quartier pour participer.',
+      );
+    }
+    await this.resolveActiveNeighborhoodId(actor.neighborhoodId);
   }
 
   private validateDates(

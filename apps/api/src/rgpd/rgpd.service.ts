@@ -220,6 +220,13 @@ export class RgpdService {
         displayName: user.displayName,
         role: user.role,
         neighborhoodId: user.neighborhoodId,
+        neighborhoodAssignment: {
+          assignedAt: user.neighborhoodAssignedAt,
+          source: user.neighborhoodAssignmentSource,
+          actorId: user.neighborhoodAssignmentActorId,
+          history: user.neighborhoodAssignmentHistory,
+          exactPositionStored: false,
+        },
         isActive: user.isActive,
         pointsBalance: user.pointsBalance,
         reservedPoints: user.reservedPoints,

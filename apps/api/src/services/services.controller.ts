@@ -92,9 +92,9 @@ export class ServicesController {
   @ApiOperation({ summary: 'Créer une annonce de service' })
   create(
     @Body() createServiceDto: CreateServiceDto,
-    @CurrentUser() user: { sub: string },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.servicesService.create(createServiceDto, user.sub);
+    return this.servicesService.create(createServiceDto, user);
   }
 
   @Get()

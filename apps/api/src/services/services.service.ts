@@ -64,7 +64,7 @@ const CANCELLABLE_SERVICE_STATUSES = new Set<ServiceStatus>([
   ServiceStatus.APPLICATION_RECEIVED,
 ]);
 
-type ServiceActor = Pick<AuthenticatedUser, 'sub' | 'role'>;
+type ServiceActor = Pick<AuthenticatedUser, 'sub' | 'role' | 'neighborhoodId'>;
 export type ServiceRow = Service & {
   _id: unknown;
   createdAt?: Date;
@@ -110,8 +110,27 @@ export class ServicesService {
     private readonly reviewsService: ReviewsService,
   ) {}
 
-  async create(createServiceDto: CreateServiceDto, ownerId: string) {
-    await this.assertNeighborhoodCanBeUsed(createServiceDto.neighborhoodId);
+  async create(createServiceDto: CreateServiceDto, actor: ServiceActor) {
+    const requestedNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+      createServiceDto.neighborhoodId,
+    );
+    let neighborhoodId = requestedNeighborhoodId;
+    if (actor.role === Role.RESIDENT) {
+      if (!actor.neighborhoodId) {
+        throw new ConflictException(
+          'Vous devez être rattaché à un quartier avant de publier un service.',
+        );
+      }
+      const actorNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+        actor.neighborhoodId,
+      );
+      if (requestedNeighborhoodId !== actorNeighborhoodId) {
+        throw new ForbiddenException(
+          'Vous pouvez publier un service uniquement dans votre quartier.',
+        );
+      }
+      neighborhoodId = actorNeighborhoodId;
+    }
     if (
       createServiceDto.status &&
       ![ServiceStatus.DRAFT, ServiceStatus.PUBLISHED].includes(
@@ -125,7 +144,8 @@ export class ServicesService {
 
     return this.serviceModel.create({
       ...createServiceDto,
-      ownerId,
+      neighborhoodId,
+      ownerId: actor.sub,
       status: createServiceDto.status ?? ServiceStatus.PUBLISHED,
       pricePoints: createServiceDto.isPaid
         ? (createServiceDto.pricePoints ?? 0)
@@ -260,7 +280,20 @@ export class ServicesService {
 
     const payload = { ...updateServiceDto };
     if (payload.neighborhoodId) {
-      await this.assertNeighborhoodCanBeUsed(payload.neighborhoodId);
+      const requestedNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+        payload.neighborhoodId,
+      );
+      if (actor.role === Role.RESIDENT) {
+        const actorNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+          actor.neighborhoodId,
+        );
+        if (requestedNeighborhoodId !== actorNeighborhoodId) {
+          throw new ForbiddenException(
+            'Vous pouvez gérer un service uniquement dans votre quartier.',
+          );
+        }
+      }
+      payload.neighborhoodId = requestedNeighborhoodId;
     }
     if (payload.isPaid === false) payload.pricePoints = null;
     if (
@@ -333,13 +366,19 @@ export class ServicesService {
     query: ListServicesQueryDto,
     actor: AuthenticatedUser,
   ): ServiceFilter {
+    const publicVisibility =
+      actor.role === Role.RESIDENT
+        ? actor.neighborhoodId
+          ? {
+              status: { $in: PUBLIC_SERVICE_STATUSES },
+              neighborhoodId: actor.neighborhoodId,
+            }
+          : null
+        : { status: { $in: PUBLIC_SERVICE_STATUSES } };
     const clauses: ServiceFilter[] = [
-      {
-        $or: [
-          { ownerId: actor.sub },
-          { status: { $in: PUBLIC_SERVICE_STATUSES } },
-        ],
-      },
+      publicVisibility
+        ? { $or: [{ ownerId: actor.sub }, publicVisibility] }
+        : { ownerId: actor.sub },
     ];
     if (query.type) clauses.push({ type: query.type });
     if (query.category) clauses.push({ category: query.category });
@@ -754,6 +793,7 @@ export class ServicesService {
         'Un quartier archive ne peut plus etre utilise.',
       );
     }
+    return neighborhood.slug || neighborhood.id;
   }
 
   private neighborhoodIdentifierFilter(neighborhoodId: string) {

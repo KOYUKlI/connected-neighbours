@@ -173,28 +173,66 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
   it('covers geographic neighborhoods', async () => {
     const invalidNeighborhood = neighborhoodPayload('e2e-quartier-invalide');
-    invalidNeighborhood.boundary.coordinates[0][4] = [2.36, 48.861];
+    invalidNeighborhood.geometry.coordinates[0][4] = [2.36, 48.861];
 
     await request(app.getHttpServer())
-      .post('/api/neighborhoods')
+      .post('/api/admin/neighborhoods')
       .set('Authorization', bearer(adminToken))
       .send(invalidNeighborhood)
       .expect(400);
 
     await request(app.getHttpServer())
-      .post('/api/neighborhoods')
+      .post('/api/admin/neighborhoods')
       .set('Authorization', bearer(aliceToken))
       .send(neighborhoodPayload('e2e-quartier'))
       .expect(403);
 
     const createdNeighborhood = await request(app.getHttpServer())
-      .post('/api/neighborhoods')
+      .post('/api/admin/neighborhoods')
       .set('Authorization', bearer(adminToken))
-      .send(neighborhoodPayload('e2e-quartier'))
-      .expect(201);
+      .send(neighborhoodPayload('e2e-quartier'));
+
+    if (createdNeighborhood.status !== 201) {
+      throw new Error(
+        `Création du quartier E2E refusée (${createdNeighborhood.status}): ${JSON.stringify(createdNeighborhood.body)}`,
+      );
+    }
 
     e2eNeighborhoodId = getId(createdNeighborhood.body);
     expect(createdNeighborhood.body.status).toBe('active');
+
+    await request(app.getHttpServer())
+      .post('/api/admin/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .send(neighborhoodPayload('e2e-quartier'))
+      .expect(409);
+
+    const overlap = neighborhoodPayload('e2e-quartier-overlap');
+    overlap.geometry.coordinates = overlap.geometry.coordinates.map((ring) =>
+      ring.map(([longitude, latitude]) => [
+        longitude + 0.0002,
+        latitude + 0.0002,
+      ]),
+    );
+    await request(app.getHttpServer())
+      .post('/api/admin/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .send(overlap)
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get('/api/admin/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .query({ status: 'active', search: 'E2E', page: 1, limit: 10 })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-quartier' }),
+          ]),
+        );
+        expect(body.total).toBeGreaterThanOrEqual(1);
+      });
 
     await request(app.getHttpServer())
       .get('/api/neighborhoods')
@@ -209,7 +247,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
 
     const updatedNeighborhood = await request(app.getHttpServer())
-      .patch(`/api/neighborhoods/${e2eNeighborhoodId}`)
+      .patch(`/api/admin/neighborhoods/${e2eNeighborhoodId}`)
       .set('Authorization', bearer(adminToken))
       .send({ description: 'Quartier E2E mis a jour' })
       .expect(200);
@@ -221,7 +259,13 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
       .set('Authorization', bearer(aliceToken))
-      .send({ point: [2.3509, 48.8569] })
+      .send({ point: [120.0009, -19.9991] })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
+      .set('Authorization', bearer(adminToken))
+      .send({ point: [120.0009, -19.9991] })
       .expect(201)
       .expect(({ body }) => {
         expect(body.contains).toBe(true);
@@ -229,7 +273,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
     await request(app.getHttpServer())
       .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
-      .set('Authorization', bearer(aliceToken))
+      .set('Authorization', bearer(adminToken))
       .send({ point: [2.5, 48.8569] })
       .expect(201)
       .expect(({ body }) => {
@@ -237,24 +281,24 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .get('/api/neighborhoods/quartier-centre/members')
+      .get('/api/admin/neighborhoods/quartier-centre/members')
       .set('Authorization', bearer(adminToken))
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toEqual(
+        expect(body.items).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               email: 'alice@connected-neighbours.local',
             }),
           ]),
         );
-        for (const member of body as Array<Record<string, unknown>>) {
+        for (const member of body.items as Array<Record<string, unknown>>) {
           expect(member).not.toHaveProperty('passwordHash');
         }
       });
 
     await request(app.getHttpServer())
-      .get('/api/neighborhoods/quartier-centre/stats')
+      .get('/api/admin/neighborhoods/quartier-centre/stats')
       .set('Authorization', bearer(adminToken))
       .expect(200)
       .expect(({ body }) => {
@@ -271,13 +315,43 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .delete(`/api/neighborhoods/${e2eNeighborhoodId}`)
-      .set('Authorization', bearer(adminToken))
-      .expect(200)
+      .post('/api/neighborhoods/resolve')
+      .set('Authorization', bearer(aliceToken))
+      .send({ type: 'Point', coordinates: [120.00091, -19.99909] })
+      .expect(201)
       .expect(({ body }) => {
-        expect(body.archived).toBe(true);
-        expect(body.neighborhood.status).toBe('archived');
+        expect(body.status).toBe('found');
+        expect(body.neighborhood.slug).toBe('e2e-quartier');
+        expect(JSON.stringify(body)).not.toContain('120.00091');
       });
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/neighborhoods/${e2eNeighborhoodId}/archive`)
+      .set('Authorization', bearer(adminToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.status).toBe('archived');
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/neighborhoods/${e2eNeighborhoodId}/assign-user`)
+      .set('Authorization', bearer(adminToken))
+      .send({
+        userId: aliceId,
+        justification: 'Test de refus sur quartier archivé.',
+      })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get(`/api/neighborhoods/${e2eNeighborhoodId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/neighborhoods/${e2eNeighborhoodId}/restore`)
+      .set('Authorization', bearer(adminToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('active'));
   });
 
   it('covers service publishing, service cancellation and point balance', async () => {
@@ -2768,7 +2842,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       }),
       connection.collection('services').deleteMany({ title: /^E2E/ }),
       connection.collection('neighborhoods').deleteMany({
-        slug: { $in: ['e2e-quartier', 'e2e-quartier-invalide'] },
+        slug: /^e2e-quartier/,
       }),
       connection.collection('incidents').deleteMany({
         title: { $in: ['E2E Local velo force', 'E2E Incident JavaFX'] },
@@ -2852,23 +2926,25 @@ function typedResponseBody<T>(response: { body: unknown }) {
 }
 
 function neighborhoodPayload(slug: string) {
+  const geometry = {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [120.0008, -19.9992],
+        [120.0018, -19.9992],
+        [120.0018, -19.9982],
+        [120.0008, -19.9982],
+        [120.0008, -19.9992],
+      ],
+    ],
+  };
   return {
     name: 'Quartier E2E',
     slug,
     description: 'Quartier geographique utilise par les tests E2E.',
     city: 'Paris',
     postalCode: '75001',
-    boundary: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [2.3508, 48.8567],
-          [2.3518, 48.8567],
-          [2.3518, 48.8577],
-          [2.3508, 48.8577],
-          [2.3508, 48.8567],
-        ],
-      ],
-    },
+    geometry,
+    boundary: structuredClone(geometry),
   };
 }

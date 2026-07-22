@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getNeighborhoods, type NeighborhoodItem } from '../api/neighborhoods';
+import { getMyNeighborhood, type MyNeighborhoodResponse } from '../api/neighborhoods';
 import { createService, publishService, type ServiceType } from '../api/services';
 import { PageContainer } from '../components/layout/PageContainer';
 import { FormField } from '../components/forms/FormField';
@@ -13,7 +13,6 @@ import { Icon } from '../components/ui/Icon';
 import { Input } from '../components/ui/Input';
 import { LoadingState } from '../components/ui/LoadingState';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { getFriendlyError } from '../utils/errors';
 import { getEntityId } from '../utils/format';
@@ -21,7 +20,7 @@ import { getEntityId } from '../utils/format';
 export function ServiceCreatePage() {
   const navigate = useNavigate();
   const intentRef = useRef<'draft' | 'publish'>('draft');
-  const [neighborhoods, setNeighborhoods] = useState<NeighborhoodItem[]>([]);
+  const [neighborhood, setNeighborhood] = useState<MyNeighborhoodResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +28,9 @@ export function ServiceCreatePage() {
   const [isPaid, setIsPaid] = useState(true);
 
   useEffect(() => {
-    getNeighborhoods()
-      .then((items) => setNeighborhoods(items.filter((item) => item.status !== 'archived' && item.isActive !== false)))
-      .catch((caught) => setError(getFriendlyError(caught, 'Impossible de charger les quartiers disponibles.')))
+    getMyNeighborhood()
+      .then(setNeighborhood)
+      .catch((caught) => setError(getFriendlyError(caught, 'Impossible de charger votre quartier.')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -51,7 +50,7 @@ export function ServiceCreatePage() {
         category: String(form.get('category') ?? '').trim(),
         description: String(form.get('description') ?? '').trim(),
         isPaid,
-        neighborhoodId: String(form.get('neighborhoodId') ?? ''),
+        neighborhoodId: neighborhood?.neighborhood?.slug ?? '',
         pricePoints: isPaid ? points : undefined,
         status: 'draft',
         title: String(form.get('title') ?? '').trim(),
@@ -72,7 +71,14 @@ export function ServiceCreatePage() {
       <Link className="inline-flex w-fit min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-slate-600 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200" to="/services"><Icon className="size-4" name="arrow-left" /> Retour aux services</Link>
       <PageHeader description="Décrivez votre besoin ou la compétence que vous souhaitez proposer aux habitants du quartier." title="Publier un service" />
       {loading ? <LoadingState message="Chargement du formulaire…" /> : null}
-      {!loading ? (
+      {!loading && !neighborhood?.assigned ? (
+        <Card className="grid justify-items-start gap-3">
+          <span className="grid size-11 place-items-center rounded-lg bg-amber-100 text-amber-800"><Icon className="size-5" name="map-pin" /></span>
+          <div><h2 className="font-extrabold text-slate-950">Confirmez d’abord votre quartier</h2><p className="mt-1 max-w-xl text-sm leading-6 text-slate-600">Votre annonce sera automatiquement publiée dans votre quartier. Vous ne pourrez pas choisir le quartier d’un autre habitant.</p></div>
+          <Link className={buttonStyles('primary')} to="/neighborhood">Confirmer mon quartier</Link>
+        </Card>
+      ) : null}
+      {!loading && neighborhood?.assigned && neighborhood.neighborhood ? (
         <form className="grid gap-5" onSubmit={handleSubmit}>
           {error ? <ErrorMessage message={error} /> : null}
           <Card className="grid gap-5">
@@ -89,7 +95,11 @@ export function ServiceCreatePage() {
             <FormField label="Description"><Textarea maxLength={1200} minLength={20} name="description" placeholder="Précisez le contexte, ce qui est attendu et les informations utiles." required rows={5} /></FormField>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Disponibilité"><Input name="availability" placeholder="Ex. Samedi matin ou à convenir" required /></FormField>
-              <FormField label="Quartier"><Select defaultValue="" name="neighborhoodId" required><option disabled value="">Choisir un quartier</option>{neighborhoods.map((item) => <option key={getEntityId(item) || item.slug} value={getEntityId(item) || item.slug}>{item.name}{item.city ? `, ${item.city}` : ''}</option>)}</Select></FormField>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-bold uppercase text-emerald-700">Quartier de publication</p>
+                <p className="mt-1 font-extrabold text-emerald-950">{neighborhood.neighborhood.name}</p>
+                <p className="mt-0.5 text-sm text-emerald-800">{neighborhood.neighborhood.city}{neighborhood.neighborhood.postalCodes?.length ? ` · ${neighborhood.neighborhood.postalCodes.join(', ')}` : ''}</p>
+              </div>
             </div>
           </Card>
 

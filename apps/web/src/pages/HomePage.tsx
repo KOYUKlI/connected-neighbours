@@ -98,7 +98,9 @@ export function HomePage() {
     <PageContainer className="grid gap-8">
       <section className="flex flex-col gap-5 rounded-xl bg-emerald-900 px-5 py-7 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
-          <p className="text-sm font-semibold text-emerald-200">{neighborhoodLabel}</p>
+          <Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" to="/neighborhood">
+            <Icon className="size-4" name="map-pin" /> {neighborhoodLabel}
+          </Link>
           <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
             Bonjour {data.profile.displayName?.split(' ')[0] ?? 'voisin'}
           </h1>

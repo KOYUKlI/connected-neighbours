@@ -20,6 +20,7 @@ import { DocumentDetailPage } from './features/documents/DocumentDetailPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
 import { DisputesPage } from './pages/DisputesPage';
 import { LoginPage } from './pages/LoginPage';
+import { NeighborhoodPage } from './pages/NeighborhoodPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { PublicProfilePage } from './pages/PublicProfilePage';
@@ -85,6 +86,7 @@ const residentRoutes = [
     ),
   },
   { path: 'profile', element: <ProfilePage /> },
+  { path: 'neighborhood', element: <NeighborhoodPage /> },
 ];
 
 export const router = createBrowserRouter([

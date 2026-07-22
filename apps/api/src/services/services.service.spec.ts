@@ -64,7 +64,7 @@ describe('ServicesService', () => {
     };
     serviceModel.create.mockResolvedValue({ id: SERVICE_ID });
 
-    await service.create(dto, 'alice');
+    await service.create(dto, actor('alice'));
 
     expect(serviceModel.create).toHaveBeenCalledWith({
       ...dto,
@@ -88,7 +88,7 @@ describe('ServicesService', () => {
           neighborhoodId: 'absent',
           isPaid: false,
         },
-        'alice',
+        actor('alice'),
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -197,5 +197,5 @@ function serviceDocument(status: ServiceStatus) {
 }
 
 function actor(sub: string, role = Role.RESIDENT) {
-  return { sub, role };
+  return { sub, role, neighborhoodId: 'quartier-centre' };
 }

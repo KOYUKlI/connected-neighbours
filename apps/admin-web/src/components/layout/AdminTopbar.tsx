@@ -34,7 +34,7 @@ export function AdminTopbar({
   }, [isProfileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-20 min-h-20 border-b border-slate-200 bg-white/95 px-8 py-3 backdrop-blur max-[760px]:static max-[760px]:px-4">
+    <header className="sticky top-0 z-20 min-h-20 border-b border-slate-200 bg-white/95 px-8 py-3 backdrop-blur max-[1100px]:pl-20 max-[760px]:px-4 max-[760px]:pl-20">
       <div className="mx-auto flex h-14 w-full max-w-[1240px] items-center justify-between gap-4 max-[900px]:h-auto max-[900px]:items-start max-[900px]:flex-col">
         <div className="min-w-0">{breadcrumb}</div>
         <div className="flex flex-wrap items-center justify-end gap-2 max-[900px]:justify-start">

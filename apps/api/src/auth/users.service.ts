@@ -4,7 +4,11 @@ import { Model } from 'mongoose';
 
 import { PasswordService } from './password.service';
 import { Role } from './role.enum';
-import { User, UserDocument } from './schemas/user.schema';
+import {
+  NeighborhoodAssignmentSource,
+  User,
+  UserDocument,
+} from './schemas/user.schema';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -65,6 +69,10 @@ export class UsersService implements OnModuleInit {
           | 'isActive'
           | 'pointsBalance'
           | 'reservedPoints'
+          | 'neighborhoodAssignedAt'
+          | 'neighborhoodAssignmentSource'
+          | 'neighborhoodAssignmentActorId'
+          | 'neighborhoodAssignmentHistory'
         >
       > = {};
 
@@ -92,6 +100,25 @@ export class UsersService implements OnModuleInit {
         patch.reservedPoints = 0;
       }
 
+      if (!existing.neighborhoodAssignedAt) {
+        const occurredAt = new Date();
+        patch.neighborhoodAssignedAt = occurredAt;
+        patch.neighborhoodAssignmentSource = NeighborhoodAssignmentSource.SEED;
+        patch.neighborhoodAssignmentActorId = 'seed';
+        if (!existing.neighborhoodAssignmentHistory?.length) {
+          patch.neighborhoodAssignmentHistory = [
+            {
+              previousNeighborhoodId: null,
+              neighborhoodId: input.neighborhoodId,
+              source: NeighborhoodAssignmentSource.SEED,
+              actorId: 'seed',
+              reason: 'Initialisation du compte de démonstration.',
+              occurredAt,
+            },
+          ];
+        }
+      }
+
       if (Object.keys(patch).length > 0) {
         Object.assign(existing, patch);
         await existing.save();
@@ -102,11 +129,25 @@ export class UsersService implements OnModuleInit {
 
     const passwordHash = await this.passwordService.hash(input.password);
 
+    const occurredAt = new Date();
     return this.userModel.create({
       email: input.email,
       displayName: input.displayName,
       role: input.role,
       neighborhoodId: input.neighborhoodId,
+      neighborhoodAssignedAt: occurredAt,
+      neighborhoodAssignmentSource: NeighborhoodAssignmentSource.SEED,
+      neighborhoodAssignmentActorId: 'seed',
+      neighborhoodAssignmentHistory: [
+        {
+          previousNeighborhoodId: null,
+          neighborhoodId: input.neighborhoodId,
+          source: NeighborhoodAssignmentSource.SEED,
+          actorId: 'seed',
+          reason: 'Initialisation du compte de démonstration.',
+          occurredAt,
+        },
+      ],
       passwordHash,
       isActive: true,
       pointsBalance: 100,

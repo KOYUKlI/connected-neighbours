@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import type { NeighborhoodItem, NeighborhoodStats } from '../api/neighborhoods';
 import {
@@ -46,6 +46,7 @@ type NeighborhoodsListPageProps = {
   onAdd?: () => void;
   onArchive?: (id: string) => void;
   onEdit?: (id: string) => void;
+  onRestore?: (id: string) => void;
   onView?: (id: string) => void;
   statsByNeighborhoodId?: Record<string, NeighborhoodStats>;
 };
@@ -57,6 +58,7 @@ export function NeighborhoodsListPage({
   onAdd,
   onArchive,
   onEdit,
+  onRestore,
   onView,
   statsByNeighborhoodId = {},
 }: NeighborhoodsListPageProps) {
@@ -108,19 +110,13 @@ export function NeighborhoodsListPage({
     [filteredRows, sort],
   );
   const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
-  const paginatedRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
+  const currentPage = Math.min(page, pageCount);
+  const paginatedRows = sortedRows.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   const activeCount = rows.filter((neighborhood) => neighborhood.status === 'active').length;
   const archivedCount = rows.filter((neighborhood) => neighborhood.status === 'archived').length;
-
-  useEffect(() => {
-    if (page > pageCount) {
-      setPage(pageCount);
-    }
-  }, [page, pageCount]);
-
-  useEffect(() => {
-    setSelectedRowKeys([]);
-  }, [activeTab, cityFilter, dateFilter, query]);
 
   function resetFilters() {
     setQuery('');
@@ -128,11 +124,13 @@ export function NeighborhoodsListPage({
     setDateFilter('all');
     setActiveTab('all');
     setPage(1);
+    setSelectedRowKeys([]);
   }
 
   function updateTab(nextTab: 'all' | NeighborhoodStatus) {
     setActiveTab(nextTab);
     setPage(1);
+    setSelectedRowKeys([]);
   }
 
   function updateSort(nextSort: AdminSortState) {
@@ -230,6 +228,7 @@ export function NeighborhoodsListPage({
               onChange={(event) => {
                 setQuery(event.target.value);
                 setPage(1);
+                setSelectedRowKeys([]);
               }}
               placeholder="Rechercher un quartier"
               type="search"
@@ -242,6 +241,7 @@ export function NeighborhoodsListPage({
           onChange={(value) => {
             setDateFilter(value as DateFilter);
             setPage(1);
+            setSelectedRowKeys([]);
           }}
           value={dateFilter}
         >
@@ -254,6 +254,7 @@ export function NeighborhoodsListPage({
           onChange={(value) => {
             setCityFilter(value);
             setPage(1);
+            setSelectedRowKeys([]);
           }}
           value={cityFilter}
         >
@@ -422,15 +423,9 @@ export function NeighborhoodsListPage({
                         <AdminActionMenu
                           items={[
                             { label: 'Voir le détail', onClick: () => onView?.(neighborhood.id) },
-                            {
-                              disabled:
-                                neighborhood.status === 'archived' ||
-                                isArchiving ||
-                                archivingId === neighborhood.id,
-                              label: 'Archiver',
-                              onClick: () => onArchive?.(neighborhood.id),
-                              tone: 'red',
-                            },
+                            neighborhood.status === 'archived'
+                              ? { disabled: isArchiving || archivingId === neighborhood.id, label: 'Réactiver', onClick: () => onRestore?.(neighborhood.id) }
+                              : { disabled: isArchiving || archivingId === neighborhood.id, label: 'Archiver', onClick: () => onArchive?.(neighborhood.id), tone: 'red' },
                           ]}
                         />
                       </div>
@@ -472,20 +467,20 @@ export function NeighborhoodsListPage({
               ))}
             </select>
             <span>
-              {sortedRows.length === 0 ? '0' : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, sortedRows.length)}`} sur {sortedRows.length} quartiers
+              {sortedRows.length === 0 ? '0' : `${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, sortedRows.length)}`} sur {sortedRows.length} quartiers
             </span>
           </div>
           <div className="flex items-center gap-2">
             <PaginationButton
-              disabled={page <= 1}
-              onClick={() => updatePage(Math.max(1, page - 1))}
+              disabled={currentPage <= 1}
+              onClick={() => updatePage(Math.max(1, currentPage - 1))}
             >
               ‹
             </PaginationButton>
-            {getPaginationItems(page, pageCount).map((item) =>
+            {getPaginationItems(currentPage, pageCount).map((item) =>
               typeof item === 'number' ? (
                 <PaginationButton
-                  active={page === item}
+                  active={currentPage === item}
                   disabled={sortedRows.length === 0}
                   key={item}
                   onClick={() => updatePage(item)}
@@ -502,8 +497,8 @@ export function NeighborhoodsListPage({
               ),
             )}
             <PaginationButton
-              disabled={page >= pageCount}
-              onClick={() => updatePage(Math.min(pageCount, page + 1))}
+              disabled={currentPage >= pageCount}
+              onClick={() => updatePage(Math.min(pageCount, currentPage + 1))}
             >
               ›
             </PaginationButton>
@@ -787,7 +782,10 @@ function toNeighborhoodRow(
   statsByNeighborhoodId: Record<string, NeighborhoodStats>,
 ): NeighborhoodRow {
   const id = getNeighborhoodId(neighborhood);
-  const stats = statsByNeighborhoodId[id] ?? statsByNeighborhoodId[neighborhood.slug];
+  const stats =
+    statsByNeighborhoodId[id] ??
+    statsByNeighborhoodId[neighborhood.slug] ??
+    neighborhood.stats;
   const updatedAtSource = neighborhood.updatedAt ?? neighborhood.createdAt;
 
   return {

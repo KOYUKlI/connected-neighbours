@@ -16,6 +16,7 @@ import { Role } from '../auth/role.enum';
 import {
   Neighborhood,
   NeighborhoodDocument,
+  NeighborhoodStatus,
 } from '../neighborhoods/schemas/neighborhood.schema';
 import { PublicUsersService } from '../users/public-users.service';
 import { AnswerVoteDto } from './dto/answer-vote.dto';
@@ -216,6 +217,7 @@ export class VotesService implements OnModuleInit {
   async answer(id: string, actor: VoteActor, dto: AnswerVoteDto) {
     const vote = await this.findDocument(id);
     this.assertCanView(vote, actor, false);
+    await this.assertActiveResidentNeighborhood(actor);
     const normalized = normalizeVoteRecord(vote.toObject());
     const now = Date.now();
     if (
@@ -1055,7 +1057,15 @@ export class VotesService implements OnModuleInit {
     const filters: VoteFilter[] = [{ slug: identifier }];
     if (isValidObjectId(identifier)) filters.push({ _id: identifier });
     const neighborhood = await this.neighborhoodModel
-      .findOne({ $or: filters })
+      .findOne({
+        $and: [
+          { $or: filters },
+          {
+            status: { $ne: NeighborhoodStatus.ARCHIVED },
+            isActive: { $ne: false },
+          },
+        ],
+      })
       .select('_id slug')
       .lean()
       .exec();
@@ -1063,6 +1073,16 @@ export class VotesService implements OnModuleInit {
       throw new BadRequestException('Le quartier sélectionné est introuvable.');
     }
     return neighborhood.slug || String(neighborhood._id);
+  }
+
+  private async assertActiveResidentNeighborhood(actor: VoteActor) {
+    if (actor.role !== Role.RESIDENT) return;
+    if (!actor.neighborhoodId) {
+      throw new ConflictException(
+        'Vous devez être rattaché à un quartier pour voter.',
+      );
+    }
+    await this.resolveNeighborhoodId(actor.neighborhoodId);
   }
 
   private assertCanView(vote: VoteDocument, actor: VoteActor, admin: boolean) {

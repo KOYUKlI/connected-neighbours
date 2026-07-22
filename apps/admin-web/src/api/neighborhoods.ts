@@ -17,12 +17,24 @@ export type NeighborhoodItem = {
   description: string;
   city: string;
   postalCode: string;
+  postalCodes?: string[];
   boundary: GeoJsonPolygon;
+  geometry?: GeoJsonPolygon | null;
+  geometryDefined?: boolean;
+  center?: { type: 'Point'; coordinates: CoordinatePair } | null;
   createdById?: string;
   status?: NeighborhoodStatus;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  archivedAt?: string | null;
+  history?: Array<{
+    type: 'created' | 'updated' | 'archived' | 'restored' | 'user_assigned';
+    actorId: string;
+    occurredAt: string;
+    metadata?: Record<string, unknown>;
+  }>;
+  stats?: NeighborhoodStats;
 };
 
 export type NeighborhoodInput = {
@@ -31,7 +43,9 @@ export type NeighborhoodInput = {
   description: string;
   city: string;
   postalCode: string;
-  boundary: GeoJsonPolygon;
+  postalCodes?: string[];
+  geometry?: GeoJsonPolygon;
+  boundary?: GeoJsonPolygon;
 };
 
 export type NeighborhoodMember = {
@@ -56,36 +70,44 @@ export type NeighborhoodStats = {
 };
 
 export function fetchNeighborhoods() {
-  return apiRequest<NeighborhoodItem[]>('/api/neighborhoods?includeArchived=true');
+  return apiRequest<{ items: NeighborhoodItem[] }>('/api/admin/neighborhoods?limit=100')
+    .then((response) => response.items);
 }
 
 export function createNeighborhood(input: NeighborhoodInput) {
-  return apiRequest<NeighborhoodItem>('/api/neighborhoods', {
+  const geometry = input.geometry ?? input.boundary;
+  return apiRequest<NeighborhoodItem>('/api/admin/neighborhoods', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, geometry }),
   });
 }
 
 export function updateNeighborhood(id: string, input: Partial<NeighborhoodInput>) {
-  return apiRequest<NeighborhoodItem>(`/api/neighborhoods/${id}`, {
+  const geometry = input.geometry ?? input.boundary;
+  return apiRequest<NeighborhoodItem>(`/api/admin/neighborhoods/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, ...(geometry ? { geometry } : {}) }),
   });
 }
 
 export function archiveNeighborhood(id: string) {
-  return apiRequest<{ archived: boolean; id: string; neighborhood: NeighborhoodItem }>(
-    `/api/neighborhoods/${id}`,
-    {
-      method: 'DELETE',
-    },
-  );
+  return apiRequest<NeighborhoodItem>(`/api/admin/neighborhoods/${id}/archive`, {
+    method: 'POST',
+  });
+}
+
+export function restoreNeighborhood(id: string) {
+  return apiRequest<NeighborhoodItem>(`/api/admin/neighborhoods/${id}/restore`, {
+    method: 'POST',
+  });
 }
 
 export function fetchNeighborhoodMembers(id: string) {
-  return apiRequest<NeighborhoodMember[]>(`/api/neighborhoods/${id}/members`);
+  return apiRequest<{ items: NeighborhoodMember[] }>(
+    `/api/admin/neighborhoods/${id}/members?limit=100`,
+  ).then((response) => response.items);
 }
 
 export function fetchNeighborhoodStats(id: string) {
-  return apiRequest<NeighborhoodStats>(`/api/neighborhoods/${id}/stats`);
+  return apiRequest<NeighborhoodStats>(`/api/admin/neighborhoods/${id}/stats`);
 }

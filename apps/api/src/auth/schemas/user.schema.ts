@@ -9,6 +9,22 @@ export enum ProfileVisibility {
   PRIVATE = 'private',
 }
 
+export enum NeighborhoodAssignmentSource {
+  ADMIN = 'admin',
+  RESIDENT_CONFIRMATION = 'resident_confirmation',
+  SEED = 'seed',
+  SYSTEM = 'system',
+}
+
+export type NeighborhoodAssignmentHistoryEntry = {
+  previousNeighborhoodId: string | null;
+  neighborhoodId: string;
+  source: NeighborhoodAssignmentSource;
+  actorId: string;
+  reason: string | null;
+  occurredAt: Date;
+};
+
 @Schema({
   timestamps: true,
   versionKey: false,
@@ -25,6 +41,28 @@ export class User {
 
   @Prop({ required: true, trim: true })
   neighborhoodId: string;
+
+  @Prop({ type: String, trim: true, default: null, select: false })
+  pendingNeighborhoodId: string | null;
+
+  @Prop({ type: Date, default: null, select: false })
+  pendingNeighborhoodExpiresAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  neighborhoodAssignedAt: Date | null;
+
+  @Prop({
+    type: String,
+    enum: NeighborhoodAssignmentSource,
+    default: NeighborhoodAssignmentSource.SYSTEM,
+  })
+  neighborhoodAssignmentSource: NeighborhoodAssignmentSource;
+
+  @Prop({ type: String, default: null })
+  neighborhoodAssignmentActorId: string | null;
+
+  @Prop({ type: [Object], default: [] })
+  neighborhoodAssignmentHistory: NeighborhoodAssignmentHistoryEntry[];
 
   @Prop({ required: true })
   passwordHash: string;
