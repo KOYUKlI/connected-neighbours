@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
-
 import type { AuthUser } from '../../../api/auth';
-import type {
-  CreateIncidentInput,
-  IncidentSeverity,
-  IncidentType,
-} from '../../../api/incidents';
+import type { CreateIncidentInput, IncidentSeverity, IncidentType } from '../../../api/incidents';
+import { Button } from '../../../components/ui/Button';
+import { Card } from '../../../components/ui/Card';
+import { Input } from '../../../components/ui/Input';
+import { Select } from '../../../components/ui/Select';
+import { Textarea } from '../../../components/ui/Textarea';
+import { useIncidentForm } from '../hooks/useIncidentForm';
+import { incidentSeverityLabels, incidentTypeLabels } from '../incidentPresentation';
 
 type IncidentFormProps = {
   currentUser: AuthUser | null;
@@ -15,86 +15,77 @@ type IncidentFormProps = {
 };
 
 export function IncidentForm({ currentUser, isPending, onCreate }: IncidentFormProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [type, setType] = useState<IncidentType>('security');
-  const [severity, setSeverity] = useState<IncidentSeverity>('medium');
-  const [neighborhoodId, setNeighborhoodId] = useState(
-    currentUser?.neighborhoodId ?? 'quartier-centre',
-  );
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const success = await onCreate({ title, description, type, severity, neighborhoodId });
-
-    if (success) {
-      setTitle('');
-      setDescription('');
-    }
-  }
+  const {
+    title,
+    setTitle,
+    description,
+    setDescription,
+    type,
+    setType,
+    severity,
+    setSeverity,
+    neighborhoodId,
+    setNeighborhoodId,
+    handleSubmit,
+  } = useIncidentForm(currentUser, onCreate);
 
   return (
-    <section className="panel">
-      <h2>Signaler un incident</h2>
-      <form className="form-grid" onSubmit={handleSubmit}>
-        <label>
+    <Card>
+      <h2 className="text-lg font-extrabold text-slate-950">Signaler un incident</h2>
+      <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
+        <label className="grid gap-2 text-sm font-bold text-slate-900">
           Titre
-          <input
-            onChange={(event) => setTitle(event.target.value)}
-            required
-            value={title}
-          />
+          <Input onChange={(event) => setTitle(event.target.value)} required value={title} />
         </label>
-        <label>
+        <label className="grid gap-2 text-sm font-bold text-slate-900">
           Description
-          <textarea
+          <Textarea
             onChange={(event) => setDescription(event.target.value)}
             required
             rows={4}
             value={description}
           />
         </label>
-        <div className="form-row">
-          <label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="grid gap-2 text-sm font-bold text-slate-900">
             Type
-            <select
+            <Select
               onChange={(event) => setType(event.target.value as IncidentType)}
               value={type}
             >
-              <option value="security">Securite</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="nuisance">Nuisance</option>
-              <option value="cleanliness">Proprete</option>
-              <option value="traffic">Circulation</option>
-              <option value="other">Autre</option>
-            </select>
+              {Object.entries(incidentTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
           </label>
-          <label>
-            Severite
-            <select
+          <label className="grid gap-2 text-sm font-bold text-slate-900">
+            Sévérité
+            <Select
               onChange={(event) => setSeverity(event.target.value as IncidentSeverity)}
               value={severity}
             >
-              <option value="low">Faible</option>
-              <option value="medium">Moyenne</option>
-              <option value="high">Haute</option>
-              <option value="critical">Critique</option>
-            </select>
+              {Object.entries(incidentSeverityLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
           </label>
         </div>
-        <label>
+        <label className="grid gap-2 text-sm font-bold text-slate-900">
           Quartier
-          <input
+          <Input
             onChange={(event) => setNeighborhoodId(event.target.value)}
             required
             value={neighborhoodId}
           />
         </label>
-        <button className="primary-button" disabled={isPending} type="submit">
-          {isPending ? 'Signalement...' : 'Signaler'}
-        </button>
+        <Button className="w-fit" disabled={isPending} type="submit" variant="primary">
+          {isPending ? 'Signalement…' : 'Signaler'}
+        </Button>
       </form>
-    </section>
+    </Card>
   );
 }

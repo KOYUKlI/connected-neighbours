@@ -218,7 +218,7 @@ export function HomePage() {
             ) : (
               <p className="mt-3 text-sm leading-6 text-slate-600">Aucune actualité locale n’est disponible.</p>
             )}
-            <Link className="mt-4 inline-flex text-sm font-bold text-emerald-700 hover:text-emerald-900" to="/local">
+            <Link className="mt-4 inline-flex text-sm font-bold text-emerald-700 hover:text-emerald-900" to="/app/local">
               Voir la vie locale
             </Link>
           </Card>

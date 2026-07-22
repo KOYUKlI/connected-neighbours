@@ -27,9 +27,15 @@ type DateFilter = 'all' | '7d' | '30d';
 export function IncidentsListPage({
   incidents,
   neighborhoods,
+  onClose,
+  onResolve,
+  onSelect,
 }: {
   incidents: AdminIncidentRow[];
   neighborhoods: NeighborhoodItem[];
+  onClose: (incident: AdminIncidentRow) => void;
+  onResolve: (incident: AdminIncidentRow) => void;
+  onSelect: (incident: AdminIncidentRow) => void;
 }) {
   const [activeTab, setActiveTab] = useState<IncidentTab>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -269,18 +275,33 @@ export function IncidentsListPage({
           },
           {
             header: 'Actions',
-            render: (incident) => (
-              <div className="flex items-center justify-end gap-1.5">
-                <AdminActionMenu
-                  items={[
-                    { label: 'Voir le détail', onClick: () => openIncidentDetails(incident) },
-                    { label: 'Résoudre', onClick: () => undefined },
-                    { label: 'Fermer', onClick: () => undefined, tone: 'red' },
-                  ]}
-                />
-                <span className="sr-only">{incident.id}</span>
-              </div>
-            ),
+            render: (incident) => {
+              const status = incident.status ?? '';
+              const canResolve = !['resolved', 'closed', 'rejected'].includes(status);
+              const canClose = !['closed', 'rejected'].includes(status);
+
+              return (
+                <div className="flex items-center justify-end gap-1.5">
+                  <AdminActionMenu
+                    items={[
+                      { label: 'Voir le détail', onClick: () => onSelect(incident) },
+                      {
+                        disabled: !canResolve,
+                        label: 'Résoudre',
+                        onClick: () => onResolve(incident),
+                      },
+                      {
+                        disabled: !canClose,
+                        label: 'Fermer',
+                        onClick: () => onClose(incident),
+                        tone: 'red',
+                      },
+                    ]}
+                  />
+                  <span className="sr-only">{incident.id}</span>
+                </div>
+              );
+            },
             width: '8%',
           },
         ]}
@@ -291,7 +312,7 @@ export function IncidentsListPage({
         }
         emptyMessage="Aucun incident signalé"
         getRowKey={(incident, index) => incident.id ?? `incident-${index}`}
-        onRowClick={openIncidentDetails}
+        onRowClick={onSelect}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         onSelectedRowKeysChange={setSelectedRowKeys}
@@ -307,10 +328,6 @@ export function IncidentsListPage({
       />
     </section>
   );
-}
-
-function openIncidentDetails(incident: AdminIncidentRow) {
-  void incident.id;
 }
 
 function parseDateValue(value?: string | null) {

@@ -6,7 +6,7 @@ import { CreateAlertPage } from './features/alerts/CreateAlertPage';
 import { IncidentAlertsPage } from './features/alerts/IncidentAlertsPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
-import { IncidentsPage } from './features/incidents/IncidentsPage';
+import { LocalLifePage } from './features/local/LocalLifePage';
 import { PointsPage } from './features/points/PointsPage';
 import { RgpdPage } from './features/rgpd/RgpdPage';
 import { ServicesPage } from './features/services/ServicesPage';
@@ -105,7 +105,8 @@ export const router = createBrowserRouter([
       { path: 'applications', element: <ApplicationsPage /> },
       { path: 'contracts', element: <ContractsPage /> },
       { path: 'points', element: <PointsPage /> },
-      { path: 'incidents', element: <IncidentsPage /> },
+      { path: 'local', element: <LocalLifePage /> },
+      { path: 'incidents', element: <Navigate replace to="/app/local?tab=incidents" /> },
       { path: 'incidents/:incidentId/alerts', element: <IncidentAlertsPage /> },
       { path: 'incidents/:incidentId/alerts/new', element: <CreateAlertPage /> },
       { path: 'rgpd', element: <RgpdPage /> },

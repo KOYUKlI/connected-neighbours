@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
 
-import { EmptyState } from '../../shared/components/EmptyState';
+import { PageContainer } from '../../components/layout/PageContainer';
+import { buttonStyles } from '../../components/ui/buttonStyles';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorMessage } from '../../components/ui/ErrorMessage';
+import { LoadingState } from '../../components/ui/LoadingState';
 import { getEntityId } from '../../shared/utils/entities';
 import { AlertCard } from './components/AlertCard';
 import { useIncidentAlerts } from './hooks/useIncidentAlerts';
@@ -9,41 +13,60 @@ export function IncidentAlertsPage() {
   const { incidentId, incident, alerts, isLoading, error } = useIncidentAlerts();
 
   if (isLoading) {
-    return <div className="loading-panel">Chargement...</div>;
+    return (
+      <PageContainer>
+        <LoadingState message="Chargement des alertes…" />
+      </PageContainer>
+    );
   }
 
   if (error) {
-    return <div className="error-banner">{error}</div>;
+    return (
+      <PageContainer>
+        <ErrorMessage message={error} />
+      </PageContainer>
+    );
   }
 
   if (!incident) {
-    return <EmptyState message="Incident introuvable." />;
+    return (
+      <PageContainer className="grid gap-4">
+        <EmptyState icon="bell" message="Incident introuvable." />
+        <Link className={buttonStyles('ghost', 'sm', 'w-fit')} to="/app/local?tab=incidents">
+          Retour aux incidents
+        </Link>
+      </PageContainer>
+    );
   }
 
   return (
-    <div className="incident-alerts-page">
-      <div className="incident-alerts-header">
-        <Link className="secondary-button" to="/app/incidents">
-          Retour aux incidents
-        </Link>
-        <h2>Alertes - {incident.title}</h2>
+    <PageContainer className="grid gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <Link className={buttonStyles('ghost', 'sm', 'w-fit')} to="/app/incidents">
+            Retour aux incidents
+          </Link>
+          <h1 className="mt-3 text-2xl font-extrabold text-slate-950 sm:text-3xl">
+            Alertes - {incident.title}
+          </h1>
+        </div>
         <Link
-          className="primary-button create-alert-link"
-          to={`/incidents/${incidentId}/alerts/new`}
+          className={buttonStyles('primary', 'md')}
+          to={`/app/incidents/${incidentId}/alerts/new`}
         >
           Signaler une alerte
         </Link>
-      </div>
+      </header>
 
       {alerts.length === 0 ? (
-        <EmptyState message="Aucune alerte pour cet incident." />
+        <EmptyState icon="bell" message="Aucune alerte pour cet incident." />
       ) : (
-        <div className="stack">
+        <div className="grid gap-4">
           {alerts.map((alert) => (
             <AlertCard alert={alert} key={getEntityId(alert)} />
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
