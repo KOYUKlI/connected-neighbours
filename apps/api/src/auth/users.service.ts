@@ -7,6 +7,8 @@ import { GraphEntityType } from '../graph/graph.types';
 import { PasswordService } from './password.service';
 import { Role } from './role.enum';
 import {
+  IdentityMigrationStatus,
+  IdentityProvider,
   NeighborhoodAssignmentSource,
   User,
   UserDocument,
@@ -154,6 +156,10 @@ export class UsersService implements OnModuleInit {
         },
       ],
       passwordHash,
+      identityProvider: IdentityProvider.LOCAL,
+      identityMigrationStatus: IdentityMigrationStatus.LOCAL_ONLY,
+      emailVerified: true,
+      onboardingCompleted: true,
       isActive: true,
       pointsBalance: 100,
       reservedPoints: 0,
@@ -163,7 +169,10 @@ export class UsersService implements OnModuleInit {
   }
 
   async findByEmail(email: string) {
-    return this.userModel.findOne({ email: email.toLowerCase() }).exec();
+    return this.userModel
+      .findOne({ email: email.toLowerCase() })
+      .select('+passwordHash')
+      .exec();
   }
 
   async findById(id: string) {

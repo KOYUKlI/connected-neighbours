@@ -63,6 +63,74 @@ services:
       retries: 10
       start_period: 30s
 
+  keycloak-db:
+    image: postgres:17.10-alpine3.23
+    container_name: cn-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    container_name: cn-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.0
+    container_name: cn-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB_NAME}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KEYCLOAK_SERVICE_CLIENT_SECRET: ${KEYCLOAK_SERVICE_CLIENT_SECRET}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./infra/keycloak/connected-neighbours-realm.json:/opt/keycloak/data/import/connected-neighbours-realm.json:ro
+      - keycloak_data:/opt/keycloak/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nhost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
   api:
     build:
       context: .
@@ -100,10 +168,17 @@ services:
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio-password
       MINIO_BUCKET: connected-neighbours
-      KEYCLOAK_BASE_URL: http://keycloak:8080
-      KEYCLOAK_REALM: connected-neighbours
-      KEYCLOAK_CLIENT_ID: connected-neighbours-api
-      KEYCLOAK_CLIENT_SECRET: dev-secret
+      AUTH_LOCAL_ENABLED: "${AUTH_LOCAL_ENABLED:-true}"
+      KEYCLOAK_ENABLED: "${KEYCLOAK_ENABLED:-false}"
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: "${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}"
+      KEYCLOAK_REALM: "${KEYCLOAK_REALM:-connected-neighbours}"
+      KEYCLOAK_API_AUDIENCE: "${KEYCLOAK_API_AUDIENCE:-connected-neighbours-api}"
+      KEYCLOAK_WEB_CLIENT_ID: "${KEYCLOAK_WEB_CLIENT_ID:-connected-neighbours-web}"
+      KEYCLOAK_ADMIN_CLIENT_ID: "${KEYCLOAK_ADMIN_CLIENT_ID:-connected-neighbours-admin}"
+      KEYCLOAK_SERVICE_CLIENT_ID: "${KEYCLOAK_SERVICE_CLIENT_ID:-connected-neighbours-service}"
+      KEYCLOAK_SERVICE_CLIENT_SECRET: "${KEYCLOAK_SERVICE_CLIENT_SECRET}"
+      KEYCLOAK_REQUEST_TIMEOUT_MS: "${KEYCLOAK_REQUEST_TIMEOUT_MS:-2500}"
       JWT_SECRET: connected-neighbours-jwt-secret-docker
       JWT_EXPIRES_IN: 1d
       DEV_AUTH_SEED: "true"
@@ -136,3 +211,5 @@ volumes:
   mongodb_data:
   minio_data:
   neo4j_data:
+  keycloak_postgres_data:
+  keycloak_data:

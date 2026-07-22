@@ -85,10 +85,25 @@ import { VotesModule } from './votes/votes.module';
         MINIO_SECRET_KEY: Joi.string().required(),
         MINIO_BUCKET: Joi.string().required(),
 
-        KEYCLOAK_BASE_URL: Joi.string().uri().required(),
-        KEYCLOAK_REALM: Joi.string().required(),
-        KEYCLOAK_CLIENT_ID: Joi.string().required(),
-        KEYCLOAK_CLIENT_SECRET: Joi.string().required(),
+        AUTH_LOCAL_ENABLED: Joi.boolean().default(true),
+        KEYCLOAK_ENABLED: Joi.boolean().default(false),
+        KEYCLOAK_INTERNAL_URL: Joi.string().uri().optional().allow(''),
+        KEYCLOAK_PUBLIC_URL: Joi.string().uri().optional().allow(''),
+        KEYCLOAK_REALM: Joi.string().default('connected-neighbours'),
+        KEYCLOAK_API_AUDIENCE: Joi.string().default('connected-neighbours-api'),
+        KEYCLOAK_WEB_CLIENT_ID: Joi.string().default('connected-neighbours-web'),
+        KEYCLOAK_ADMIN_CLIENT_ID: Joi.string().default(
+          'connected-neighbours-admin',
+        ),
+        KEYCLOAK_SERVICE_CLIENT_ID: Joi.string().default(
+          'connected-neighbours-service',
+        ),
+        KEYCLOAK_SERVICE_CLIENT_SECRET: Joi.string().optional().allow(''),
+        KEYCLOAK_REQUEST_TIMEOUT_MS: Joi.number()
+          .integer()
+          .min(250)
+          .max(10000)
+          .default(2500),
 
         JWT_SECRET: Joi.string().min(16).required(),
         JWT_EXPIRES_IN: Joi.string().default('1d'),

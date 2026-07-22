@@ -16,6 +16,19 @@ export enum NeighborhoodAssignmentSource {
   SYSTEM = 'system',
 }
 
+export enum IdentityProvider {
+  LOCAL = 'local',
+  KEYCLOAK = 'keycloak',
+  LINKED = 'linked',
+}
+
+export enum IdentityMigrationStatus {
+  LOCAL_ONLY = 'local_only',
+  LINK_REQUIRED = 'link_required',
+  LINKED = 'linked',
+  KEYCLOAK_ONLY = 'keycloak_only',
+}
+
 export type NeighborhoodAssignmentHistoryEntry = {
   previousNeighborhoodId: string | null;
   neighborhoodId: string;
@@ -39,7 +52,7 @@ export class User {
   @Prop({ required: true, type: String, enum: Role, default: Role.RESIDENT })
   role: Role;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ trim: true, default: '' })
   neighborhoodId: string;
 
   @Prop({ type: String, trim: true, default: null, select: false })
@@ -64,8 +77,37 @@ export class User {
   @Prop({ type: [Object], default: [] })
   neighborhoodAssignmentHistory: NeighborhoodAssignmentHistoryEntry[];
 
-  @Prop({ required: true })
-  passwordHash: string;
+  @Prop({ type: String, default: null, select: false })
+  passwordHash: string | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  keycloakSubject: string | null;
+
+  @Prop({
+    type: String,
+    enum: IdentityProvider,
+    default: IdentityProvider.LOCAL,
+  })
+  identityProvider: IdentityProvider;
+
+  @Prop({ type: Boolean, default: false })
+  emailVerified: boolean;
+
+  @Prop({ type: Date, default: null })
+  identityLinkedAt: Date | null;
+
+  @Prop({
+    type: String,
+    enum: IdentityMigrationStatus,
+    default: IdentityMigrationStatus.LOCAL_ONLY,
+  })
+  identityMigrationStatus: IdentityMigrationStatus;
+
+  @Prop({ type: Boolean, default: true })
+  onboardingCompleted: boolean;
+
+  @Prop({ type: Date, default: null })
+  lastIdentitySyncAt: Date | null;
 
   @Prop({ required: true, default: true })
   isActive: boolean;
@@ -109,3 +151,11 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index(
+  { keycloakSubject: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { keycloakSubject: { $type: 'string' } },
+  },
+);
