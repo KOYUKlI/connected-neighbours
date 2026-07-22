@@ -31,6 +31,10 @@ import {
   NeighborhoodStatus,
 } from '../neighborhoods/schemas/neighborhood.schema';
 import { PublicUsersService } from '../users/public-users.service';
+import {
+  ContractReviewPermission,
+  ReviewsService,
+} from '../reviews/reviews.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -83,6 +87,7 @@ type EnrichmentContext = {
   viewerApplications: Map<string, ViewerApplicationRow>;
   viewerContracts: Map<string, ContractRow>;
   activeDisputes: Map<string, DisputeRow>;
+  reviewPermissions: Map<string, ContractReviewPermission>;
 };
 type ServiceFilter = Record<string, unknown>;
 
@@ -102,6 +107,7 @@ export class ServicesService {
     @InjectModel(ServiceProof.name)
     private readonly proofModel: Model<ServiceProofDocument>,
     private readonly publicUsersService: PublicUsersService,
+    private readonly reviewsService: ReviewsService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto, ownerId: string) {
@@ -231,7 +237,7 @@ export class ServicesService {
     actor: AuthenticatedUser,
   ): Promise<ServiceResponse[]> {
     if (rows.length === 0) return [];
-    const context = await this.loadEnrichmentContext(rows, actor.sub);
+    const context = await this.loadEnrichmentContext(rows, actor);
     return rows.map((row) => this.presentService(row, actor, context));
   }
 
@@ -358,7 +364,7 @@ export class ServicesService {
 
   private async loadEnrichmentContext(
     rows: ServiceRow[],
-    viewerId: string,
+    actor: AuthenticatedUser,
   ): Promise<EnrichmentContext> {
     const serviceIds = rows.map((row) => String(row._id));
     const ownerIds = rows.map((row) => row.ownerId);
@@ -405,14 +411,14 @@ export class ServicesService {
         ])
         .exec(),
       this.applicationModel
-        .find({ serviceId: { $in: serviceIds }, applicantId: viewerId })
+        .find({ serviceId: { $in: serviceIds }, applicantId: actor.sub })
         .sort({ createdAt: -1 })
         .lean<ViewerApplicationRow[]>()
         .exec(),
       this.contractModel
         .find({
           serviceId: { $in: serviceIds },
-          $or: [{ requesterId: viewerId }, { providerId: viewerId }],
+          $or: [{ requesterId: actor.sub }, { providerId: actor.sub }],
         })
         .lean<ContractRow[]>()
         .exec(),
@@ -443,6 +449,12 @@ export class ServicesService {
       }
     }
 
+    const reviewPermissions =
+      await this.reviewsService.getPermissionsByContractIds(
+        contracts.map((contract) => String(contract._id)),
+        actor,
+      );
+
     return {
       owners,
       neighborhoods: neighborhoodMap,
@@ -459,6 +471,7 @@ export class ServicesService {
       activeDisputes: new Map(
         disputes.map((dispute) => [dispute.serviceId, dispute]),
       ),
+      reviewPermissions,
     };
   }
 
@@ -478,6 +491,9 @@ export class ServicesService {
     const contractIsActive = contract?.status === ContractStatus.ACTIVE;
     const canModerate = [Role.MODERATOR, Role.ADMIN].includes(actor.role);
     const hasActiveDispute = Boolean(dispute);
+    const reviewPermission = contract
+      ? context.reviewPermissions.get(String(contract._id))
+      : undefined;
     const canOpenDispute =
       isParticipant &&
       contractIsActive &&
@@ -598,7 +614,9 @@ export class ServicesService {
         canStartReview: canModerate && hasActiveDispute,
         canResolveDispute: canModerate && hasActiveDispute,
         canCloseDispute: false,
+        canReview: reviewPermission?.canReview ?? false,
       },
+      review: reviewPermission ?? null,
       activeDispute:
         isParticipant && dispute
           ? {

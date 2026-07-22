@@ -21,6 +21,8 @@ import { DocumentsPage } from './features/documents/DocumentsPage';
 import { DisputesPage } from './pages/DisputesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { PublicProfilePage } from './pages/PublicProfilePage';
 import { ServiceCreatePage } from './pages/ServiceCreatePage';
 import { ServiceDetailPage } from './pages/ServiceDetailPage';
 import { ServicesExplorePage } from './pages/ServicesExplorePage';
@@ -61,6 +63,7 @@ const residentRoutes = [
       />
     ),
   },
+  { path: 'neighbors/:userId', element: <PublicProfilePage /> },
   {
     path: 'activities',
     element: (
@@ -81,16 +84,7 @@ const residentRoutes = [
       />
     ),
   },
-  {
-    path: 'profile',
-    element: (
-      <ComingSoonPage
-        description="La gestion détaillée du compte, des points et de la confidentialité arrive prochainement."
-        icon="user"
-        title="Mon profil"
-      />
-    ),
-  },
+  { path: 'profile', element: <ProfilePage /> },
 ];
 
 export const router = createBrowserRouter([

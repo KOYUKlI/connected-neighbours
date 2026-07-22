@@ -114,6 +114,8 @@ function publicProfile(id: string, displayName: string) {
     avatarUrl: null,
     neighborhoodId: 'neighborhood-demo-01',
     reputationScore: null,
+    averageRating: null,
+    reviewCount: 0,
     completedServicesCount: 0,
   };
 }

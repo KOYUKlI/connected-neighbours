@@ -30,6 +30,12 @@ import {
   ContractDocument,
 } from '../contracts/schemas/contract.schema';
 import { DownloadDisposition } from './dto/download-file-query.dto';
+import {
+  AVATAR_MIME_TYPES,
+  AvatarMimeType,
+  MAX_AVATAR_SIZE_BYTES,
+  PresignAvatarUploadDto,
+} from './dto/presign-avatar-upload.dto';
 import { MAX_PDF_SIZE_BYTES, PresignUploadDto } from './dto/presign-upload.dto';
 import {
   StorageContextType,
@@ -40,6 +46,11 @@ import {
 
 const PRESIGN_EXPIRY_SECONDS = 300;
 const PDF_MIME_TYPE = 'application/pdf';
+const AVATAR_EXTENSION: Record<AvatarMimeType, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -206,6 +217,55 @@ export class StorageService implements OnModuleInit {
     };
   }
 
+  async presignAvatarUpload(
+    dto: PresignAvatarUploadDto,
+    user: AuthenticatedUser,
+  ) {
+    this.assertReady();
+    const objectKey = this.buildManagedObjectKey(
+      StorageContextType.USER_AVATAR,
+      AVATAR_EXTENSION[dto.mimeType],
+    );
+    const file = await this.fileModel.create({
+      bucket: this.bucket,
+      objectKey,
+      originalFilename: dto.filename,
+      safeFilename: this.sanitizeImageFilename(
+        dto.filename,
+        AVATAR_EXTENSION[dto.mimeType],
+      ),
+      mimeType: dto.mimeType,
+      sizeBytes: dto.sizeBytes,
+      sha256: null,
+      ownerId: user.sub,
+      contextType: StorageContextType.USER_AVATAR,
+      contextId: user.sub,
+      status: StorageFileStatus.PENDING,
+      completedAt: null,
+      deletedAt: null,
+    });
+    const uploadUrl = this.useMemory
+      ? `memory://upload/${file.id}`
+      : await getSignedUrl(
+          this.publicClient,
+          new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: objectKey,
+            ContentType: dto.mimeType,
+          }),
+          { expiresIn: PRESIGN_EXPIRY_SECONDS },
+        );
+    return {
+      fileId: file.id,
+      uploadUrl,
+      method: 'PUT' as const,
+      headers: { 'Content-Type': dto.mimeType },
+      expiresAt: new Date(
+        Date.now() + PRESIGN_EXPIRY_SECONDS * 1000,
+      ).toISOString(),
+    };
+  }
+
   async completeUpload(fileId: string, user: AuthenticatedUser) {
     this.assertReady();
     const file = await this.findFile(fileId);
@@ -243,7 +303,17 @@ export class StorageService implements OnModuleInit {
     }
 
     try {
-      this.validatePdf(buffer, actualSize, actualMime, file.sizeBytes);
+      if (file.contextType === StorageContextType.USER_AVATAR) {
+        this.validateAvatar(
+          buffer,
+          actualSize,
+          actualMime,
+          file.mimeType,
+          file.sizeBytes,
+        );
+      } else {
+        this.validatePdf(buffer, actualSize, actualMime, file.sizeBytes);
+      }
     } catch (error) {
       file.status = StorageFileStatus.REJECTED;
       await file.save();
@@ -320,6 +390,41 @@ export class StorageService implements OnModuleInit {
       throw new ConflictException('Le fichier n’a pas été vérifié.');
     }
     return file;
+  }
+
+  async getAvatarUrlsByFileIds(fileIds: string[]) {
+    const ids = [
+      ...new Set(fileIds.filter((id) => Types.ObjectId.isValid(id))),
+    ];
+    if (ids.length === 0) return new Map<string, string>();
+    const files = await this.fileModel
+      .find({
+        _id: { $in: ids },
+        contextType: StorageContextType.USER_AVATAR,
+        status: StorageFileStatus.VERIFIED,
+      })
+      .select('_id objectKey')
+      .lean<Array<{ _id: unknown; objectKey: string }>>()
+      .exec();
+    const entries = await Promise.all(
+      files.map(
+        async (file) =>
+          [
+            String(file._id),
+            this.useMemory
+              ? `memory://download/${String(file._id)}`
+              : await getSignedUrl(
+                  this.publicClient,
+                  new GetObjectCommand({
+                    Bucket: this.bucket,
+                    Key: file.objectKey,
+                  }),
+                  { expiresIn: PRESIGN_EXPIRY_SECONDS },
+                ),
+          ] as const,
+      ),
+    );
+    return new Map(entries);
   }
 
   async createAuthorizedDownloadUrl(
@@ -451,6 +556,47 @@ export class StorageService implements OnModuleInit {
     }
   }
 
+  private validateAvatar(
+    buffer: Buffer,
+    actualSize: number,
+    actualMime: string | undefined,
+    expectedMime: string,
+    expectedSize: number,
+  ) {
+    if (
+      actualSize < 12 ||
+      actualSize > MAX_AVATAR_SIZE_BYTES ||
+      actualSize !== expectedSize
+    ) {
+      throw new BadRequestException(
+        'La taille réelle de l’image ne correspond pas au dépôt annoncé.',
+      );
+    }
+    if (
+      !AVATAR_MIME_TYPES.includes(expectedMime as AvatarMimeType) ||
+      (actualMime && actualMime !== expectedMime)
+    ) {
+      throw new BadRequestException('Le type MIME de l’avatar est invalide.');
+    }
+    const isJpeg =
+      buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isPng = buffer
+      .subarray(0, 8)
+      .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const isWebp =
+      buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+    const signatureMatches =
+      (expectedMime === 'image/jpeg' && isJpeg) ||
+      (expectedMime === 'image/png' && isPng) ||
+      (expectedMime === 'image/webp' && isWebp);
+    if (!signatureMatches) {
+      throw new BadRequestException(
+        'La signature binaire de l’avatar est invalide.',
+      );
+    }
+  }
+
   private buildManagedObjectKey(
     contextType: StorageContextType,
     extension: string,
@@ -469,6 +615,18 @@ export class StorageService implements OnModuleInit {
     return (
       (safe || 'document.pdf').slice(0, 180).replace(/\.pdf$/i, '') + '.pdf'
     );
+  }
+
+  private sanitizeImageFilename(filename: string, extension: string) {
+    const normalized = filename
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const stem = normalized
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 180);
+    return `${stem || 'avatar'}.${extension}`;
   }
 
   private sha256(buffer: Buffer) {

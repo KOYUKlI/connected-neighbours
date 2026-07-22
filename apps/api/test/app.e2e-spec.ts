@@ -82,6 +82,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
   let aliceId: string;
   let bobId: string;
+  let claireId: string;
   let e2eNeighborhoodId: string;
   let draftServiceId: string;
   let serviceId: string;
@@ -162,6 +163,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     outsideToken = outside.accessToken;
     aliceId = alice.user.id;
     bobId = bob.user.id;
+    claireId = claire.user.id;
 
     expect(admin.user.role).toBe(Role.ADMIN);
     expect(moderator.user.role).toBe(Role.MODERATOR);
@@ -1035,7 +1037,218 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(bobAfterTransfer.pointsBalance).toBe(125);
   });
 
-  it('covers contract cancellation with reserved point release', async () => {
+  it('covers profiles, avatars, reviews, replies and moderation', async () => {
+    await request(app.getHttpServer())
+      .get('/api/services/' + serviceId)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.review).toEqual(
+          expect.objectContaining({
+            canReview: true,
+            hasReviewed: false,
+            otherPartyId: bobId,
+          }),
+        );
+        expect(body.owner).toEqual(
+          expect.objectContaining({
+            displayName: 'Alice Martin',
+            reviewCount: expect.any(Number),
+          }),
+        );
+        expect(body.owner).not.toHaveProperty('email');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 6, comment: 'Note invalide.' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 5, comment: 'Cible injectée.', targetUserId: claireId })
+      .expect(400);
+
+    const aliceReview = await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 5, comment: 'Travail soigne et communication claire.' })
+      .expect(201);
+    expect(aliceReview.body).toEqual(
+      expect.objectContaining({
+        rating: 5,
+        status: 'published',
+        targetUser: expect.objectContaining({ id: bobId }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 4, comment: 'Tentative de doublon.' })
+      .expect(409);
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(claireToken))
+      .send({ rating: 5, comment: 'Avis tiers interdit.' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/users/' + bobId + '/reputation')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.averageRating).toBe(5);
+        expect(body.reviewCount).toBe(1);
+        expect(body.ratingDistribution['5']).toBe(1);
+        expect(body.reputationScore).toBe(83);
+      });
+
+    const bobReview = await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(bobToken))
+      .send({ rating: 4, comment: 'Demande precise et validation rapide.' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/reviews/' + bobReview.body.id + '/reply')
+      .set('Authorization', bearer(bobToken))
+      .send({ message: 'Je tente de répondre à mon propre avis.' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/reviews/' + bobReview.body.id + '/reply')
+      .set('Authorization', bearer(aliceToken))
+      .send({ message: 'Merci pour votre confiance.' })
+      .expect(201)
+      .expect(({ body }) =>
+        expect(body.response.message).toBe('Merci pour votre confiance.'),
+      );
+    await request(app.getHttpServer())
+      .post('/api/reviews/' + bobReview.body.id + '/reply')
+      .set('Authorization', bearer(aliceToken))
+      .send({ message: 'Seconde réponse.' })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/reviews/' + aliceReview.body.id + '/hide')
+      .set('Authorization', bearer(adminToken))
+      .send({ reason: 'Masquage de contrôle E2E.' })
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('hidden'));
+    await request(app.getHttpServer())
+      .get('/api/users/' + bobId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.total).toBe(0));
+    await request(app.getHttpServer())
+      .get('/api/reviews/' + aliceReview.body.id)
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe('hidden'));
+    await request(app.getHttpServer())
+      .get('/api/users/' + bobId + '/reputation')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.averageRating).toBeNull();
+        expect(body.reputationScore).toBeNull();
+      });
+    await request(app.getHttpServer())
+      .post('/api/admin/reviews/' + aliceReview.body.id + '/restore')
+      .set('Authorization', bearer(moderatorToken))
+      .send({ reason: 'Contenu conforme après vérification E2E.' })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.status).toBe('published');
+        expect(body.moderationHistory).toHaveLength(2);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/profile')
+      .set('Authorization', bearer(claireToken))
+      .send({ role: 'admin', pointsBalance: 500 })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch('/api/users/me/profile')
+      .set('Authorization', bearer(claireToken))
+      .send({ bio: 'Profil prive E2E', profileVisibility: 'private' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/users/' + claireId + '/public')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            id: claireId,
+            displayName: 'Claire Bernard',
+            isRestricted: true,
+          }),
+        );
+        expect(body).not.toHaveProperty('bio');
+        expect(body).not.toHaveProperty('neighborhoodId');
+        expect(body).not.toHaveProperty('reputation');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/presign')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'avatar.svg',
+        mimeType: 'image/svg+xml',
+        sizeBytes: 128,
+      })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/presign')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'avatar.png',
+        mimeType: 'image/png',
+        sizeBytes: 5 * 1024 * 1024 + 1,
+      })
+      .expect(400);
+
+    const png = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    const presign = await request(app.getHttpServer())
+      .post('/api/users/me/avatar/presign')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'alice.png',
+        mimeType: 'image/png',
+        sizeBytes: png.length,
+      })
+      .expect(201);
+    await storageService.putMemoryUploadForTest(presign.body.fileId, png);
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/' + presign.body.fileId + '/complete')
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/' + presign.body.fileId + '/complete')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.avatarUrl).toContain(presign.body.fileId);
+        expect(body).not.toHaveProperty('avatarFileId');
+      });
+    await request(app.getHttpServer())
+      .get('/api/users/' + aliceId + '/public')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body.avatarUrl).toContain(presign.body.fileId),
+      );
+    await request(app.getHttpServer())
+      .delete('/api/users/me/avatar')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.avatarUrl).toBeNull());
+  });
+  +it('covers contract cancellation with reserved point release', async () => {
     const serviceResponse = await request(app.getHttpServer())
       .post('/api/services')
       .set('Authorization', bearer(aliceToken))
@@ -1818,6 +2031,19 @@ describe('Connected Neighbours API P0 (e2e)', () => {
             }),
           ]),
         );
+        expect(body.reviewsWritten).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ contractId, rating: 5 }),
+          ]),
+        );
+        expect(body.reviewsReceived).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ contractId, rating: 4 }),
+          ]),
+        );
+        expect(body.reputation).toEqual(
+          expect.objectContaining({ reviewCount: expect.any(Number) }),
+        );
       });
   });
 
@@ -2292,6 +2518,14 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .find({ serviceId: { $in: serviceIds } }, { projection: { _id: 1 } })
       .toArray();
     const contractIds = staleContracts.map((contract) => String(contract._id));
+    const staleUsers = await connection
+      .collection('users')
+      .find(
+        { email: { $in: DEMO_USERS.map((user) => user.email) } },
+        { projection: { _id: 1 } },
+      )
+      .toArray();
+    const userIds = staleUsers.map((user) => String(user._id));
 
     const staleDisputes = await connection
       .collection('disputes')
@@ -2342,11 +2576,20 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection.collection('serviceproofs').deleteMany({
         serviceId: { $in: serviceIds },
       }),
+      connection.collection('reviews').deleteMany({
+        $or: [
+          { serviceId: { $in: serviceIds } },
+          { contractId: { $in: contractIds } },
+        ],
+      }),
       connection.collection('manageddocuments').deleteMany({
         serviceId: { $in: serviceIds },
       }),
       connection.collection('storagefiles').deleteMany({
-        contextId: { $in: contractIds },
+        $or: [
+          { contextId: { $in: contractIds } },
+          { contextType: 'user_avatar', contextId: { $in: userIds } },
+        ],
       }),
       connection.collection('contracts').deleteMany({
         serviceId: { $in: serviceIds },

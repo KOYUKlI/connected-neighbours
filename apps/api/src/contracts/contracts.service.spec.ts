@@ -49,6 +49,10 @@ describe('ContractsService', () => {
     legacySignContract: jest.fn(),
   };
 
+  const reviewsServiceMock = {
+    getPermissionsByContractIds: jest.fn().mockResolvedValue(new Map()),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -60,6 +64,7 @@ describe('ContractsService', () => {
       publicUsersServiceMock as never,
       executionServiceMock as never,
       documentsServiceMock as never,
+      reviewsServiceMock as never,
     );
   });
 
@@ -468,9 +473,9 @@ describe('ContractsService', () => {
   it('should throw when the contract does not exist', async () => {
     contractModelMock.findById.mockReturnValue(execResult(null));
 
-    await expect(service.findOne('missing_contract', 'user_1')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      service.findOne('missing_contract', authUser('user_1')),
+    ).rejects.toThrow(NotFoundException);
   });
 });
 

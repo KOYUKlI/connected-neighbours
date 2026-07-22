@@ -17,6 +17,7 @@ export enum StorageContextType {
   DOCUMENT_FINAL = 'document_final',
   SERVICE_PROOF = 'service_proof',
   DISPUTE_EVIDENCE = 'dispute_evidence',
+  USER_AVATAR = 'user_avatar',
 }
 
 @Schema({ timestamps: true, versionKey: false })

@@ -103,6 +103,8 @@ function getNavigationIcon(id: string) {
       return <><path d="M5 5h14v15H5V5Zm3-2v4m8-4v4M5 9h14" /><path d="m9 14 2 2 4-4" /></>;
     case 'votes':
       return <><path d="M6 4h12v16H6V4Z" /><path d="m9 10 2 2 4-4M9 16h6" /></>;
+    case 'reviews':
+      return <><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /><path d="M8.5 21h7" /></>;
     case 'incidents':
       return <path d="M12 4 3 20h18L12 4Zm0 5v5m0 3h.01" />;
     case 'sync':

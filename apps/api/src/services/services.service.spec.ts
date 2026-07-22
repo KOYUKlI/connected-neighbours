@@ -30,10 +30,12 @@ describe('ServicesService', () => {
   const disputeModel = { find: jest.fn() };
   const proofModel = { aggregate: jest.fn() };
   const publicUsersService = { findByIds: jest.fn() };
+  const reviewsService = { getPermissionsByContractIds: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
     proofModel.aggregate.mockReturnValue(execResult([]));
+    reviewsService.getPermissionsByContractIds.mockResolvedValue(new Map());
     neighborhoodModel.findOne.mockReturnValue(
       execResult({ slug: 'quartier-centre', status: 'active', isActive: true }),
     );
@@ -45,6 +47,7 @@ describe('ServicesService', () => {
       disputeModel as never,
       proofModel as never,
       publicUsersService as never,
+      reviewsService as never,
     );
   });
 

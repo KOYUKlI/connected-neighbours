@@ -40,7 +40,17 @@ export function ServiceCard({
         </h2>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{service.description}</p>
         <dl className="mt-4 grid gap-2 text-sm text-slate-600">
-          <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="user" /><dt className="sr-only">Propriétaire</dt><dd>{formatOwner(service, currentUserId)}</dd></div>
+          <div className="flex items-center gap-2">
+            <Icon className="size-4 shrink-0 text-slate-400" name="user" />
+            <dt className="sr-only">Propriétaire</dt>
+            <dd>
+              {!isOwner && service.owner?.id ? (
+                <Link className="font-semibold text-slate-700 hover:text-emerald-800" to={`/neighbors/${service.owner.id}`}>
+                  {formatOwner(service, currentUserId)}
+                </Link>
+              ) : formatOwner(service, currentUserId)}
+            </dd>
+          </div>
           <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="map-pin" /><dt className="sr-only">Quartier</dt><dd>{formatNeighborhood(service.neighborhoodId, neighborhoods, service)}</dd></div>
           <div className="flex items-center gap-2"><Icon className="size-4 shrink-0 text-slate-400" name="clock" /><dt className="sr-only">Disponibilité</dt><dd className="line-clamp-1">{service.availability || 'À convenir'}</dd></div>
         </dl>

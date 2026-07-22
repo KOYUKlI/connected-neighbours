@@ -31,6 +31,7 @@ import {
   VoteAnswerSchema,
 } from '../votes/schemas/vote-answer.schema';
 import { Vote, VoteSchema } from '../votes/schemas/vote.schema';
+import { Review, ReviewSchema } from '../reviews/schemas/review.schema';
 import { DemoSeedService } from './demo-seed.service';
 
 @Module({
@@ -51,6 +52,8 @@ import { DemoSeedService } from './demo-seed.service';
       { name: EventResponse.name, schema: EventResponseSchema },
       { name: Vote.name, schema: VoteSchema },
       { name: VoteAnswer.name, schema: VoteAnswerSchema },
+      { name: Review.name, schema: ReviewSchema },
+      { name: Review.name, schema: ReviewSchema },
     ]),
   ],
   providers: [DemoSeedService],

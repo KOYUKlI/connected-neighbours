@@ -34,9 +34,13 @@ import {
 } from '../sync/schemas/sync-operation.schema';
 import { RgpdController } from './rgpd.controller';
 import { RgpdService } from './rgpd.service';
+import { ReviewsModule } from '../reviews/reviews.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
+    ReviewsModule,
+    StorageModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: ServiceApplication.name, schema: ServiceApplicationSchema },

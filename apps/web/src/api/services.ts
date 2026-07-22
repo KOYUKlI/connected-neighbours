@@ -6,6 +6,8 @@ export type PublicUserSummary = {
   avatarUrl: string | null;
   neighborhoodId: string;
   reputationScore: number | null;
+  averageRating: number | null;
+  reviewCount: number;
   completedServicesCount: number;
 };
 
@@ -64,6 +66,7 @@ export type ServicePermissions = {
   canStartReview: boolean;
   canResolveDispute: boolean;
   canCloseDispute: boolean;
+  canReview: boolean;
 };
 
 export type ContractSummary = {
@@ -141,6 +144,12 @@ export type ServiceItem = {
     id: string;
     status: 'open' | 'under_review';
     reservedPoints: number;
+  } | null;
+  review?: {
+    canReview: boolean;
+    hasReviewed: boolean;
+    reviewId: string | null;
+    otherPartyId: string | null;
   } | null;
 };
 

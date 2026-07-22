@@ -16,6 +16,12 @@ export class PublicUserDto {
   @ApiProperty({ nullable: true, example: null })
   reputationScore: number | null;
 
+  @ApiProperty({ nullable: true, example: 4.75 })
+  averageRating: number | null;
+
+  @ApiProperty({ example: 12 })
+  reviewCount: number;
+
   @ApiProperty({ example: 3 })
   completedServicesCount: number;
 }

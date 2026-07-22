@@ -45,6 +45,12 @@ export type ContractItem = {
   requester?: PublicUserSummary | null;
   provider?: PublicUserSummary | null;
   service?: ContractServiceSummary | null;
+  review?: {
+    canReview: boolean;
+    hasReviewed: boolean;
+    reviewId: string | null;
+    otherPartyId: string | null;
+  };
 };
 
 export type ContractCreationResult = {

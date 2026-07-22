@@ -71,6 +71,7 @@ import { DocumentsPage } from './features/documents/DocumentsPage'
 import { IncidentsPage } from './features/incidents/IncidentsPage'
 import { AdminEventsPage } from './features/local-life/AdminEventsPage'
 import { AdminVotesPage } from './features/local-life/AdminVotesPage'
+import { AdminReviewsPage } from './features/reviews/AdminReviewsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NeighborhoodCreatePage } from './pages/NeighborhoodCreatePage'
@@ -90,6 +91,7 @@ const navigationItems = [
   { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes' },
   { id: 'events', label: 'Événements', description: 'Vie du quartier', icon: 'events' },
   { id: 'votes', label: 'Votes', description: 'Consultations locales', icon: 'votes' },
+  { id: 'reviews', label: 'Avis', description: 'Réputation et modération', icon: 'reviews' },
   { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents' },
   { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync' },
   { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users' },
@@ -263,6 +265,9 @@ function App() {
           case 'votes': {
             break
           }
+          case 'reviews': {
+            break
+          }
           case 'incidents': {
             break
           }
@@ -361,7 +366,7 @@ function App() {
           items={
             currentUser?.role === 'moderator'
               ? navigationItems.filter((item) =>
-                  ['disputes', 'events', 'votes'].includes(item.id),
+                  ['disputes', 'events', 'votes', 'reviews'].includes(item.id),
                 )
               : navigationItems
           }
@@ -554,6 +559,8 @@ function renderSection(props: RenderSectionProps) {
       return <AdminEventsPage />
     case 'votes':
       return <AdminVotesPage />
+    case 'reviews':
+      return <AdminReviewsPage />
     case 'incidents':
       return <IncidentsPage />
     case 'sync':

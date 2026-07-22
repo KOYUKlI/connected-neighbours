@@ -2,23 +2,23 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import { User, UserDocument } from '../auth/schemas/user.schema';
 import {
-  Service,
-  ServiceDocument,
-  ServiceStatus,
-} from '../services/schemas/service.schema';
+  ProfileVisibility,
+  User,
+  UserDocument,
+} from '../auth/schemas/user.schema';
+import { ReputationService } from '../reviews/reputation.service';
+import { StorageService } from '../storage/storage.service';
 import { PublicUserDto } from './dto/public-user.dto';
 
 type PublicUserRow = {
   _id: unknown;
   displayName: string;
   neighborhoodId: string;
-};
-
-type CompletedServicesCount = {
-  _id: string;
-  count: number;
+  avatarFileId: string | null;
+  profileVisibility: ProfileVisibility;
+  showReputation: boolean;
+  showCompletedServices: boolean;
 };
 
 @Injectable()
@@ -26,8 +26,8 @@ export class PublicUsersService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-    @InjectModel(Service.name)
-    private readonly serviceModel: Model<ServiceDocument>,
+    private readonly reputationService: ReputationService,
+    private readonly storageService: StorageService,
   ) {}
 
   async findOne(userId: string): Promise<PublicUserDto> {
@@ -54,41 +54,54 @@ export class PublicUsersService {
       return new Map();
     }
 
-    const [users, completedServiceCounts] = await Promise.all([
-      this.userModel
-        .find({ _id: { $in: uniqueIds }, isActive: true })
-        .select('_id displayName neighborhoodId')
-        .lean<PublicUserRow[]>()
-        .exec(),
-      this.serviceModel
-        .aggregate<CompletedServicesCount>([
-          {
-            $match: {
-              ownerId: { $in: uniqueIds },
-              status: ServiceStatus.COMPLETED,
-            },
-          },
-          { $group: { _id: '$ownerId', count: { $sum: 1 } } },
-        ])
-        .exec(),
+    const users = await this.userModel
+      .find({ _id: { $in: uniqueIds }, isActive: true })
+      .select(
+        '_id displayName neighborhoodId avatarFileId profileVisibility showReputation showCompletedServices',
+      )
+      .lean<PublicUserRow[]>()
+      .exec();
+    const [reputations, avatarUrls] = await Promise.all([
+      this.reputationService.getSummariesByUserIds(
+        users.map((user) => String(user._id)),
+      ),
+      this.storageService.getAvatarUrlsByFileIds(
+        users
+          .map((user) => user.avatarFileId)
+          .filter((id): id is string => Boolean(id)),
+      ),
     ]);
-
-    const countsByUserId = new Map(
-      completedServiceCounts.map((entry) => [entry._id, entry.count]),
-    );
 
     return new Map(
       users.map((user) => {
         const id = String(user._id);
+        const reputation = reputations.get(id);
+        const isExpanded = user.profileVisibility !== ProfileVisibility.PRIVATE;
         return [
           id,
           {
             id,
             displayName: user.displayName,
-            avatarUrl: null,
+            avatarUrl: user.avatarFileId
+              ? (avatarUrls.get(user.avatarFileId) ?? null)
+              : null,
             neighborhoodId: user.neighborhoodId,
-            reputationScore: null,
-            completedServicesCount: countsByUserId.get(id) ?? 0,
+            reputationScore:
+              isExpanded && user.showReputation
+                ? (reputation?.reputationScore ?? null)
+                : null,
+            averageRating:
+              isExpanded && user.showReputation
+                ? (reputation?.averageRating ?? null)
+                : null,
+            reviewCount:
+              isExpanded && user.showReputation
+                ? (reputation?.reviewCount ?? 0)
+                : 0,
+            completedServicesCount:
+              isExpanded && user.showCompletedServices
+                ? (reputation?.completedServicesCount ?? 0)
+                : 0,
           },
         ];
       }),

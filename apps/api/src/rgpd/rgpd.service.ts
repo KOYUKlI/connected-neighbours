@@ -42,6 +42,12 @@ import {
   SyncOperation,
   SyncOperationDocument,
 } from '../sync/schemas/sync-operation.schema';
+import { Review, ReviewDocument } from '../reviews/schemas/review.schema';
+import { ReputationService } from '../reviews/reputation.service';
+import {
+  StorageFile,
+  StorageFileDocument,
+} from '../storage/schemas/storage-file.schema';
 
 type RgpdExportDocument = Record<string, unknown> & {
   _id?: unknown;
@@ -84,6 +90,11 @@ export class RgpdService {
     private readonly voteModel: Model<VoteDocument>,
     @InjectModel(VoteAnswer.name)
     private readonly voteAnswerModel: Model<VoteAnswerDocument>,
+    @InjectModel(Review.name)
+    private readonly reviewModel: Model<ReviewDocument>,
+    @InjectModel(StorageFile.name)
+    private readonly storageFileModel: Model<StorageFileDocument>,
+    private readonly reputationService: ReputationService,
   ) {}
 
   async exportPersonalData(userId: string) {
@@ -106,6 +117,10 @@ export class RgpdService {
       eventResponses,
       votesCreated,
       voteAnswers,
+      reviewsWritten,
+      reviewsReceived,
+      reputation,
+      avatarFile,
     ] = await Promise.all([
       this.serviceModel.find({ ownerId: userId }).exec(),
       this.applicationModel.find({ applicantId: userId }).exec(),
@@ -143,6 +158,18 @@ export class RgpdService {
       this.eventResponseModel.find({ userId }).exec(),
       this.voteModel.find({ createdById: userId }).exec(),
       this.voteAnswerModel.find({ userId }).exec(),
+      this.reviewModel.find({ authorId: userId }).exec(),
+      this.reviewModel.find({ targetUserId: userId }).exec(),
+      this.reputationService.getOne(userId),
+      user.avatarFileId
+        ? this.storageFileModel
+            .findById(user.avatarFileId)
+            .select(
+              '_id originalFilename safeFilename mimeType sizeBytes sha256 status completedAt createdAt',
+            )
+            .lean()
+            .exec()
+        : Promise.resolve(null),
     ]);
 
     const incidentIds = incidents.map((incident) => incident.id);
@@ -164,7 +191,19 @@ export class RgpdService {
         isActive: user.isActive,
         pointsBalance: user.pointsBalance,
         reservedPoints: user.reservedPoints,
+        bio: user.bio,
+        interests: user.interests,
+        profileVisibility: user.profileVisibility,
+        showNeighborhood: user.showNeighborhood,
+        showReviews: user.showReviews,
+        showCompletedServices: user.showCompletedServices,
+        showReputation: user.showReputation,
+        profileUpdatedAt: user.profileUpdatedAt,
       },
+      avatar: avatarFile ? this.normalizeDocument(avatarFile) : null,
+      reputation,
+      reviewsWritten: this.normalizeDocuments(reviewsWritten),
+      reviewsReceived: this.normalizeDocuments(reviewsReceived),
       services: this.normalizeDocuments(services),
       applicationsAsApplicant: this.normalizeDocuments(applicationsAsApplicant),
       applicationsAsOwner: this.normalizeDocuments(applicationsAsOwner),

@@ -9,7 +9,11 @@ import {
 } from '../applications/schemas/service-application.schema';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
-import { User, UserDocument } from '../auth/schemas/user.schema';
+import {
+  ProfileVisibility,
+  User,
+  UserDocument,
+} from '../auth/schemas/user.schema';
 import { UsersService } from '../auth/users.service';
 import {
   Contract,
@@ -76,6 +80,11 @@ import {
   VoteResultsVisibility,
   VoteStatus,
 } from '../votes/schemas/vote.schema';
+import {
+  Review,
+  ReviewDocument,
+  ReviewStatus,
+} from '../reviews/schemas/review.schema';
 
 type DemoExecutionReference = {
   serviceId: string;
@@ -122,6 +131,8 @@ export class DemoSeedService implements OnModuleInit {
     private readonly voteModel: Model<VoteDocument>,
     @InjectModel(VoteAnswer.name)
     private readonly voteAnswerModel: Model<VoteAnswerDocument>,
+    @InjectModel(Review.name)
+    private readonly reviewModel: Model<ReviewDocument>,
     private readonly usersService: UsersService,
     private readonly pointsService: PointsService,
     private readonly documentsService: DocumentsService,
@@ -179,6 +190,8 @@ export class DemoSeedService implements OnModuleInit {
         { $set: { pointsBalance: 125 } },
       )
       .exec();
+
+    await this.ensureProfileDemos(alice, bob, claire);
 
     const furniture = await this.ensureService(alice.id, {
       title: 'Aide pour monter un meuble',
@@ -269,6 +282,7 @@ export class DemoSeedService implements OnModuleInit {
       'partial',
     );
     await this.ensureDisputeDemos(disputeDemos, alice, bob, moderator);
+    await this.ensureReviewDemos(disputeDemos.resolved, alice, bob, claire);
     await this.ensureApplication(
       computerHelp,
       claire.id,
@@ -636,6 +650,195 @@ export class DemoSeedService implements OnModuleInit {
     if (document?.status === ManagedDocumentStatus.FINALIZED) {
       await this.documentsService.archive(document.id, adminActor);
     }
+  }
+
+  private async ensureProfileDemos(
+    alice: UserDocument,
+    bob: UserDocument,
+    claire: UserDocument,
+  ) {
+    await Promise.all([
+      this.userModel
+        .updateOne(
+          { _id: alice.id },
+          {
+            $set: {
+              bio: 'Habitante du Quartier Centre, passionnée de bricolage et de vie locale.',
+              interests: ['Bricolage', 'Jardinage', 'Vie locale'],
+              profileVisibility: ProfileVisibility.NEIGHBORHOOD,
+              showNeighborhood: true,
+              showReviews: true,
+              showCompletedServices: true,
+              showReputation: true,
+            },
+          },
+        )
+        .exec(),
+      this.userModel
+        .updateOne(
+          { _id: bob.id },
+          {
+            $set: {
+              bio: 'Voisin disponible pour le bricolage et l’aide informatique.',
+              interests: ['Bricolage', 'Informatique', 'Animaux'],
+              profileVisibility: ProfileVisibility.NEIGHBORHOOD,
+              showNeighborhood: true,
+              showReviews: true,
+              showCompletedServices: true,
+              showReputation: true,
+            },
+          },
+        )
+        .exec(),
+      this.userModel
+        .updateOne(
+          { _id: claire.id },
+          {
+            $set: {
+              bio: 'Profil privé.',
+              interests: ['Cours'],
+              profileVisibility: ProfileVisibility.PRIVATE,
+              showNeighborhood: false,
+              showReviews: false,
+              showCompletedServices: false,
+              showReputation: false,
+            },
+          },
+        )
+        .exec(),
+    ]);
+  }
+
+  private async ensureReviewDemos(
+    resolved: DemoExecutionReference,
+    alice: UserDocument,
+    bob: UserDocument,
+    claire: UserDocument,
+  ) {
+    await this.ensureReview({
+      contractId: resolved.contractId,
+      serviceId: resolved.serviceId,
+      authorId: alice.id,
+      targetUserId: bob.id,
+      rating: 5,
+      comment:
+        'Bob a été ponctuel, soigneux et très clair dans ses explications.',
+      response: {
+        authorId: bob.id,
+        message: 'Merci Alice, ce fut un plaisir de vous aider.',
+        respondedAt: new Date('2026-07-21T18:00:00.000Z'),
+      },
+      status: ReviewStatus.PUBLISHED,
+    });
+    await this.ensureReview({
+      contractId: resolved.contractId,
+      serviceId: resolved.serviceId,
+      authorId: bob.id,
+      targetUserId: alice.id,
+      rating: 4,
+      comment: 'Organisation simple et accueil chaleureux.',
+      response: null,
+      status: ReviewStatus.HIDDEN,
+      moderationReason: 'Avis masqué pour la démonstration de modération.',
+    });
+
+    const service = await this.ensureService(claire.id, {
+      title: 'Initiation aux outils numériques',
+      description:
+        'Accompagnement terminé pour découvrir les démarches en ligne.',
+      type: ServiceType.REQUEST,
+      category: 'Informatique',
+      availability: 'Terminé',
+      isPaid: false,
+      pricePoints: null,
+      status: ServiceStatus.COMPLETED,
+    });
+    let contract = await this.contractModel
+      .findOne({ serviceId: service.id })
+      .exec();
+    if (!contract) {
+      contract = await this.contractModel.create({
+        serviceId: service.id,
+        applicationId: null,
+        requesterId: claire.id,
+        providerId: bob.id,
+        payerId: claire.id,
+        receiverId: bob.id,
+        pricePoints: 0,
+        status: ContractStatus.COMPLETED,
+        signedByIds: [claire.id, bob.id],
+        signedAt: new Date('2026-07-18T09:00:00.000Z'),
+        completedAt: new Date('2026-07-18T11:00:00.000Z'),
+      });
+      await this.serviceModel
+        .updateOne(
+          { _id: service.id },
+          {
+            $set: {
+              contractId: contract.id,
+              completedAt: new Date('2026-07-18T11:00:00.000Z'),
+              validatedAt: new Date('2026-07-18T11:00:00.000Z'),
+            },
+          },
+        )
+        .exec();
+    }
+    await this.ensureReview({
+      contractId: contract.id,
+      serviceId: service.id,
+      authorId: claire.id,
+      targetUserId: bob.id,
+      rating: 4,
+      comment: 'Une aide patiente et adaptée à mon niveau.',
+      response: null,
+      status: ReviewStatus.PUBLISHED,
+    });
+  }
+
+  private async ensureReview(input: {
+    contractId: string;
+    serviceId: string;
+    authorId: string;
+    targetUserId: string;
+    rating: number;
+    comment: string;
+    response: {
+      authorId: string;
+      message: string;
+      respondedAt: Date;
+    } | null;
+    status: ReviewStatus;
+    moderationReason?: string;
+  }) {
+    const existing = await this.reviewModel
+      .findOne({ contractId: input.contractId, authorId: input.authorId })
+      .exec();
+    if (existing) return existing;
+    const moderatedAt =
+      input.status === ReviewStatus.HIDDEN
+        ? new Date('2026-07-22T09:00:00.000Z')
+        : null;
+    const moderationHistory =
+      input.status === ReviewStatus.HIDDEN
+        ? [
+            {
+              action: 'hidden' as const,
+              moderatorId: 'seed-moderator',
+              reason:
+                input.moderationReason ??
+                'Avis masqué pour la démonstration de modération.',
+              createdAt: moderatedAt as Date,
+            },
+          ]
+        : [];
+    return this.reviewModel.create({
+      ...input,
+      moderationHistory,
+      moderatedById:
+        input.status === ReviewStatus.HIDDEN ? 'seed-moderator' : null,
+      moderatedAt,
+      moderationReason: input.moderationReason ?? null,
+    });
   }
 
   private seedActor(user: UserDocument, role: Role): AuthenticatedUser {

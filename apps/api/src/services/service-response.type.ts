@@ -64,7 +64,14 @@ export type ServiceResponse = {
     canStartReview: boolean;
     canResolveDispute: boolean;
     canCloseDispute: boolean;
+    canReview: boolean;
   };
+  review: {
+    canReview: boolean;
+    hasReviewed: boolean;
+    reviewId: string | null;
+    otherPartyId: string | null;
+  } | null;
   activeDispute: {
     id: string;
     status: DisputeStatus;

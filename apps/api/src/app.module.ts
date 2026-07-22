@@ -21,6 +21,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
 import { RgpdModule } from './rgpd/rgpd.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { ServicesModule } from './services/services.module';
 import { SsoModule } from './sso/sso.module';
 import { SyncModule } from './sync/sync.module';
@@ -105,6 +106,7 @@ import { VotesModule } from './votes/votes.module';
     DisputesModule,
     MessagingModule,
     RgpdModule,
+    ReviewsModule,
     SsoModule,
     UsersModule,
     DemoSeedModule,

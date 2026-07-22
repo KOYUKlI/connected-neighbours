@@ -13,7 +13,10 @@ describe('StorageService', () => {
   const files = new Map<string, ReturnType<typeof storageFile>>();
   const fileModel = {
     create: jest.fn((input: Record<string, unknown>) => {
-      const file = storageFile({ id: `file-${files.size + 1}`, ...input });
+      const file = storageFile({
+        id: (files.size + 1).toString(16).padStart(24, '0'),
+        ...input,
+      });
       files.set(file.id, file);
       return Promise.resolve(file);
     }),
@@ -115,6 +118,81 @@ describe('StorageService', () => {
       service.completeUpload(file.id, actor('alice')),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(file.status).toBe(StorageFileStatus.REJECTED);
+  });
+
+  it.each([
+    [
+      'image/jpeg',
+      Buffer.from([0xff, 0xd8, 0xff, ...new Array<number>(16).fill(0)]),
+    ],
+    [
+      'image/png',
+      Buffer.from([
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+        ...new Array<number>(12).fill(0),
+      ]),
+    ],
+    ['image/webp', Buffer.from('RIFF0000WEBPavatar-data', 'ascii')],
+  ])('accepts a verified %s avatar', async (mimeType, bytes) => {
+    const presigned = await service.presignAvatarUpload(
+      {
+        filename: 'avatar',
+        mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp',
+        sizeBytes: bytes.length,
+      },
+      actor('alice'),
+    );
+    await service.putMemoryUploadForTest(presigned.fileId, bytes);
+    const result = await service.completeUpload(
+      presigned.fileId,
+      actor('alice'),
+    );
+    expect(result.status).toBe(StorageFileStatus.VERIFIED);
+    expect(result.mimeType).toBe(mimeType);
+  });
+
+  it('rejects a fake image and marks it rejected', async () => {
+    const bytes = Buffer.from('this-is-not-a-real-png');
+    const presigned = await service.presignAvatarUpload(
+      {
+        filename: 'avatar.png',
+        mimeType: 'image/png',
+        sizeBytes: bytes.length,
+      },
+      actor('alice'),
+    );
+    await service.putMemoryUploadForTest(presigned.fileId, bytes);
+    await expect(
+      service.completeUpload(presigned.fileId, actor('alice')),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects an avatar whose announced size differs from the uploaded bytes', async () => {
+    const bytes = Buffer.from([
+      0xff,
+      0xd8,
+      0xff,
+      ...new Array<number>(16).fill(0),
+    ]);
+    const presigned = await service.presignAvatarUpload(
+      {
+        filename: 'avatar.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: bytes.length + 1,
+      },
+      actor('alice'),
+    );
+    await service.putMemoryUploadForTest(presigned.fileId, bytes);
+    await expect(
+      service.completeUpload(presigned.fileId, actor('alice')),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('refuses a temporary download URL to a contract outsider', async () => {

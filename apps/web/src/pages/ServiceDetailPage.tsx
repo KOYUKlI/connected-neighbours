@@ -38,6 +38,7 @@ import {
 } from "../api/services";
 import { useAuth } from "../auth/useAuth";
 import { OpenDisputeModal } from "../components/disputes/OpenDisputeModal";
+import { ReviewModal } from "../components/reviews/ReviewModal";
 import { PageContainer } from "../components/layout/PageContainer";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
@@ -89,6 +90,7 @@ export function ServiceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [disputeModalOpen, setDisputeModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!serviceId || !user) return;
@@ -241,6 +243,9 @@ export function ServiceDetailPage() {
   const canCancel =
     service.permissions?.canCancel ??
     (isOwner && !["completed", "cancelled"].includes(service.status));
+  const reviewContractId = service.contractSummary?.id ?? service.contractId ?? null;
+  const reviewTarget =
+    contract?.requesterId === user.id ? contract.provider : contract?.requester;
 
   const tabs = [
     { id: "overview" as const, label: "Présentation" },
@@ -387,6 +392,20 @@ export function ServiceDetailPage() {
               Ouvrir un litige
             </Button>
           ) : null}
+          {service.review?.canReview && reviewContractId ? (
+            <Button
+              disabled={pendingAction !== null}
+              onClick={() => setReviewModalOpen(true)}
+              variant="primary"
+            >
+              Déposer un avis
+            </Button>
+          ) : null}
+          {service.review?.hasReviewed ? (
+            <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">
+              Votre avis a été publié pour ce service.
+            </p>
+          ) : null}
           {service.activeDispute ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
               <strong className="block">Service en litige</strong>
@@ -407,6 +426,13 @@ export function ServiceDetailPage() {
               Publié par
             </p>
             <UserSummary
+              action={
+                !isOwner && service.owner?.id ? (
+                  <Link className={buttonStyles("ghost", "sm")} to={`/neighbors/${service.owner.id}`}>
+                    Voir le profil
+                  </Link>
+                ) : undefined
+              }
               name={
                 isOwner
                   ? (user.displayName ?? "Vous")
@@ -578,8 +604,11 @@ export function ServiceDetailPage() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-extrabold text-slate-950">
-                        {application.applicant?.displayName ??
-                          "Candidat du quartier"}
+                        {application.applicant ? (
+                          <Link className="hover:text-emerald-800" to={`/neighbors/${application.applicant.id}`}>
+                            {application.applicant.displayName}
+                          </Link>
+                        ) : "Candidat du quartier"}
                       </h2>
                       <Badge
                         tone={
@@ -734,6 +763,22 @@ export function ServiceDetailPage() {
                 </dd>
               </div>
             </dl>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {contract.requester ? (
+                <UserSummary
+                  action={<Link className={buttonStyles("ghost", "sm")} to={contract.requester.id === user.id ? "/profile" : `/neighbors/${contract.requester.id}`}>Profil</Link>}
+                  name={contract.requester.displayName}
+                  subtitle="Demandeur"
+                />
+              ) : null}
+              {contract.provider ? (
+                <UserSummary
+                  action={<Link className={buttonStyles("ghost", "sm")} to={contract.provider.id === user.id ? "/profile" : `/neighbors/${contract.provider.id}`}>Profil</Link>}
+                  name={contract.provider.displayName}
+                  subtitle="Prestataire"
+                />
+              ) : null}
+            </div>
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm leading-6 text-amber-900">
                 Le PDF contractuel centralise les conditions, les zones
@@ -822,6 +867,19 @@ export function ServiceDetailPage() {
           service.contractSummary?.pricePoints ?? service.pricePoints ?? 0
         }
       />
+      {reviewContractId ? (
+        <ReviewModal
+          contractId={reviewContractId}
+          onClose={() => setReviewModalOpen(false)}
+          onCreated={() => {
+            setSuccess("Votre avis a été publié.");
+            void load();
+          }}
+          open={reviewModalOpen}
+          serviceTitle={service.title}
+          targetName={reviewTarget?.displayName ?? "l’autre partie"}
+        />
+      ) : null}
       {tab === "history" ? (
         <Card>
           <h2 className="text-lg font-extrabold text-slate-950">

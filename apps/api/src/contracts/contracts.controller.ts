@@ -61,8 +61,8 @@ export class ContractsController {
   @ApiOkResponse({
     description: 'Contrats avec service et profils publics des parties.',
   })
-  findAll(@CurrentUser() user: { sub: string }) {
-    return this.contractsService.findAllForUser(user.sub);
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.contractsService.findAllForUser(user);
   }
 
   @Get(':id')
@@ -70,8 +70,8 @@ export class ContractsController {
   @ApiForbiddenResponse({
     description: "Le compte n'est pas partie au contrat.",
   })
-  findOne(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
-    return this.contractsService.findOne(id, user.sub);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.contractsService.findOne(id, user);
   }
 
   @Post(':id/sign')

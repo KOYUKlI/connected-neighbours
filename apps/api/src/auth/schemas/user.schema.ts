@@ -4,6 +4,11 @@ import { Role } from '../role.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
+export enum ProfileVisibility {
+  NEIGHBORHOOD = 'neighborhood',
+  PRIVATE = 'private',
+}
+
 @Schema({
   timestamps: true,
   versionKey: false,
@@ -32,6 +37,37 @@ export class User {
 
   @Prop({ required: true, default: 0, min: 0 })
   reservedPoints: number;
+
+  @Prop({ type: String, trim: true, maxlength: 500, default: '' })
+  bio: string;
+
+  @Prop({ type: [String], default: [] })
+  interests: string[];
+
+  @Prop({ type: String, trim: true, default: null })
+  avatarFileId: string | null;
+
+  @Prop({
+    type: String,
+    enum: ProfileVisibility,
+    default: ProfileVisibility.NEIGHBORHOOD,
+  })
+  profileVisibility: ProfileVisibility;
+
+  @Prop({ type: Boolean, default: true })
+  showNeighborhood: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  showReviews: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  showCompletedServices: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  showReputation: boolean;
+
+  @Prop({ type: Date, default: null })
+  profileUpdatedAt: Date | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
