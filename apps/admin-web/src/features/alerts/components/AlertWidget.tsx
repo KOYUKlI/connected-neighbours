@@ -1,30 +1,93 @@
 import type { AdminAlertRow } from '../../../api/admin';
-import { SeverityBadge } from '../../../shared/components/SeverityBadge';
-import { StatusBadge } from '../../../shared/components/StatusBadge';
-import { formatDate } from '../../../shared/utils/format';
+import { AdminBadge } from '../../../components/ui/AdminList';
+import { Button } from '../../../components/ui/Button';
 
 type AlertWidgetProps = {
   alert: AdminAlertRow;
+  onEdit: (alert: AdminAlertRow) => void;
+  onResolve: (alert: AdminAlertRow) => void;
 };
 
-export function AlertWidget({ alert }: AlertWidgetProps) {
+export function AlertWidget({ alert, onEdit, onResolve }: AlertWidgetProps) {
+  const canResolve = !['resolved', 'closed'].includes(alert.status ?? '');
+
   return (
-    <article className="alert-widget">
-      <header className="alert-widget-header">
-        <h3>{alert.title ?? 'Alerte'}</h3>
-        <div className="alert-widget-badges">
-          <SeverityBadge value={alert.severity} />
-          <StatusBadge value={alert.status} />
+    <article className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-slate-950">{alert.title ?? 'Alerte'}</h3>
+          {alert.details ? (
+            <p className="mt-1 text-sm leading-6 text-slate-700">{alert.details}</p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminBadge tone={getSeverityTone(alert.severity)}>
+            {formatSeverity(alert.severity)}
+          </AdminBadge>
+          <AdminBadge tone={getAlertStatusTone(alert.status)}>
+            {formatAlertStatus(alert.status)}
+          </AdminBadge>
         </div>
       </header>
 
-      {alert.details ? <p className="alert-widget-details">{alert.details}</p> : null}
-
-      <footer className="alert-widget-footer">
-        <span>Signalee par {alert.reporterName ?? 'Anonyme'}</span>
-        <span>Creee le {formatDate(alert.createdAt)}</span>
-        {alert.resolvedAt ? <span>Resolue le {formatDate(alert.resolvedAt)}</span> : null}
+      <footer className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        <span>
+          Signalée par {alert.reporterName ?? 'Anonyme'} · {formatDate(alert.createdAt)}
+          {alert.resolvedAt ? ` · résolue le ${formatDate(alert.resolvedAt)}` : ''}
+        </span>
+        <div className="flex gap-2">
+          <Button onClick={() => onEdit(alert)} size="sm" variant="ghost">
+            Modifier
+          </Button>
+          {canResolve ? (
+            <Button onClick={() => onResolve(alert)} size="sm" variant="secondary">
+              Résoudre
+            </Button>
+          ) : null}
+        </div>
       </footer>
     </article>
   );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+}
+
+function formatSeverity(severity?: string) {
+  const labels: Record<string, string> = {
+    critical: 'Critique',
+    high: 'Haute',
+    low: 'Basse',
+    medium: 'Moyenne',
+  };
+
+  return labels[severity ?? ''] ?? severity ?? 'Inconnue';
+}
+
+function formatAlertStatus(status?: string) {
+  const labels: Record<string, string> = {
+    closed: 'Fermée',
+    created: 'Créée',
+    in_progress: 'En cours',
+    open: 'Ouverte',
+    resolved: 'Résolue',
+  };
+
+  return labels[status ?? ''] ?? status ?? 'Inconnu';
+}
+
+function getSeverityTone(severity?: string) {
+  if (severity === 'critical' || severity === 'high') return 'red' as const;
+  if (severity === 'medium') return 'amber' as const;
+  return 'emerald' as const;
+}
+
+function getAlertStatusTone(status?: string) {
+  if (status === 'resolved' || status === 'closed') return 'emerald' as const;
+  if (status === 'in_progress') return 'blue' as const;
+  return 'amber' as const;
 }

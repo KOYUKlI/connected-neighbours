@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { cn } from './classNames';
 
-type BadgeTone = 'success' | 'warning' | 'danger' | 'neutral' | 'info';
+export type BadgeTone = 'success' | 'warning' | 'danger' | 'neutral' | 'info';
 
 const tones: Record<BadgeTone, string> = {
   success: 'border-emerald-200 bg-emerald-50 text-emerald-800',

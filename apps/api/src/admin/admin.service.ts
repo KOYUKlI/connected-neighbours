@@ -177,7 +177,7 @@ export class AdminService {
       .sort({ createdAt: -1 })
       .limit(ADMIN_LIST_LIMIT)
       .select(
-        'title type status severity neighborhoodId source externalId lastSyncedAt createdAt updatedAt',
+        'title description type status severity neighborhoodId source externalId lastSyncedAt createdAt updatedAt',
       )
       .lean()
       .exec();
@@ -185,6 +185,7 @@ export class AdminService {
     return incidents.map((incident) =>
       this.pickDocument(incident as unknown as AdminDocument, [
         'title',
+        'description',
         'type',
         'status',
         'severity',
@@ -202,7 +203,7 @@ export class AdminService {
     const incident = await this.incidentModel
       .findById(id)
       .select(
-        'title type status severity neighborhoodId source externalId lastSyncedAt createdAt updatedAt',
+        'title description type status severity neighborhoodId source externalId lastSyncedAt createdAt updatedAt',
       )
       .lean()
       .exec();
@@ -213,6 +214,7 @@ export class AdminService {
 
     return this.pickDocument(incident as unknown as AdminDocument, [
       'title',
+      'description',
       'type',
       'status',
       'severity',

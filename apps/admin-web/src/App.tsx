@@ -68,8 +68,8 @@ import { Breadcrumb } from './components/layout/Breadcrumb'
 import { ContractsListPage } from './pages/ContractsListPage'
 import { DisputesPage } from './features/disputes/DisputesPage'
 import { DocumentsPage } from './features/documents/DocumentsPage'
+import { IncidentsPage } from './features/incidents/IncidentsPage'
 import { DashboardPage } from './pages/DashboardPage'
-import { IncidentsListPage } from './pages/IncidentsListPage'
 import { LoginPage } from './pages/LoginPage'
 import { NeighborhoodCreatePage } from './pages/NeighborhoodCreatePage'
 import { NeighborhoodDetailPage } from './pages/NeighborhoodDetailPage'
@@ -254,14 +254,6 @@ function App() {
             break
           }
           case 'incidents': {
-            const [nextIncidents, nextNeighborhoods] = await Promise.all([
-              fetchIncidents(),
-              fetchNeighborhoods(),
-            ])
-            if (!ignore) {
-              setIncidents(nextIncidents)
-              setNeighborhoods(nextNeighborhoods)
-            }
             break
           }
           case 'sync': {
@@ -543,12 +535,7 @@ function renderSection(props: RenderSectionProps) {
     case 'disputes':
       return <DisputesPage />
     case 'incidents':
-      return (
-        <IncidentsListPage
-          incidents={props.incidents}
-          neighborhoods={props.neighborhoods}
-        />
-      )
+      return <IncidentsPage />
     case 'sync':
       return <SyncPage syncStates={props.syncStates} />
     case 'users':

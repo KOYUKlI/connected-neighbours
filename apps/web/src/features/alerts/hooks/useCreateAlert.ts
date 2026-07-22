@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { createAlert } from '../../../api/alerts';
-import type { CreateAlertInput } from '../../../api/alerts';
+import type { AlertSeverity } from '../../../api/alerts';
 import { useAuth } from '../../../auth/useAuth';
 import { getErrorMessage } from '../../../shared/utils/errors';
 
@@ -11,10 +12,15 @@ export function useCreateAlert() {
   const navigate = useNavigate();
   const { handleSessionError } = useAuth();
 
+  const [title, setTitle] = useState('');
+  const [details, setDetails] = useState('');
+  const [severity, setSeverity] = useState<AlertSeverity>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(input: CreateAlertInput) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     if (!incidentId) {
       return;
     }
@@ -23,7 +29,7 @@ export function useCreateAlert() {
     setError(null);
 
     try {
-      await createAlert(incidentId, input);
+      await createAlert(incidentId, { title, details, severity });
       navigate(`/app/incidents/${incidentId}/alerts`);
     } catch (err) {
       if (handleSessionError(err)) {
@@ -42,5 +48,17 @@ export function useCreateAlert() {
     }
   }
 
-  return { incidentId, isSubmitting, error, submit, cancel };
+  return {
+    incidentId,
+    title,
+    setTitle,
+    details,
+    setDetails,
+    severity,
+    setSeverity,
+    isSubmitting,
+    error,
+    handleSubmit,
+    cancel,
+  };
 }

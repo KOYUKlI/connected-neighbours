@@ -49,6 +49,7 @@ export type AdminContractRow = {
 export type AdminIncidentRow = {
   id: string | null;
   title?: string;
+  description?: string;
   type?: string;
   status?: string;
   severity?: string;
@@ -77,10 +78,27 @@ export type AdminAlertRow = {
 
 export type AlertSeverityInput = 'low' | 'medium' | 'high' | 'critical';
 
+export type IncidentTypeInput =
+  | 'security'
+  | 'maintenance'
+  | 'nuisance'
+  | 'cleanliness'
+  | 'traffic'
+  | 'other';
+
 export type CreateAlertInput = {
   title: string;
   details: string;
   severity: AlertSeverityInput;
+};
+
+export type UpdateAlertInput = Partial<CreateAlertInput>;
+
+export type UpdateIncidentInput = {
+  title?: string;
+  description?: string;
+  type?: IncidentTypeInput;
+  severity?: AlertSeverityInput;
 };
 
 export type AdminSyncStateRow = {
@@ -130,11 +148,63 @@ export function fetchIncidentAlerts(id: string) {
   return apiRequest<AdminAlertRow[]>(`/api/admin/incidents/${id}/alerts`);
 }
 
-export function createIncidentAlert(incidentId: string, input: CreateAlertInput) {
-  return apiRequest<AdminAlertRow>(`/api/incidents/${incidentId}/alerts`, {
+export async function createIncidentAlert(incidentId: string, input: CreateAlertInput) {
+  const raw = await apiRequest<RawEntity<AdminAlertRow>>(`/api/incidents/${incidentId}/alerts`, {
     method: 'POST',
     body: JSON.stringify({ ...input, source: 'admin_web' }),
   });
+
+  return normalizeId(raw);
+}
+
+export async function updateIncident(id: string, input: UpdateIncidentInput) {
+  const raw = await apiRequest<RawEntity<AdminIncidentRow>>(`/api/incidents/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+
+  return normalizeId(raw);
+}
+
+export async function resolveIncident(id: string) {
+  const raw = await apiRequest<RawEntity<AdminIncidentRow>>(`/api/incidents/${id}/resolve`, {
+    method: 'POST',
+  });
+
+  return normalizeId(raw);
+}
+
+export async function closeIncident(id: string) {
+  const raw = await apiRequest<RawEntity<AdminIncidentRow>>(`/api/incidents/${id}/close`, {
+    method: 'POST',
+  });
+
+  return normalizeId(raw);
+}
+
+export async function updateAlert(id: string, input: UpdateAlertInput) {
+  const raw = await apiRequest<RawEntity<AdminAlertRow>>(`/api/alerts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+
+  return normalizeId(raw);
+}
+
+export async function resolveAlert(id: string) {
+  const raw = await apiRequest<RawEntity<AdminAlertRow>>(`/api/alerts/${id}/resolve`, {
+    method: 'POST',
+  });
+
+  return normalizeId(raw);
+}
+
+type RawEntity<T> = Omit<T, 'id'> & { id?: string | null; _id?: string };
+
+function normalizeId<T extends { id?: string | null }>(raw: RawEntity<T>): T {
+  const { _id, ...rest } = raw;
+
+  return { ...rest, id: rest.id ?? _id ?? null } as T;
 }
 
 export function fetchSyncStates() {

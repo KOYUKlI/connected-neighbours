@@ -1,8 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import App from './App';
-import { CreateAlertPage } from './features/alerts/CreateAlertPage';
-import { IncidentAlertsPage } from './features/alerts/IncidentAlertsPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { IncidentsPage } from './features/incidents/IncidentsPage';
@@ -21,8 +19,6 @@ export const router = createBrowserRouter([
       { path: 'services', element: <ServicesPage /> },
       { path: 'contracts', element: <ContractsPage /> },
       { path: 'incidents', element: <IncidentsPage /> },
-      { path: 'incidents/:incidentId/alerts', element: <IncidentAlertsPage /> },
-      { path: 'incidents/:incidentId/alerts/new', element: <CreateAlertPage /> },
       { path: 'sync', element: <SyncPage /> },
       { path: 'users', element: <UsersPage /> },
       { path: 'install', element: <InstallPage /> },

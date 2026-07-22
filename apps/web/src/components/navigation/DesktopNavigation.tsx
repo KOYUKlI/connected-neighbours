@@ -7,7 +7,7 @@ const links = [
   { label: 'Services', to: '/services' },
   { label: 'Voisins', to: '/neighbors' },
   { label: 'Mes activités', to: '/activities' },
-  { label: 'Vie locale', to: '/local' },
+  { label: 'Vie locale', to: '/app/local' },
   { label: 'Messages', to: '/messages' },
 ];
 
