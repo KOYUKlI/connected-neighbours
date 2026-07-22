@@ -34,6 +34,14 @@ import {
 } from '../events/schemas/event.schema';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
 import {
+  ServiceProof,
+  ServiceProofDocument,
+} from '../services/schemas/service-proof.schema';
+import {
+  DisputeEvidence,
+  DisputeEvidenceDocument,
+} from '../disputes/schemas/dispute-evidence.schema';
+import {
   VoteAnswer,
   VoteAnswerDocument,
 } from '../votes/schemas/vote-answer.schema';
@@ -59,6 +67,22 @@ type ObjectLikeDocument = {
   _id?: unknown;
   id?: unknown;
   toObject?: (options?: { virtuals?: boolean }) => Record<string, unknown>;
+};
+
+type ProofExportRow = {
+  _id?: Types.ObjectId | string;
+  serviceId?: string;
+  disputeId?: string;
+  type: string;
+  message: string | null;
+  fileId: string | null;
+  fileKind: string | null;
+  originalFilename: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  sha256: string | null;
+  attachmentDeletedAt: Date | null;
+  createdAt?: Date;
 };
 
 @Injectable()
@@ -94,6 +118,10 @@ export class RgpdService {
     private readonly reviewModel: Model<ReviewDocument>,
     @InjectModel(StorageFile.name)
     private readonly storageFileModel: Model<StorageFileDocument>,
+    @InjectModel(ServiceProof.name)
+    private readonly serviceProofModel: Model<ServiceProofDocument>,
+    @InjectModel(DisputeEvidence.name)
+    private readonly disputeEvidenceModel: Model<DisputeEvidenceDocument>,
     private readonly reputationService: ReputationService,
   ) {}
 
@@ -121,6 +149,8 @@ export class RgpdService {
       reviewsReceived,
       reputation,
       avatarFile,
+      serviceProofsAuthored,
+      disputeEvidenceAuthored,
     ] = await Promise.all([
       this.serviceModel.find({ ownerId: userId }).exec(),
       this.applicationModel.find({ applicantId: userId }).exec(),
@@ -170,6 +200,8 @@ export class RgpdService {
             .lean()
             .exec()
         : Promise.resolve(null),
+      this.serviceProofModel.find({ authorId: userId }).lean().exec(),
+      this.disputeEvidenceModel.find({ authorId: userId }).lean().exec(),
     ]);
 
     const incidentIds = incidents.map((incident) => incident.id);
@@ -217,6 +249,40 @@ export class RgpdService {
       eventResponses: this.normalizeDocuments(eventResponses),
       votesCreated: this.normalizeDocuments(votesCreated),
       voteAnswers: this.normalizeDocuments(voteAnswers),
+      serviceProofsAuthored: serviceProofsAuthored.map((proof) =>
+        this.presentProofExport(proof),
+      ),
+      disputeEvidenceAuthored: disputeEvidenceAuthored.map((evidence) =>
+        this.presentProofExport(evidence),
+      ),
+    };
+  }
+
+  private presentProofExport(
+    proof: ServiceProof | DisputeEvidence,
+  ): Record<string, unknown> {
+    const source = proof as unknown as ProofExportRow;
+    return {
+      id:
+        source._id instanceof Types.ObjectId
+          ? source._id.toHexString()
+          : (source._id ?? null),
+      serviceId: source.serviceId ?? null,
+      disputeId: source.disputeId ?? null,
+      type: source.type,
+      message: source.message,
+      attachment: source.fileId
+        ? {
+            fileId: source.fileId,
+            fileKind: source.fileKind,
+            originalFilename: source.originalFilename,
+            mimeType: source.mimeType,
+            sizeBytes: source.sizeBytes,
+            sha256: source.sha256,
+            deletedAt: source.attachmentDeletedAt,
+          }
+        : null,
+      createdAt: source.createdAt ?? null,
     };
   }
 

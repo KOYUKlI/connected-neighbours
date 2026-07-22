@@ -1,17 +1,25 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsMongoId,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 import { ServiceProofType } from '../schemas/service-proof.schema';
 
 export class CreateServiceProofDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     enum: ServiceProofType,
     example: ServiceProofType.NOTE,
     description:
-      'Les notes sont utilisables directement. Les autres types exigent une référence de fichier déjà disponible.',
+      'Champ historique facultatif. Le type de fichier est déterminé par le stockage vérifié.',
+    deprecated: true,
   })
+  @IsOptional()
   @IsEnum(ServiceProofType)
-  type: ServiceProofType;
+  type?: ServiceProofType;
 
   @ApiPropertyOptional({
     example: 'Le meuble est monté et fixé au mur.',
@@ -22,12 +30,8 @@ export class CreateServiceProofDto {
   @MaxLength(1000)
   message?: string;
 
-  @ApiPropertyOptional({
-    example: 'proofs/service-123/photo-1.jpg',
-    maxLength: 500,
-  })
+  @ApiPropertyOptional({ example: '665f24aa8bc7b9564f4a9310' })
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  fileReference?: string;
+  @IsMongoId()
+  fileId?: string;
 }

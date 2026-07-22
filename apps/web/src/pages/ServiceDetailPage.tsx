@@ -26,12 +26,15 @@ import { getNeighborhoods, type NeighborhoodItem } from "../api/neighborhoods";
 import {
   addServiceProof,
   cancelService,
+  deleteServiceProofAttachment,
   getService,
+  getServiceProofDownloadUrl,
   getServiceProofs,
   markServiceDone,
   publishService,
   requestServiceCorrection,
   startService,
+  uploadServiceProofFile,
   validateService,
   type ServiceItem,
   type ServiceProof,
@@ -243,7 +246,8 @@ export function ServiceDetailPage() {
   const canCancel =
     service.permissions?.canCancel ??
     (isOwner && !["completed", "cancelled"].includes(service.status));
-  const reviewContractId = service.contractSummary?.id ?? service.contractId ?? null;
+  const reviewContractId =
+    service.contractSummary?.id ?? service.contractId ?? null;
   const reviewTarget =
     contract?.requesterId === user.id ? contract.provider : contract?.requester;
 
@@ -428,7 +432,10 @@ export function ServiceDetailPage() {
             <UserSummary
               action={
                 !isOwner && service.owner?.id ? (
-                  <Link className={buttonStyles("ghost", "sm")} to={`/neighbors/${service.owner.id}`}>
+                  <Link
+                    className={buttonStyles("ghost", "sm")}
+                    to={`/neighbors/${service.owner.id}`}
+                  >
                     Voir le profil
                   </Link>
                 ) : undefined
@@ -605,10 +612,15 @@ export function ServiceDetailPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-extrabold text-slate-950">
                         {application.applicant ? (
-                          <Link className="hover:text-emerald-800" to={`/neighbors/${application.applicant.id}`}>
+                          <Link
+                            className="hover:text-emerald-800"
+                            to={`/neighbors/${application.applicant.id}`}
+                          >
                             {application.applicant.displayName}
                           </Link>
-                        ) : "Candidat du quartier"}
+                        ) : (
+                          "Candidat du quartier"
+                        )}
                       </h2>
                       <Badge
                         tone={
@@ -766,14 +778,36 @@ export function ServiceDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {contract.requester ? (
                 <UserSummary
-                  action={<Link className={buttonStyles("ghost", "sm")} to={contract.requester.id === user.id ? "/profile" : `/neighbors/${contract.requester.id}`}>Profil</Link>}
+                  action={
+                    <Link
+                      className={buttonStyles("ghost", "sm")}
+                      to={
+                        contract.requester.id === user.id
+                          ? "/profile"
+                          : `/neighbors/${contract.requester.id}`
+                      }
+                    >
+                      Profil
+                    </Link>
+                  }
                   name={contract.requester.displayName}
                   subtitle="Demandeur"
                 />
               ) : null}
               {contract.provider ? (
                 <UserSummary
-                  action={<Link className={buttonStyles("ghost", "sm")} to={contract.provider.id === user.id ? "/profile" : `/neighbors/${contract.provider.id}`}>Profil</Link>}
+                  action={
+                    <Link
+                      className={buttonStyles("ghost", "sm")}
+                      to={
+                        contract.provider.id === user.id
+                          ? "/profile"
+                          : `/neighbors/${contract.provider.id}`
+                      }
+                    >
+                      Profil
+                    </Link>
+                  }
                   name={contract.provider.displayName}
                   subtitle="Prestataire"
                 />
@@ -807,12 +841,30 @@ export function ServiceDetailPage() {
 
       {tab === "execution" ? (
         <ServiceExecutionPanel
-          onAddProof={(message) =>
+          onAddProof={({ file, message, onPhase }) =>
             runAction(
               "proof",
-              () => addServiceProof(serviceId, { type: "note", message }),
+              async () => {
+                const fileId = file
+                  ? await uploadServiceProofFile(serviceId, file, onPhase)
+                  : undefined;
+                return addServiceProof(serviceId, {
+                  message: message || undefined,
+                  fileId,
+                });
+              },
               "La preuve a été ajoutée.",
             )
+          }
+          onDeleteProof={(proofId) =>
+            runAction(
+              "delete-proof",
+              () => deleteServiceProofAttachment(serviceId, proofId),
+              "La pièce jointe a été supprimée. La trace de la preuve est conservée.",
+            )
+          }
+          onGetProofUrl={(proofId, disposition) =>
+            getServiceProofDownloadUrl(serviceId, proofId, disposition)
           }
           onMarkDone={() =>
             runAction(

@@ -904,6 +904,111 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(startedService.body.executionStatus).toBe('in_progress');
     expect(startedService.body.startedAt).toBeTruthy();
 
+    const proofPng = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+    ]);
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs/presign-upload')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'preuve.png',
+        mimeType: 'image/png',
+        sizeBytes: proofPng.length,
+      })
+      .expect(403);
+
+    const proofPresign = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs/presign-upload')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        filename: 'preuve.png',
+        mimeType: 'image/png',
+        sizeBytes: proofPng.length,
+      })
+      .expect(201);
+    const proofPresignBody = responseBody<{ fileId: string }>(proofPresign);
+    await storageService.putMemoryUploadForTest(
+      proofPresignBody.fileId,
+      proofPng,
+    );
+    await request(app.getHttpServer())
+      .post('/api/storage/files/' + proofPresignBody.fileId + '/complete')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    const fileProof = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        message: 'Photo de la fixation terminée.',
+        fileId: proofPresignBody.fileId,
+      })
+      .expect(201);
+    const fileProofBody = responseBody<{
+      id: string;
+      attachment: { deleted: boolean };
+    }>(fileProof);
+    expect(fileProofBody.attachment).toEqual(
+      expect.objectContaining({
+        fileKind: 'image',
+        mimeType: 'image/png',
+        sizeBytes: proofPng.length,
+        sha256: expect.any(String),
+      }),
+    );
+    expect(fileProofBody).not.toHaveProperty('objectKey');
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({ fileId: proofPresignBody.fileId })
+      .expect(409);
+    await request(app.getHttpServer())
+      .get(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(claireToken))
+      .expect(403);
+    const participantDownload = await request(app.getHttpServer())
+      .get(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+    expect(responseBody<{ url: string }>(participantDownload).url).toBeTruthy();
+    const deletedProof = await request(app.getHttpServer())
+      .delete(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/attachment',
+      )
+      .set('Authorization', bearer(bobToken))
+      .expect(200);
+    expect(
+      responseBody<{ attachment: { deleted: boolean } }>(deletedProof)
+        .attachment.deleted,
+    ).toBe(true);
+    await request(app.getHttpServer())
+      .get(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(aliceToken))
+      .expect(404);
+
     const firstProof = await request(app.getHttpServer())
       .post('/api/services/' + serviceId + '/proofs')
       .set('Authorization', bearer(bobToken))
@@ -2174,18 +2279,63 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .set('Authorization', bearer(aliceToken))
       .expect(409);
 
+    const disputePdf = Buffer.from('%PDF-dispute-proof', 'ascii');
+    const disputeEvidencePresign = await request(app.getHttpServer())
+      .post('/api/disputes/' + disputeId + '/evidence/presign-upload')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        filename: 'constat.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: disputePdf.length,
+      })
+      .expect(201);
+    const disputeEvidencePresignBody = typedResponseBody<{ fileId: string }>(
+      disputeEvidencePresign,
+    );
+    await storageService.putMemoryUploadForTest(
+      disputeEvidencePresignBody.fileId,
+      disputePdf,
+    );
     await request(app.getHttpServer())
+      .post(
+        '/api/storage/files/' + disputeEvidencePresignBody.fileId + '/complete',
+      )
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    const disputeEvidence = await request(app.getHttpServer())
       .post('/api/disputes/' + disputeId + '/evidence')
       .set('Authorization', bearer(bobToken))
       .send({
-        type: 'note',
         message: 'Une partie du travail a été réalisée et vérifiée.',
+        fileId: disputeEvidencePresignBody.fileId,
       })
-      .expect(201)
-      .expect(({ body }) => {
-        expect(body.author.displayName).toBe('Bob Dupont');
-        expect(body.author).not.toHaveProperty('email');
-      });
+      .expect(201);
+    const disputeEvidenceBody = typedResponseBody<{
+      id: string;
+      author: { displayName: string };
+      attachment: { fileKind: string; sha256: string };
+    }>(disputeEvidence);
+    expect(disputeEvidenceBody.author.displayName).toBe('Bob Dupont');
+    expect(disputeEvidenceBody.author).not.toHaveProperty('email');
+    expect(disputeEvidenceBody.attachment).toEqual(
+      expect.objectContaining({
+        fileKind: 'document',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest asymmetric matcher is typed as any.
+        sha256: expect.any(String),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get(
+        '/api/disputes/' +
+          disputeId +
+          '/evidence/' +
+          disputeEvidenceBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(claireToken))
+      .expect(403);
 
     await request(app.getHttpServer())
       .get('/api/disputes/me')
@@ -2218,6 +2368,17 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .set('Authorization', bearer(moderatorToken))
       .expect(201)
       .expect(({ body }) => expect(body.status).toBe('under_review'));
+
+    await request(app.getHttpServer())
+      .delete(
+        '/api/disputes/' +
+          disputeId +
+          '/evidence/' +
+          disputeEvidenceBody.id +
+          '/attachment',
+      )
+      .set('Authorization', bearer(bobToken))
+      .expect(409);
 
     await request(app.getHttpServer())
       .post('/api/admin/disputes/' + disputeId + '/resolve')
@@ -2588,6 +2749,11 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection.collection('storagefiles').deleteMany({
         $or: [
           { contextId: { $in: contractIds } },
+          { contextType: 'service_proof', contextId: { $in: serviceIds } },
+          {
+            contextType: 'dispute_evidence',
+            contextId: { $in: disputeIds },
+          },
           { contextType: 'user_avatar', contextId: { $in: userIds } },
         ],
       }),
@@ -2679,6 +2845,10 @@ function getId(document: { id?: string; _id?: string }) {
   }
 
   return String(id);
+}
+
+function typedResponseBody<T>(response: { body: unknown }) {
+  return response.body as T;
 }
 
 function neighborhoodPayload(slug: string) {

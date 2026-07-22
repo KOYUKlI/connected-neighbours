@@ -24,6 +24,14 @@ import {
 import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
 import {
+  ServiceProof,
+  ServiceProofSchema,
+} from '../services/schemas/service-proof.schema';
+import {
+  DisputeEvidence,
+  DisputeEvidenceSchema,
+} from '../disputes/schemas/dispute-evidence.schema';
+import {
   VoteAnswer,
   VoteAnswerSchema,
 } from '../votes/schemas/vote-answer.schema';
@@ -45,6 +53,8 @@ import { StorageModule } from '../storage/storage.module';
       { name: User.name, schema: UserSchema },
       { name: ServiceApplication.name, schema: ServiceApplicationSchema },
       { name: Service.name, schema: ServiceSchema },
+      { name: ServiceProof.name, schema: ServiceProofSchema },
+      { name: DisputeEvidence.name, schema: DisputeEvidenceSchema },
       { name: Contract.name, schema: ContractSchema },
       { name: PointTransaction.name, schema: PointTransactionSchema },
       { name: Incident.name, schema: IncidentSchema },

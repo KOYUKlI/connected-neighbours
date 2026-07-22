@@ -38,10 +38,17 @@ import {
 } from './dto/presign-avatar-upload.dto';
 import { MAX_PDF_SIZE_BYTES, PresignUploadDto } from './dto/presign-upload.dto';
 import {
+  getProofFileKind,
+  getProofMaxSize,
+  PresignProofUploadDto,
+  ProofMimeType,
+} from './dto/presign-proof-upload.dto';
+import {
   StorageContextType,
   StorageFile,
   StorageFileDocument,
   StorageFileStatus,
+  StorageLinkedEntityType,
 } from './schemas/storage-file.schema';
 
 const PRESIGN_EXPIRY_SECONDS = 300;
@@ -50,6 +57,17 @@ const AVATAR_EXTENSION: Record<AvatarMimeType, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+};
+const PROOF_EXTENSION: Record<ProofMimeType, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+  'audio/mpeg': 'mp3',
+  'audio/ogg': 'ogg',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/webm': 'webm',
 };
 
 @Injectable()
@@ -266,6 +284,63 @@ export class StorageService implements OnModuleInit {
     };
   }
 
+  async presignProofUpload(
+    dto: PresignProofUploadDto,
+    user: AuthenticatedUser,
+    contextType:
+      | StorageContextType.SERVICE_PROOF
+      | StorageContextType.DISPUTE_EVIDENCE,
+    contextId: string,
+  ) {
+    this.assertReady();
+    const maxSize = getProofMaxSize(dto.mimeType);
+    if (dto.sizeBytes > maxSize) {
+      throw new BadRequestException(
+        `Ce type de fichier est limité à ${Math.floor(maxSize / 1024 / 1024)} Mo.`,
+      );
+    }
+    const extension = PROOF_EXTENSION[dto.mimeType];
+    const objectKey = this.buildManagedObjectKey(contextType, extension);
+    const file = await this.fileModel.create({
+      bucket: this.bucket,
+      objectKey,
+      originalFilename: dto.filename,
+      safeFilename: this.sanitizeManagedFilename(dto.filename, extension),
+      mimeType: dto.mimeType,
+      sizeBytes: dto.sizeBytes,
+      sha256: null,
+      ownerId: user.sub,
+      contextType,
+      contextId,
+      status: StorageFileStatus.PENDING,
+      completedAt: null,
+      deletedAt: null,
+      linkedEntityType: null,
+      linkedEntityId: null,
+      linkedAt: null,
+    });
+    const uploadUrl = this.useMemory
+      ? `memory://upload/${file.id}`
+      : await getSignedUrl(
+          this.publicClient,
+          new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: objectKey,
+            ContentType: dto.mimeType,
+          }),
+          { expiresIn: PRESIGN_EXPIRY_SECONDS },
+        );
+    return {
+      fileId: file.id,
+      uploadUrl,
+      method: 'PUT' as const,
+      headers: { 'Content-Type': dto.mimeType },
+      expiresAt: new Date(
+        Date.now() + PRESIGN_EXPIRY_SECONDS * 1000,
+      ).toISOString(),
+    };
+  }
+
   async completeUpload(fileId: string, user: AuthenticatedUser) {
     this.assertReady();
     const file = await this.findFile(fileId);
@@ -309,6 +384,17 @@ export class StorageService implements OnModuleInit {
           actualSize,
           actualMime,
           file.mimeType,
+          file.sizeBytes,
+        );
+      } else if (
+        file.contextType === StorageContextType.SERVICE_PROOF ||
+        file.contextType === StorageContextType.DISPUTE_EVIDENCE
+      ) {
+        this.validateProofFile(
+          buffer,
+          actualSize,
+          actualMime,
+          file.mimeType as ProofMimeType,
           file.sizeBytes,
         );
       } else {
@@ -392,6 +478,162 @@ export class StorageService implements OnModuleInit {
     return file;
   }
 
+  async linkVerifiedFile(input: {
+    fileId: string;
+    ownerId: string;
+    contextType:
+      | StorageContextType.SERVICE_PROOF
+      | StorageContextType.DISPUTE_EVIDENCE;
+    contextId: string;
+    linkedEntityType: StorageLinkedEntityType;
+    linkedEntityId: string;
+  }) {
+    if (!Types.ObjectId.isValid(input.fileId)) {
+      throw new NotFoundException('Fichier introuvable.');
+    }
+    const linkedAt = new Date();
+    const linked = await this.fileModel
+      .findOneAndUpdate(
+        {
+          _id: input.fileId,
+          ownerId: input.ownerId,
+          contextType: input.contextType,
+          contextId: input.contextId,
+          status: StorageFileStatus.VERIFIED,
+          $or: [
+            { linkedEntityId: null },
+            { linkedEntityId: { $exists: false } },
+          ],
+        },
+        {
+          $set: {
+            linkedEntityType: input.linkedEntityType,
+            linkedEntityId: input.linkedEntityId,
+            linkedAt,
+          },
+        },
+        { returnDocument: 'after', runValidators: true },
+      )
+      .exec();
+    if (linked) return this.presentAttachment(linked);
+
+    const current = await this.findFile(input.fileId);
+    if (
+      current.linkedEntityType === input.linkedEntityType &&
+      current.linkedEntityId === input.linkedEntityId
+    ) {
+      return this.presentAttachment(current);
+    }
+    if (current.ownerId !== input.ownerId) {
+      throw new ForbiddenException('Ce fichier ne vous appartient pas.');
+    }
+    if (current.status !== StorageFileStatus.VERIFIED) {
+      throw new ConflictException('Le fichier doit être finalisé avant usage.');
+    }
+    throw new ConflictException('Ce fichier est déjà associé à une preuve.');
+  }
+
+  async releaseFileLink(
+    fileId: string,
+    linkedEntityType: StorageLinkedEntityType,
+    linkedEntityId: string,
+  ) {
+    if (!Types.ObjectId.isValid(fileId)) return;
+    await this.fileModel
+      .updateOne(
+        { _id: fileId, linkedEntityType, linkedEntityId },
+        {
+          $set: {
+            linkedEntityType: null,
+            linkedEntityId: null,
+            linkedAt: null,
+          },
+        },
+      )
+      .exec();
+  }
+
+  async findAttachmentsByFileIds(fileIds: Array<string | null | undefined>) {
+    const ids = [
+      ...new Set(
+        fileIds.filter((id): id is string =>
+          Boolean(id && Types.ObjectId.isValid(id)),
+        ),
+      ),
+    ];
+    if (ids.length === 0)
+      return new Map<string, ReturnType<StorageService['presentAttachment']>>();
+    const files = await this.fileModel.find({ _id: { $in: ids } }).exec();
+    return new Map(
+      files.map((file) => [file.id, this.presentAttachment(file)] as const),
+    );
+  }
+
+  async createLinkedDownloadUrl(
+    fileId: string,
+    linkedEntityType: StorageLinkedEntityType,
+    linkedEntityId: string,
+    disposition: DownloadDisposition,
+  ) {
+    this.assertReady();
+    const file = await this.getVerifiedFile(fileId);
+    if (
+      file.linkedEntityType !== linkedEntityType ||
+      file.linkedEntityId !== linkedEntityId ||
+      file.deletedAt
+    ) {
+      throw new NotFoundException('Pièce jointe introuvable.');
+    }
+    return this.buildDownloadResponse(file, disposition);
+  }
+
+  async deleteLinkedFile(
+    fileId: string,
+    linkedEntityType: StorageLinkedEntityType,
+    linkedEntityId: string,
+  ) {
+    if (!Types.ObjectId.isValid(fileId)) {
+      throw new NotFoundException('Pièce jointe introuvable.');
+    }
+    const deletedAt = new Date();
+    const file = await this.fileModel
+      .findOneAndUpdate(
+        {
+          _id: fileId,
+          linkedEntityType,
+          linkedEntityId,
+          status: StorageFileStatus.VERIFIED,
+        },
+        { $set: { status: StorageFileStatus.DELETED, deletedAt } },
+        { returnDocument: 'after' },
+      )
+      .exec();
+    if (!file) {
+      const current = await this.findFile(fileId);
+      if (
+        current.linkedEntityType === linkedEntityType &&
+        current.linkedEntityId === linkedEntityId &&
+        current.status === StorageFileStatus.DELETED
+      ) {
+        return { deletedAt: current.deletedAt };
+      }
+      throw new NotFoundException('Pièce jointe introuvable.');
+    }
+    try {
+      if (this.useMemory) this.memoryObjects.delete(file.objectKey);
+      else {
+        await this.client.send(
+          new DeleteObjectCommand({ Bucket: this.bucket, Key: file.objectKey }),
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Suppression physique différée pour le fichier ${file.id}: ${(error as Error).message}`,
+      );
+    }
+    return { deletedAt };
+  }
+
   async getAvatarUrlsByFileIds(fileIds: string[]) {
     const ids = [
       ...new Set(fileIds.filter((id) => Types.ObjectId.isValid(id))),
@@ -435,6 +677,13 @@ export class StorageService implements OnModuleInit {
     this.assertReady();
     const file = await this.getVerifiedFile(fileId);
     await this.assertFileAccess(file, user);
+    return this.buildDownloadResponse(file, disposition);
+  }
+
+  private async buildDownloadResponse(
+    file: StorageFileDocument,
+    disposition: DownloadDisposition,
+  ) {
     const url = this.useMemory
       ? `memory://download/${file.id}`
       : await getSignedUrl(
@@ -460,6 +709,11 @@ export class StorageService implements OnModuleInit {
   async removeOrphan(fileId: string) {
     const file = await this.findFile(fileId);
     if (file.status === StorageFileStatus.DELETED) return;
+    if (file.linkedEntityId) {
+      throw new ConflictException(
+        'Un fichier associé à une preuve ne peut pas être supprimé comme orphelin.',
+      );
+    }
     try {
       if (this.useMemory) this.memoryObjects.delete(file.objectKey);
       else
@@ -495,8 +749,24 @@ export class StorageService implements OnModuleInit {
     file: StorageFileDocument,
     user: AuthenticatedUser,
   ) {
+    if (
+      file.contextType === StorageContextType.SERVICE_PROOF ||
+      file.contextType === StorageContextType.DISPUTE_EVIDENCE
+    ) {
+      throw new ForbiddenException(
+        'Utilisez la route de la preuve pour accéder à cette pièce jointe.',
+      );
+    }
     if (file.ownerId === user.sub || user.role === Role.ADMIN) return;
-    await this.assertContractAccess(file.contextId, user);
+    if (
+      file.contextType === StorageContextType.CONTRACT_DOCUMENT ||
+      file.contextType === StorageContextType.DOCUMENT_REVISION ||
+      file.contextType === StorageContextType.DOCUMENT_FINAL
+    ) {
+      await this.assertContractAccess(file.contextId, user);
+      return;
+    }
+    throw new ForbiddenException('Contexte de fichier inaccessible.');
   }
 
   private async assertContractAccess(
@@ -597,6 +867,77 @@ export class StorageService implements OnModuleInit {
     }
   }
 
+  async cleanupUnlinkedProofFiles(olderThan: Date) {
+    const files = await this.fileModel
+      .find({
+        contextType: {
+          $in: [
+            StorageContextType.SERVICE_PROOF,
+            StorageContextType.DISPUTE_EVIDENCE,
+          ],
+        },
+        status: StorageFileStatus.VERIFIED,
+        completedAt: { $lt: olderThan },
+        $or: [{ linkedEntityId: null }, { linkedEntityId: { $exists: false } }],
+      })
+      .select('_id')
+      .lean<Array<{ _id: unknown }>>()
+      .exec();
+    await Promise.all(files.map((file) => this.removeOrphan(String(file._id))));
+    return { inspected: files.length };
+  }
+
+  private validateProofFile(
+    buffer: Buffer,
+    actualSize: number,
+    actualMime: string | undefined,
+    expectedMime: ProofMimeType,
+    expectedSize: number,
+  ) {
+    const maxSize = getProofMaxSize(expectedMime);
+    if (actualSize < 4 || actualSize > maxSize || actualSize !== expectedSize) {
+      throw new BadRequestException(
+        'La taille réelle du fichier ne correspond pas au dépôt annoncé.',
+      );
+    }
+    if (actualMime && actualMime !== expectedMime) {
+      throw new BadRequestException(
+        'Le type MIME réel du fichier ne correspond pas au dépôt annoncé.',
+      );
+    }
+
+    const jpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const png = buffer
+      .subarray(0, 8)
+      .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const riff = buffer.subarray(0, 4).toString('ascii') === 'RIFF';
+    const webp = riff && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+    const pdf = buffer.subarray(0, 5).toString('ascii') === '%PDF-';
+    const mp3 =
+      buffer.subarray(0, 3).toString('ascii') === 'ID3' ||
+      (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0);
+    const ogg = buffer.subarray(0, 4).toString('ascii') === 'OggS';
+    const wav = riff && buffer.subarray(8, 12).toString('ascii') === 'WAVE';
+    const webm = buffer
+      .subarray(0, 4)
+      .equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+    const valid =
+      (expectedMime === 'image/jpeg' && jpeg) ||
+      (expectedMime === 'image/png' && png) ||
+      (expectedMime === 'image/webp' && webp) ||
+      (expectedMime === 'application/pdf' && pdf) ||
+      (expectedMime === 'audio/mpeg' && mp3) ||
+      (expectedMime === 'audio/ogg' && ogg) ||
+      ((expectedMime === 'audio/wav' || expectedMime === 'audio/x-wav') &&
+        wav) ||
+      (expectedMime === 'audio/webm' && webm);
+    if (!valid) {
+      throw new BadRequestException(
+        'La signature binaire du fichier ne correspond pas à son type.',
+      );
+    }
+  }
+
   private buildManagedObjectKey(
     contextType: StorageContextType,
     extension: string,
@@ -629,6 +970,18 @@ export class StorageService implements OnModuleInit {
     return `${stem || 'avatar'}.${extension}`;
   }
 
+  private sanitizeManagedFilename(filename: string, extension: string) {
+    const normalized = filename
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const stem = normalized
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 180);
+    return `${stem || 'preuve'}.${extension}`;
+  }
+
   private sha256(buffer: Buffer) {
     return createHash('sha256').update(buffer).digest('hex');
   }
@@ -654,6 +1007,21 @@ export class StorageService implements OnModuleInit {
       status: file.status,
       completedAt: file.completedAt,
       createdAt: (file as StorageFileDocument & { createdAt?: Date }).createdAt,
+    };
+  }
+
+  private presentAttachment(file: StorageFileDocument) {
+    const deleted =
+      file.status === StorageFileStatus.DELETED || Boolean(file.deletedAt);
+    return {
+      fileId: file.id,
+      fileKind: getProofFileKind(file.mimeType as ProofMimeType),
+      originalFilename: file.originalFilename,
+      mimeType: file.mimeType,
+      sizeBytes: file.sizeBytes,
+      sha256: file.sha256,
+      deleted,
+      deletedAt: file.deletedAt,
     };
   }
 }

@@ -13,6 +13,7 @@ import {
 } from '../neighborhoods/schemas/neighborhood.schema';
 import { PointsModule } from '../points/points.module';
 import { ReviewsModule } from '../reviews/reviews.module';
+import { StorageModule } from '../storage/storage.module';
 import { UsersModule } from '../users/users.module';
 import {
   ServiceProof,
@@ -27,6 +28,7 @@ import { ServicesService } from './services.service';
   imports: [
     PointsModule,
     ReviewsModule,
+    StorageModule,
     UsersModule,
     MongooseModule.forFeature([
       { name: Service.name, schema: ServiceSchema },

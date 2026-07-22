@@ -1,15 +1,25 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsMongoId,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 import { DisputeEvidenceType } from '../schemas/dispute-evidence.schema';
 
 export class CreateDisputeEvidenceDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     enum: DisputeEvidenceType,
     example: DisputeEvidenceType.NOTE,
+    description:
+      'Champ historique facultatif. Le type de fichier est déterminé par le stockage vérifié.',
+    deprecated: true,
   })
+  @IsOptional()
   @IsEnum(DisputeEvidenceType)
-  type: DisputeEvidenceType;
+  type?: DisputeEvidenceType;
 
   @ApiPropertyOptional({
     example: 'La fixation reste instable après la correction demandée.',
@@ -20,12 +30,8 @@ export class CreateDisputeEvidenceDto {
   @MaxLength(2000)
   message?: string;
 
-  @ApiPropertyOptional({
-    example: 'disputes/proof-reference.jpg',
-    maxLength: 500,
-  })
+  @ApiPropertyOptional({ example: '665f24aa8bc7b9564f4a9310' })
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  fileReference?: string;
+  @IsMongoId()
+  fileId?: string;
 }

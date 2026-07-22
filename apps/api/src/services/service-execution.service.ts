@@ -17,6 +17,13 @@ import {
 } from '../contracts/schemas/contract.schema';
 import { PointsService } from '../points/points.service';
 import { PublicUsersService } from '../users/public-users.service';
+import { DownloadDisposition } from '../storage/dto/download-file-query.dto';
+import { PresignProofUploadDto } from '../storage/dto/presign-proof-upload.dto';
+import {
+  StorageContextType,
+  StorageLinkedEntityType,
+} from '../storage/schemas/storage-file.schema';
+import { StorageService } from '../storage/storage.service';
 import { CreateServiceProofDto } from './dto/create-service-proof.dto';
 import { RequestServiceCorrectionDto } from './dto/request-service-correction.dto';
 import {
@@ -36,7 +43,6 @@ const STARTABLE_STATUSES = [
 ];
 const PROOFABLE_STATUSES = [
   ServiceStatus.IN_PROGRESS,
-  ServiceStatus.AWAITING_VALIDATION,
   ServiceStatus.CORRECTION_REQUESTED,
 ];
 const MODERATION_ROLES = new Set<Role>([Role.MODERATOR, Role.ADMIN]);
@@ -57,7 +63,30 @@ export class ServiceExecutionService {
     private readonly proofModel: Model<ServiceProofDocument>,
     private readonly pointsService: PointsService,
     private readonly publicUsersService: PublicUsersService,
+    private readonly storageService: StorageService,
   ) {}
+
+  async presignProofUpload(
+    serviceId: string,
+    input: PresignProofUploadDto,
+    actor: AuthenticatedUser,
+  ) {
+    const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
+    this.assertProvider(contract, actor.sub);
+    this.assertActiveContract(contract);
+    if (!PROOFABLE_STATUSES.includes(service.status)) {
+      throw new ConflictException(
+        'Un fichier peut être ajouté uniquement pendant l’exécution ou une correction.',
+      );
+    }
+    return this.storageService.presignProofUpload(
+      input,
+      actor,
+      StorageContextType.SERVICE_PROOF,
+      service.id,
+    );
+  }
 
   async start(serviceId: string, actor: AuthenticatedUser) {
     const { service, contract } = await this.loadContext(serviceId);
@@ -105,7 +134,7 @@ export class ServiceExecutionService {
   ) {
     const { service, contract } = await this.loadContext(serviceId);
     this.assertNotDisputed(service, contract);
-    this.assertParticipant(contract, actor.sub);
+    this.assertProvider(contract, actor.sub);
     this.assertActiveContract(contract);
 
     if (!PROOFABLE_STATUSES.includes(service.status)) {
@@ -115,29 +144,61 @@ export class ServiceExecutionService {
     }
 
     const message = input.message?.trim() || null;
-    const fileReference = input.fileReference?.trim() || null;
-    if (input.type === ServiceProofType.NOTE && !message) {
+    if (!message && !input.fileId) {
       throw new BadRequestException(
-        'Une description est requise pour la preuve.',
-      );
-    }
-    if (input.type !== ServiceProofType.NOTE && !fileReference) {
-      throw new BadRequestException(
-        'Une référence de fichier existante est requise pour ce type de preuve.',
+        'Ajoutez une description ou un fichier à la preuve.',
       );
     }
 
-    const proof = await this.proofModel.create({
-      serviceId: service.id,
-      authorId: actor.sub,
-      type: input.type,
-      message,
-      fileReference,
-    });
-    const [presented] = await this.presentProofs([
-      proof.toObject() as ProofRow,
-    ]);
-    return presented;
+    const proofId = new Types.ObjectId().toHexString();
+    let attachment: Awaited<
+      ReturnType<StorageService['linkVerifiedFile']>
+    > | null = null;
+    if (input.fileId) {
+      attachment = await this.storageService.linkVerifiedFile({
+        fileId: input.fileId,
+        ownerId: actor.sub,
+        contextType: StorageContextType.SERVICE_PROOF,
+        contextId: service.id,
+        linkedEntityType: StorageLinkedEntityType.SERVICE_PROOF,
+        linkedEntityId: proofId,
+      });
+    }
+
+    try {
+      const proof = await this.proofModel.create({
+        _id: proofId,
+        serviceId: service.id,
+        authorId: actor.sub,
+        type: attachment
+          ? this.toServiceProofType(attachment.fileKind)
+          : ServiceProofType.NOTE,
+        message,
+        fileReference: null,
+        fileId: attachment?.fileId ?? null,
+        fileKind: attachment?.fileKind ?? null,
+        originalFilename: attachment?.originalFilename ?? null,
+        mimeType: attachment?.mimeType ?? null,
+        sizeBytes: attachment?.sizeBytes ?? null,
+        sha256: attachment?.sha256 ?? null,
+        attachmentDeletedAt: null,
+      });
+      const [presented] = await this.presentProofs(
+        [proof.toObject() as ProofRow],
+        actor,
+        service,
+      );
+      return presented;
+    } catch (error) {
+      if (attachment) {
+        await this.storageService.releaseFileLink(
+          attachment.fileId,
+          StorageLinkedEntityType.SERVICE_PROOF,
+          proofId,
+        );
+      }
+      throw error;
+    }
   }
 
   async findProofs(serviceId: string, actor: AuthenticatedUser) {
@@ -150,7 +211,67 @@ export class ServiceExecutionService {
       .sort({ createdAt: 1, _id: 1 })
       .lean<ProofRow[]>()
       .exec();
-    return this.presentProofs(proofs);
+    return this.presentProofs(proofs, actor, service);
+  }
+
+  async createProofDownloadUrl(
+    serviceId: string,
+    proofId: string,
+    actor: AuthenticatedUser,
+    disposition: DownloadDisposition,
+  ) {
+    const { service, contract } = await this.loadContext(serviceId);
+    if (!MODERATION_ROLES.has(actor.role)) {
+      this.assertParticipant(contract, actor.sub);
+    }
+    const proof = await this.findProof(service.id, proofId);
+    if (!proof.fileId || proof.attachmentDeletedAt) {
+      throw new NotFoundException('Cette preuve ne contient plus de fichier.');
+    }
+    return this.storageService.createLinkedDownloadUrl(
+      proof.fileId,
+      StorageLinkedEntityType.SERVICE_PROOF,
+      proof.id,
+      disposition,
+    );
+  }
+
+  async deleteProofAttachment(
+    serviceId: string,
+    proofId: string,
+    actor: AuthenticatedUser,
+  ) {
+    const { service, contract } = await this.loadContext(serviceId);
+    this.assertNotDisputed(service, contract);
+    if (!PROOFABLE_STATUSES.includes(service.status)) {
+      throw new ConflictException(
+        'Cette pièce jointe ne peut plus être supprimée dans le statut actuel.',
+      );
+    }
+    const proof = await this.findProof(service.id, proofId);
+    if (proof.authorId !== actor.sub) {
+      throw new ForbiddenException(
+        'Seul l’auteur peut supprimer cette pièce jointe.',
+      );
+    }
+    if (!proof.fileId) {
+      throw new NotFoundException('Cette preuve ne contient pas de fichier.');
+    }
+    const result = await this.storageService.deleteLinkedFile(
+      proof.fileId,
+      StorageLinkedEntityType.SERVICE_PROOF,
+      proof.id,
+    );
+    if (!proof.attachmentDeletedAt) {
+      proof.attachmentDeletedAt = result.deletedAt ?? new Date();
+      await proof.save();
+    }
+    const [presented] = await this.presentProofs(
+      [proof.toObject() as ProofRow],
+      actor,
+      service,
+    );
+    return presented;
   }
 
   async markDone(serviceId: string, actor: AuthenticatedUser) {
@@ -396,20 +517,66 @@ export class ServiceExecutionService {
     return { service, contract };
   }
 
-  private async presentProofs(proofs: ProofRow[]) {
+  private async presentProofs(
+    proofs: ProofRow[],
+    actor: AuthenticatedUser,
+    service: Pick<Service, 'status'>,
+  ) {
     const authors = await this.publicUsersService.findByIds(
       proofs.map((proof) => proof.authorId),
     );
-    return proofs.map((proof) => ({
-      id: String(proof._id),
-      serviceId: proof.serviceId,
-      authorId: proof.authorId,
-      type: proof.type,
-      message: proof.message,
-      fileReference: proof.fileReference,
-      createdAt: proof.createdAt,
-      author: authors.get(proof.authorId) ?? null,
-    }));
+    return proofs.map((proof) => {
+      const id = String(proof._id);
+      const deleted = Boolean(proof.attachmentDeletedAt);
+      const hasAttachment = Boolean(proof.fileId || proof.fileReference);
+      return {
+        id,
+        serviceId: proof.serviceId,
+        authorId: proof.authorId,
+        type: proof.type,
+        message: proof.message,
+        fileReference: proof.fileReference,
+        fileId: proof.fileId,
+        attachment: proof.fileId
+          ? {
+              fileId: proof.fileId,
+              fileKind: proof.fileKind,
+              originalFilename: proof.originalFilename,
+              mimeType: proof.mimeType,
+              sizeBytes: proof.sizeBytes,
+              sha256: proof.sha256,
+              deleted,
+              deletedAt: proof.attachmentDeletedAt,
+            }
+          : null,
+        permissions: {
+          canPreview: hasAttachment && !deleted && Boolean(proof.fileId),
+          canDownload: hasAttachment && !deleted && Boolean(proof.fileId),
+          canDelete:
+            proof.authorId === actor.sub &&
+            Boolean(proof.fileId) &&
+            !deleted &&
+            PROOFABLE_STATUSES.includes(service.status),
+        },
+        createdAt: proof.createdAt,
+        author: authors.get(proof.authorId) ?? null,
+      };
+    });
+  }
+
+  private async findProof(serviceId: string, proofId: string) {
+    this.assertValidId(proofId, 'Preuve introuvable.');
+    const proof = await this.proofModel
+      .findOne({ _id: proofId, serviceId })
+      .exec();
+    if (!proof) throw new NotFoundException('Preuve introuvable.');
+    return proof;
+  }
+
+  private toServiceProofType(fileKind: 'image' | 'document' | 'audio') {
+    if (fileKind === 'image') return ServiceProofType.IMAGE;
+    if (fileKind === 'audio') return ServiceProofType.AUDIO;
+    return ServiceProofType.DOCUMENT;
   }
 
   private presentExecution(
