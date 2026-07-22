@@ -1,6 +1,8 @@
 import { apiRequest } from './client';
 import type { IncidentItem } from './incidents';
+import type { EventItem } from './events';
 import type { PublicUserSummary, ServiceItem } from './services';
+import type { VoteItem } from './votes';
 
 export type HomeTodoItem = {
   type: 'compare_applications' | 'sign_contract' | 'follow_active_contract';
@@ -32,6 +34,10 @@ export type HomeResponse = {
       'id' | 'title' | 'type' | 'severity' | 'status' | 'neighborhoodId' | 'createdAt'
     >
   >;
+  upcomingEvents: EventItem[];
+  openVotes: VoteItem[];
+  myUpcomingEventsCount: number;
+  myPendingVotesCount: number;
   counts: {
     createdServices: number;
     applications: number;

@@ -39,6 +39,17 @@ import {
   IncidentStatus,
   IncidentType,
 } from '../incidents/schemas/incident.schema';
+import {
+  EventResponse,
+  EventResponseDocument,
+  EventResponseStatus,
+} from '../events/schemas/event-response.schema';
+import {
+  EventCategory,
+  EventDocument,
+  EventStatus,
+  NeighborhoodEvent,
+} from '../events/schemas/event.schema';
 import { DocumentsService } from '../documents/documents.service';
 import { ManagedDocumentStatus } from '../documents/schemas/managed-document.schema';
 import { PointsService } from '../points/points.service';
@@ -53,6 +64,18 @@ import {
   ServiceStatus,
   ServiceType,
 } from '../services/schemas/service.schema';
+import {
+  VoteAnswer,
+  VoteAnswerDocument,
+} from '../votes/schemas/vote-answer.schema';
+import {
+  Vote,
+  VoteBallotType,
+  VoteDocument,
+  VotePrivacy,
+  VoteResultsVisibility,
+  VoteStatus,
+} from '../votes/schemas/vote.schema';
 
 type DemoExecutionReference = {
   serviceId: string;
@@ -91,6 +114,14 @@ export class DemoSeedService implements OnModuleInit {
     private readonly proofModel: Model<ServiceProofDocument>,
     @InjectModel(Incident.name)
     private readonly incidentModel: Model<IncidentDocument>,
+    @InjectModel(NeighborhoodEvent.name)
+    private readonly eventModel: Model<EventDocument>,
+    @InjectModel(EventResponse.name)
+    private readonly eventResponseModel: Model<EventResponseDocument>,
+    @InjectModel(Vote.name)
+    private readonly voteModel: Model<VoteDocument>,
+    @InjectModel(VoteAnswer.name)
+    private readonly voteAnswerModel: Model<VoteAnswerDocument>,
     private readonly usersService: UsersService,
     private readonly pointsService: PointsService,
     private readonly documentsService: DocumentsService,
@@ -246,6 +277,312 @@ export class DemoSeedService implements OnModuleInit {
       "Bonjour Bob, j'aurais besoin d'aide pour securiser mon ordinateur.",
     );
     await this.ensureIncident(alice.id);
+    await this.ensureLocalLife(alice, bob, claire, admin);
+  }
+
+  private async ensureLocalLife(
+    alice: UserDocument,
+    bob: UserDocument,
+    claire: UserDocument,
+    admin: UserDocument,
+  ) {
+    const workshop = await this.ensureEvent(alice.id, {
+      title: 'Atelier réparation vélo',
+      description:
+        'Apportez votre vélo et apprenez les réparations essentielles avec les voisins.',
+      category: EventCategory.WORKSHOP,
+      startsAt: new Date('2026-09-20T12:00:00.000Z'),
+      endsAt: new Date('2026-09-20T16:00:00.000Z'),
+      locationLabel: 'Maison de quartier',
+      capacity: 20,
+      status: EventStatus.OPEN_REGISTRATION,
+    });
+    await this.ensureEventResponse(
+      workshop.id,
+      bob.id,
+      EventResponseStatus.INTERESTED,
+    );
+
+    const sport = await this.ensureEvent(alice.id, {
+      title: 'Tournoi de pétanque du quartier',
+      description: 'Une rencontre amicale ouverte à tous les niveaux.',
+      category: EventCategory.SPORT,
+      startsAt: new Date('2026-09-25T12:00:00.000Z'),
+      endsAt: new Date('2026-09-25T17:00:00.000Z'),
+      locationLabel: 'Terrain municipal du quartier',
+      capacity: 1,
+      status: EventStatus.FULL,
+    });
+    await this.ensureEventResponse(sport.id, bob.id, EventResponseStatus.GOING);
+    await this.ensureEventResponse(
+      sport.id,
+      claire.id,
+      EventResponseStatus.WAITLISTED,
+      1,
+    );
+    await this.eventModel
+      .updateOne(
+        {
+          _id: sport.id,
+          $or: [
+            { countersInitialized: false },
+            { countersInitialized: { $exists: false } },
+          ],
+        },
+        {
+          $set: {
+            participantCount: 1,
+            waitlistCount: 1,
+            waitlistSequence: 1,
+            countersInitialized: true,
+          },
+        },
+      )
+      .exec();
+
+    const cleanup = await this.ensureEvent(bob.id, {
+      title: 'Nettoyage du parc samedi',
+      description:
+        'Deux heures ensemble pour prendre soin des espaces verts du quartier.',
+      category: EventCategory.HELP,
+      startsAt: new Date('2026-09-28T08:00:00.000Z'),
+      endsAt: new Date('2026-09-28T10:30:00.000Z'),
+      locationLabel: 'Entrée principale du parc',
+      capacity: 30,
+      status: EventStatus.OPEN_REGISTRATION,
+    });
+    await this.ensureEventResponse(
+      cleanup.id,
+      alice.id,
+      EventResponseStatus.GOING,
+    );
+
+    await this.ensureEvent(alice.id, {
+      title: 'Rencontre des voisins de juillet',
+      description: 'Retour sur les initiatives locales et moment convivial.',
+      category: EventCategory.COMMUNITY_MEETING,
+      startsAt: new Date('2026-07-05T16:00:00.000Z'),
+      endsAt: new Date('2026-07-05T18:00:00.000Z'),
+      locationLabel: 'Salle associative',
+      capacity: null,
+      status: EventStatus.COMPLETED,
+    });
+    await this.ensureEvent(admin.id, {
+      title: 'Collecte solidaire reportée',
+      description: 'La collecte sera reprogrammée à une date ultérieure.',
+      category: EventCategory.FUNDRAISING,
+      startsAt: new Date('2026-09-05T09:00:00.000Z'),
+      endsAt: new Date('2026-09-05T12:00:00.000Z'),
+      locationLabel: 'Maison de quartier',
+      capacity: 50,
+      status: EventStatus.CANCELLED,
+    });
+
+    const compost = await this.ensureVote(admin.id, {
+      title: 'Installer un composteur partagé ?',
+      ballotType: VoteBallotType.YES_NO,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.AFTER_SUBMISSION,
+      status: VoteStatus.OPEN,
+      opensAt: new Date('2026-07-01T08:00:00.000Z'),
+      closesAt: new Date('2026-08-31T18:00:00.000Z'),
+      options: ['Oui', 'Non'],
+      allowAnswerChange: true,
+    });
+    await this.ensureVoteAnswer(compost, alice.id, [compost.options[0].id]);
+    await this.ensureVoteAnswer(compost, bob.id, [compost.options[0].id]);
+
+    const square = await this.ensureVote(admin.id, {
+      title: 'Quel aménagement prioritaire pour la place ?',
+      ballotType: VoteBallotType.SINGLE_CHOICE,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.ALWAYS,
+      status: VoteStatus.OPEN,
+      opensAt: new Date('2026-07-15T08:00:00.000Z'),
+      closesAt: new Date('2026-09-10T18:00:00.000Z'),
+      options: ['Bancs ombragés', 'Arceaux vélo', 'Jeux pour enfants'],
+      allowAnswerChange: false,
+    });
+    await this.ensureVoteAnswer(square, claire.id, [square.options[1].id]);
+
+    await this.ensureVote(admin.id, {
+      title: 'Animations souhaitées pour l’automne',
+      ballotType: VoteBallotType.MULTIPLE_CHOICE,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.AFTER_CLOSE,
+      status: VoteStatus.SCHEDULED,
+      opensAt: new Date('2026-09-01T08:00:00.000Z'),
+      closesAt: new Date('2026-09-20T18:00:00.000Z'),
+      options: [
+        'Atelier cuisine',
+        'Projection en plein air',
+        'Bourse aux livres',
+      ],
+      allowAnswerChange: true,
+      minSelections: 1,
+      maxSelections: 2,
+    });
+
+    const ranking = await this.ensureVote(admin.id, {
+      title: 'Priorités du budget participatif',
+      ballotType: VoteBallotType.RANKING,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.AFTER_CLOSE,
+      status: VoteStatus.CLOSED,
+      opensAt: new Date('2026-06-01T08:00:00.000Z'),
+      closesAt: new Date('2026-06-30T18:00:00.000Z'),
+      options: ['Végétalisation', 'Éclairage', 'Mobilier urbain'],
+      allowAnswerChange: false,
+    });
+    await this.ensureVoteAnswer(
+      ranking,
+      alice.id,
+      ranking.options.map((option) => option.id),
+      ranking.options.map((option, index) => ({
+        optionId: option.id,
+        rank: index + 1,
+      })),
+    );
+
+    const anonymous = await this.ensureVote(admin.id, {
+      title: 'Adapter les horaires de la maison de quartier ?',
+      ballotType: VoteBallotType.YES_NO,
+      privacy: VotePrivacy.ANONYMOUS,
+      resultsVisibility: VoteResultsVisibility.AFTER_CLOSE,
+      status: VoteStatus.OPEN,
+      opensAt: new Date('2026-07-10T08:00:00.000Z'),
+      closesAt: new Date('2026-09-15T18:00:00.000Z'),
+      options: ['Oui', 'Non'],
+      allowAnswerChange: false,
+    });
+    await this.ensureVoteAnswer(anonymous, bob.id, [anonymous.options[0].id]);
+  }
+
+  private async ensureEvent(
+    organizerId: string,
+    input: {
+      title: string;
+      description: string;
+      category: EventCategory;
+      startsAt: Date;
+      endsAt: Date;
+      locationLabel: string;
+      capacity: number | null;
+      status: EventStatus;
+    },
+  ) {
+    const existing = await this.eventModel
+      .findOne({ title: input.title, neighborhoodId: 'quartier-centre' })
+      .exec();
+    if (existing) return existing;
+    const published = input.status !== EventStatus.DRAFT;
+    return this.eventModel.create({
+      ...input,
+      neighborhoodId: 'quartier-centre',
+      organizerId,
+      registrationDeadline: new Date(input.startsAt.getTime() - 60 * 60 * 1000),
+      participantCount: 0,
+      waitlistCount: 0,
+      waitlistSequence: 0,
+      countersInitialized: false,
+      publishedAt: published ? new Date('2026-07-01T08:00:00.000Z') : null,
+      completedAt: input.status === EventStatus.COMPLETED ? input.endsAt : null,
+      cancelledAt:
+        input.status === EventStatus.CANCELLED
+          ? new Date('2026-07-20T10:00:00.000Z')
+          : null,
+      cancellationReason:
+        input.status === EventStatus.CANCELLED
+          ? 'Conditions logistiques insuffisantes.'
+          : null,
+      history: [],
+    });
+  }
+
+  private async ensureEventResponse(
+    eventId: string,
+    userId: string,
+    response: EventResponseStatus,
+    waitlistPosition: number | null = null,
+  ) {
+    const existing = await this.eventResponseModel
+      .findOne({ eventId, userId })
+      .exec();
+    if (existing) return existing;
+    return this.eventResponseModel.create({
+      eventId,
+      userId,
+      response,
+      waitlistPosition,
+      respondedAt: new Date('2026-07-22T10:00:00.000Z'),
+      revision: 1,
+    });
+  }
+
+  private async ensureVote(
+    createdById: string,
+    input: {
+      title: string;
+      ballotType: VoteBallotType;
+      privacy: VotePrivacy;
+      resultsVisibility: VoteResultsVisibility;
+      status: VoteStatus;
+      opensAt: Date;
+      closesAt: Date;
+      options: string[];
+      allowAnswerChange: boolean;
+      minSelections?: number;
+      maxSelections?: number;
+    },
+  ) {
+    const existing = await this.voteModel
+      .findOne({ title: input.title, neighborhoodId: 'quartier-centre' })
+      .exec();
+    if (existing) return existing;
+    const key = input.title
+      .toLocaleLowerCase('fr')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return this.voteModel.create({
+      ...input,
+      description: 'Consultation des habitants du Quartier Centre.',
+      neighborhoodId: 'quartier-centre',
+      createdById,
+      options: input.options.map((label, index) => ({
+        id: `${key}-${index + 1}`,
+        label,
+        description: null,
+        order: index,
+      })),
+      minSelections: input.minSelections ?? null,
+      maxSelections: input.maxSelections ?? null,
+      publishedAt:
+        input.status === VoteStatus.DRAFT
+          ? null
+          : new Date('2026-07-01T08:00:00.000Z'),
+      closedAt: input.status === VoteStatus.CLOSED ? input.closesAt : null,
+      history: [],
+    });
+  }
+
+  private async ensureVoteAnswer(
+    vote: VoteDocument,
+    userId: string,
+    selectedOptionIds: string[],
+    ranking: Array<{ optionId: string; rank: number }> = [],
+  ) {
+    const existing = await this.voteAnswerModel
+      .findOne({ voteId: vote.id, userId })
+      .exec();
+    if (existing) return existing;
+    return this.voteAnswerModel.create({
+      voteId: vote.id,
+      userId,
+      selectedOptionIds,
+      ranking,
+      submittedAt: new Date('2026-07-22T10:30:00.000Z'),
+      revision: 1,
+    });
   }
 
   private async ensureDocumentState(

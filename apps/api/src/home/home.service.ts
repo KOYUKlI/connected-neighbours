@@ -18,6 +18,7 @@ import {
   Incident,
   IncidentDocument,
 } from '../incidents/schemas/incident.schema';
+import { EventsService } from '../events/events.service';
 import {
   Neighborhood,
   NeighborhoodDocument,
@@ -29,6 +30,7 @@ import {
 } from '../services/schemas/service.schema';
 import { ServiceRow, ServicesService } from '../services/services.service';
 import { PublicUsersService } from '../users/public-users.service';
+import { VotesService } from '../votes/votes.service';
 
 type UserRow = User & { _id: unknown };
 type NeighborhoodRow = Neighborhood & { _id: unknown };
@@ -54,6 +56,8 @@ export class HomeService {
     private readonly incidentModel: Model<IncidentDocument>,
     private readonly publicUsersService: PublicUsersService,
     private readonly servicesService: ServicesService,
+    private readonly eventsService: EventsService,
+    private readonly votesService: VotesService,
   ) {}
 
   async getHome(actor: AuthenticatedUser) {
@@ -149,6 +153,10 @@ export class HomeService {
       recentServiceRows,
       actor,
     );
+    const [localEvents, localVotes] = await Promise.all([
+      this.eventsService.homeSummary(actor),
+      this.votesService.homeSummary(actor),
+    ]);
 
     return {
       profile: {
@@ -204,6 +212,8 @@ export class HomeService {
         neighborhoodId: incident.neighborhoodId,
         createdAt: incident.createdAt,
       })),
+      ...localEvents,
+      ...localVotes,
       counts: {
         createdServices: createdServicesCount,
         applications: applicationsCount,

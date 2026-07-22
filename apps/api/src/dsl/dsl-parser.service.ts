@@ -61,8 +61,8 @@ const ALLOWED_FIELDS: Record<DslCollection, readonly string[]> = {
     'neighborhoodId',
     'pricePoints',
   ],
-  events: ['title', 'category', 'status', 'neighborhoodId'],
-  votes: ['title', 'status', 'neighborhoodId'],
+  events: ['title', 'category', 'status', 'neighborhoodId', 'startsAt'],
+  votes: ['title', 'status', 'neighborhoodId', 'ballotType', 'privacy'],
   incidents: [
     'title',
     'type',
@@ -217,7 +217,10 @@ export class DslParserService {
       );
     }
 
-    if (condition.operator === 'CONTAINS' && typeof condition.value !== 'string') {
+    if (
+      condition.operator === 'CONTAINS' &&
+      typeof condition.value !== 'string'
+    ) {
       throw new BadRequestException('CONTAINS requiert une valeur texte');
     }
   }
@@ -228,7 +231,9 @@ export class DslParserService {
     }
 
     if (!Number.isInteger(limit) || limit < 1) {
-      throw new BadRequestException('La limite DSL doit etre un entier positif');
+      throw new BadRequestException(
+        'La limite DSL doit etre un entier positif',
+      );
     }
 
     return Math.min(limit, MAX_LIMIT);
@@ -245,15 +250,7 @@ export class DslParserService {
     const candidates = [
       join(__dirname, 'grammar', 'dsl.jison'),
       join(process.cwd(), 'src', 'dsl', 'grammar', 'dsl.jison'),
-      join(
-        process.cwd(),
-        'apps',
-        'api',
-        'src',
-        'dsl',
-        'grammar',
-        'dsl.jison',
-      ),
+      join(process.cwd(), 'apps', 'api', 'src', 'dsl', 'grammar', 'dsl.jison'),
     ];
 
     const grammarPath = candidates.find((candidate) => existsSync(candidate));

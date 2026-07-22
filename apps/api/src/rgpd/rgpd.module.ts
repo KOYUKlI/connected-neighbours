@@ -9,6 +9,11 @@ import {
 import { Alert, AlertSchema } from '../alerts/schemas/alert.schema';
 import { Contract, ContractSchema } from '../contracts/schemas/contract.schema';
 import {
+  EventResponse,
+  EventResponseSchema,
+} from '../events/schemas/event-response.schema';
+import { EventSchema, NeighborhoodEvent } from '../events/schemas/event.schema';
+import {
   ManagedDocument,
   ManagedDocumentSchema,
 } from '../documents/schemas/managed-document.schema';
@@ -18,6 +23,11 @@ import {
 } from '../points/schemas/point-transaction.schema';
 import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
+import {
+  VoteAnswer,
+  VoteAnswerSchema,
+} from '../votes/schemas/vote-answer.schema';
+import { Vote, VoteSchema } from '../votes/schemas/vote.schema';
 import {
   SyncOperation,
   SyncOperationSchema,
@@ -37,6 +47,10 @@ import { RgpdService } from './rgpd.service';
       { name: Alert.name, schema: AlertSchema },
       { name: SyncOperation.name, schema: SyncOperationSchema },
       { name: ManagedDocument.name, schema: ManagedDocumentSchema },
+      { name: NeighborhoodEvent.name, schema: EventSchema },
+      { name: EventResponse.name, schema: EventResponseSchema },
+      { name: Vote.name, schema: VoteSchema },
+      { name: VoteAnswer.name, schema: VoteAnswerSchema },
     ]),
   ],
   controllers: [RgpdController],

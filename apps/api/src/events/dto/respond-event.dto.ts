@@ -1,9 +1,23 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
-import { EventInterest } from '../schemas/event-response.schema';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsOptional } from 'class-validator';
+
+import { EventResponseStatus } from '../schemas/event-response.schema';
 
 export class RespondEventDto {
-  @ApiProperty({ enum: EventInterest, example: EventInterest.INTERESTED })
-  @IsEnum(EventInterest)
-  interest: EventInterest;
+  @ApiPropertyOptional({
+    enum: EventResponseStatus,
+    example: EventResponseStatus.INTERESTED,
+  })
+  @IsOptional()
+  @IsEnum(EventResponseStatus)
+  response?: EventResponseStatus;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    enum: EventResponseStatus,
+    description: 'Ancien nom accepté temporairement. Utiliser response.',
+  })
+  @IsOptional()
+  @IsEnum(EventResponseStatus)
+  interest?: EventResponseStatus;
 }

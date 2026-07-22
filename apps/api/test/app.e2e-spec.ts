@@ -44,6 +44,27 @@ const DEMO_USERS = [
     neighborhoodId: 'quartier-centre',
     password: 'moderator123',
   },
+  {
+    email: 'claire@connected-neighbours.local',
+    displayName: 'Claire Bernard',
+    role: Role.RESIDENT,
+    neighborhoodId: 'quartier-centre',
+    password: 'claire123',
+  },
+  {
+    email: 'nadia@connected-neighbours.local',
+    displayName: 'Nadia Petit',
+    role: Role.RESIDENT,
+    neighborhoodId: 'quartier-centre',
+    password: 'nadia123',
+  },
+  {
+    email: 'outside@connected-neighbours.local',
+    displayName: 'Camille Extérieur',
+    role: Role.RESIDENT,
+    neighborhoodId: 'quartier-exterieur',
+    password: 'outside123',
+  },
 ] as const;
 
 describe('Connected Neighbours API P0 (e2e)', () => {
@@ -55,6 +76,9 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   let aliceToken: string;
   let bobToken: string;
   let moderatorToken: string;
+  let claireToken: string;
+  let nadiaToken: string;
+  let outsideToken: string;
 
   let aliceId: string;
   let bobId: string;
@@ -70,6 +94,8 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   let disputeId: string;
   let incidentId: string;
   let alertId: string;
+  let localEventId: string;
+  let localVoteId: string;
 
   beforeAll(async () => {
     configureTestEnvironment();
@@ -123,11 +149,17 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     const alice = await login(DEMO_USERS[1].email, DEMO_USERS[1].password);
     const bob = await login(DEMO_USERS[2].email, DEMO_USERS[2].password);
     const moderator = await login(DEMO_USERS[3].email, DEMO_USERS[3].password);
+    const claire = await login(DEMO_USERS[4].email, DEMO_USERS[4].password);
+    const nadia = await login(DEMO_USERS[5].email, DEMO_USERS[5].password);
+    const outside = await login(DEMO_USERS[6].email, DEMO_USERS[6].password);
 
     adminToken = admin.accessToken;
     aliceToken = alice.accessToken;
     bobToken = bob.accessToken;
     moderatorToken = moderator.accessToken;
+    claireToken = claire.accessToken;
+    nadiaToken = nadia.accessToken;
+    outsideToken = outside.accessToken;
     aliceId = alice.user.id;
     bobId = bob.user.id;
 
@@ -1250,6 +1282,343 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     );
   });
 
+  it('covers local events, atomic capacity, waitlist promotion and private participants', async () => {
+    const startsAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + 3 * 60 * 60 * 1000);
+    const registrationDeadline = new Date(startsAt.getTime() - 60 * 60 * 1000);
+    const created = await request(app.getHttpServer())
+      .post('/api/events')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Tournoi de pétanque',
+        description:
+          'Un événement E2E avec une capacité stricte et une liste d’attente.',
+        category: 'sport',
+        neighborhoodId: 'quartier-centre',
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        registrationDeadline: registrationDeadline.toISOString(),
+        locationLabel: 'Terrain municipal du quartier',
+        capacity: 2,
+      })
+      .expect(201);
+
+    localEventId = getId(created.body);
+    expect(created.body).toEqual(
+      expect.objectContaining({
+        title: 'E2E Tournoi de pétanque',
+        status: 'draft',
+        permissions: expect.objectContaining({
+          canEdit: true,
+          canPublish: true,
+        }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId)
+      .set('Authorization', bearer(bobToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .patch('/api/events/' + localEventId)
+      .set('Authorization', bearer(bobToken))
+      .send({ title: 'Tentative Bob' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/publish')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('open_registration'));
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/respond')
+      .set('Authorization', bearer(bobToken))
+      .send({ interest: 'interested' })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('interested');
+        expect(body.event.counts.interested).toBe(1);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/join')
+      .set('Authorization', bearer(bobToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.response.response).toBe('going'));
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/join')
+      .set('Authorization', bearer(claireToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('going');
+        expect(body.event.counts.participants).toBe(2);
+        expect(body.event.counts.remainingPlaces).toBe(0);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/join')
+      .set('Authorization', bearer(nadiaToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('waitlisted');
+        expect(body.response.waitlistPosition).toBe(1);
+        expect(body.event.counts.waitlisted).toBe(1);
+        expect(body.event.isFull).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/leave')
+      .set('Authorization', bearer(bobToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('cancelled');
+        expect(body.event.counts.participants).toBe(2);
+        expect(body.event.counts.waitlisted).toBe(0);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId + '/participants')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(2);
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              response: 'going',
+              user: expect.objectContaining({ displayName: 'Claire Bernard' }),
+            }),
+            expect.objectContaining({
+              response: 'going',
+              user: expect.objectContaining({ displayName: 'Nadia Petit' }),
+            }),
+          ]),
+        );
+        for (const participant of body as Array<Record<string, unknown>>) {
+          expect(participant.user).not.toHaveProperty('email');
+        }
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId + '/participants')
+      .set('Authorization', bearer(outsideToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId)
+      .set('Authorization', bearer(outsideToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get('/api/events/recommended')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.recommendationSource).toBe('neighborhood_fallback');
+        expect(
+          body.items.every(
+            (item: { organizerId?: string }) => item.organizerId !== bobId,
+          ),
+        ).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/events')
+      .query({ neighborhoodId: 'quartier-centre' })
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(Array.isArray(body)).toBe(true));
+
+    await request(app.getHttpServer())
+      .get('/api/admin/events/' + localEventId)
+      .set('Authorization', bearer(moderatorToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.history).toEqual(expect.any(Array));
+        expect(body.organizer.displayName).toBe('Alice Martin');
+      });
+  });
+
+  it('covers configurable anonymous votes, answer policy and aggregated results', async () => {
+    const opensAt = new Date(Date.now() - 60_000);
+    const closesAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const created = await request(app.getHttpServer())
+      .post('/api/admin/votes')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        title: 'E2E Priorités du square',
+        description: 'Choisissez jusqu’à deux améliorations pour le square.',
+        neighborhoodId: 'quartier-centre',
+        ballotType: 'multiple_choice',
+        privacy: 'anonymous',
+        resultsVisibility: 'after_close',
+        options: [
+          { label: 'Composteur' },
+          { label: 'Arceaux vélo' },
+          { label: 'Bancs' },
+        ],
+        minSelections: 1,
+        maxSelections: 2,
+        allowAnswerChange: false,
+        opensAt: opensAt.toISOString(),
+        closesAt: closesAt.toISOString(),
+        status: 'draft',
+      })
+      .expect(201);
+
+    localVoteId = getId(created.body);
+    const optionIds = (created.body.options as Array<{ id: string }>).map(
+      (option) => option.id,
+    );
+    expect(optionIds).toHaveLength(3);
+    expect(created.body).not.toHaveProperty('question');
+
+    await request(app.getHttpServer())
+      .post('/api/votes')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Vote résident interdit',
+        neighborhoodId: 'quartier-centre',
+        options: ['Oui', 'Non'],
+        closesAt: closesAt.toISOString(),
+      })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/votes/' + localVoteId + '/open')
+      .set('Authorization', bearer(moderatorToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('open'));
+
+    const alicePayload = { selectedOptionIds: [optionIds[0], optionIds[1]] };
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(aliceToken))
+      .send(alicePayload)
+      .expect(201)
+      .expect(({ body }) => expect(body.unchanged).toBe(false));
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(aliceToken))
+      .send(alicePayload)
+      .expect(201)
+      .expect(({ body }) => expect(body.unchanged).toBe(true));
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(aliceToken))
+      .send({ selectedOptionIds: [optionIds[2]] })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(bobToken))
+      .send({ selectedOptionIds: [optionIds[0]] })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/api/votes/' + localVoteId + '/results')
+      .set('Authorization', bearer(aliceToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/votes/' + localVoteId)
+      .set('Authorization', bearer(outsideToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(outsideToken))
+      .send({ selectedOptionIds: [optionIds[0]] })
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get('/api/home')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.upcomingEvents).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: localEventId }),
+          ]),
+        );
+        expect(body.openVotes).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: localVoteId }),
+          ]),
+        );
+        expect(body.myUpcomingEventsCount).toEqual(expect.any(Number));
+        expect(body.myPendingVotesCount).toEqual(expect.any(Number));
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/votes/' + localVoteId + '/close')
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe('closed'));
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(claireToken))
+      .send({ selectedOptionIds: [optionIds[2]] })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get('/api/votes/' + localVoteId + '/results')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.totalAnswers).toBe(2);
+        expect(body.privacy).toBe('anonymous');
+        expect(body.anonymity).toBe('application_level');
+        expect(body.results).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              option: expect.objectContaining({ id: optionIds[0] }),
+              count: 2,
+              percentage: 100,
+              percentageDenominator: 'respondents',
+            }),
+            expect.objectContaining({
+              option: expect.objectContaining({ id: optionIds[1] }),
+              count: 1,
+              percentage: 50,
+            }),
+          ]),
+        );
+        expect(JSON.stringify(body)).not.toContain(aliceId);
+        expect(JSON.stringify(body)).not.toContain(bobId);
+        expect(JSON.stringify(body)).not.toContain('userId');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/admin/votes/' + localVoteId)
+      .set('Authorization', bearer(moderatorToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.results.totalAnswers).toBe(2);
+        expect(JSON.stringify(body.results)).not.toContain('userId');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/votes')
+      .query({ neighborhoodId: 'quartier-centre' })
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(Array.isArray(body)).toBe(true));
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/cancel')
+      .set('Authorization', bearer(aliceToken))
+      .send({ reason: 'Fin du scénario E2E Vie locale.' })
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('cancelled'));
+  });
+
   it('covers the Jison DSL read-only endpoints', async () => {
     const parsed = await request(app.getHttpServer())
       .post('/api/dsl/parse')
@@ -1278,6 +1647,41 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(executed.body.collection).toBe('services');
     expect(executed.body.filter).toEqual({ category: 'bricolage' });
     expect(executed.body.results.length).toBeGreaterThanOrEqual(1);
+
+    const localEvents = await request(app.getHttpServer())
+      .post('/api/dsl/execute')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        query: 'FIND events WHERE title = "E2E Tournoi de pétanque"',
+      })
+      .expect(201);
+    expect(localEvents.body.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'E2E Tournoi de pétanque',
+          endsAt: expect.any(String),
+        }),
+      ]),
+    );
+    expect(JSON.stringify(localEvents.body)).not.toContain('userId');
+
+    const localVotes = await request(app.getHttpServer())
+      .post('/api/dsl/execute')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        query: 'FIND votes WHERE title = "E2E Priorités du square"',
+      })
+      .expect(201);
+    expect(localVotes.body.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'E2E Priorités du square',
+          ballotType: 'multiple_choice',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(localVotes.body)).not.toContain('selectedOptionIds');
+    expect(JSON.stringify(localVotes.body)).not.toContain('userId');
 
     await request(app.getHttpServer())
       .post('/api/dsl/parse')
@@ -1400,6 +1804,20 @@ describe('Connected Neighbours API P0 (e2e)', () => {
           expect.arrayContaining([expect.objectContaining({ id: alertId })]),
         );
         expect(body.syncOperations).toEqual(expect.any(Array));
+        expect(body.eventsCreated).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: localEventId }),
+          ]),
+        );
+        expect(body.eventResponses).toEqual(expect.any(Array));
+        expect(body.voteAnswers).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              voteId: localVoteId,
+              selectedOptionIds: expect.any(Array),
+            }),
+          ]),
+        );
       });
   });
 
@@ -1885,8 +2303,33 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       )
       .toArray();
     const disputeIds = staleDisputes.map((dispute) => String(dispute._id));
+    const staleEvents = await connection
+      .collection('neighborhoodevents')
+      .find({ title: /^E2E/ }, { projection: { _id: 1 } })
+      .toArray();
+    const eventIds = staleEvents.map((event) => String(event._id));
+    const staleVotes = await connection
+      .collection('votes')
+      .find(
+        { $or: [{ title: /^E2E/ }, { question: /^E2E/ }] },
+        { projection: { _id: 1 } },
+      )
+      .toArray();
+    const voteIds = staleVotes.map((vote) => String(vote._id));
 
     const operations = [
+      connection.collection('eventresponses').deleteMany({
+        eventId: { $in: eventIds },
+      }),
+      connection.collection('neighborhoodevents').deleteMany({
+        _id: { $in: staleEvents.map((event) => event._id) },
+      }),
+      connection.collection('voteanswers').deleteMany({
+        voteId: { $in: voteIds },
+      }),
+      connection.collection('votes').deleteMany({
+        _id: { $in: staleVotes.map((vote) => vote._id) },
+      }),
       connection.collection('disputeevidences').deleteMany({
         $or: [{ disputeId: { $in: disputeIds } }, { message: /^E2E/ }],
       }),

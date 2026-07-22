@@ -85,6 +85,8 @@ export function HomePage() {
         .join(', ')
     : 'Votre quartier';
   const recentIncident = data.recentIncidents[0];
+  const upcomingEvent = data.upcomingEvents?.[0];
+  const openVote = data.openVotes?.[0];
   const balance = {
     userId: user.id,
     availablePoints: data.points.availablePoints,
@@ -205,6 +207,20 @@ export function HomePage() {
           <PointsSummary balance={balance} />
           <Card>
             <h2 className="font-extrabold text-slate-950">Dans votre quartier</h2>
+            {upcomingEvent ? (
+              <Link className="mt-3 block rounded-lg bg-emerald-50 p-3 transition hover:bg-emerald-100" to={`/events/${upcomingEvent.id}`}>
+                <Badge tone="success">Prochain événement</Badge>
+                <p className="mt-2 text-sm font-bold text-slate-900">{upcomingEvent.title}</p>
+                <p className="mt-1 text-xs text-slate-600">{data.myUpcomingEventsCount} participation(s) à venir</p>
+              </Link>
+            ) : null}
+            {openVote ? (
+              <Link className="mt-3 block rounded-lg bg-blue-50 p-3 transition hover:bg-blue-100" to={`/votes/${openVote.id}`}>
+                <Badge tone="info">Vote ouvert</Badge>
+                <p className="mt-2 text-sm font-bold text-slate-900">{openVote.title}</p>
+                <p className="mt-1 text-xs text-slate-600">{data.myPendingVotesCount} vote(s) en attente de votre réponse</p>
+              </Link>
+            ) : null}
             {recentIncident ? (
               <div className="mt-3">
                 <Badge tone={recentIncident.status === 'resolved' ? 'success' : 'warning'}>
@@ -218,7 +234,7 @@ export function HomePage() {
             ) : (
               <p className="mt-3 text-sm leading-6 text-slate-600">Aucune actualité locale n’est disponible.</p>
             )}
-            <Link className="mt-4 inline-flex text-sm font-bold text-emerald-700 hover:text-emerald-900" to="/app/local">
+            <Link className="mt-4 inline-flex text-sm font-bold text-emerald-700 hover:text-emerald-900" to="/local-life">
               Voir la vie locale
             </Link>
           </Card>

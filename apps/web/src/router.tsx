@@ -6,7 +6,7 @@ import { CreateAlertPage } from './features/alerts/CreateAlertPage';
 import { IncidentAlertsPage } from './features/alerts/IncidentAlertsPage';
 import { ContractsPage } from './features/contracts/ContractsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
-import { LocalLifePage } from './features/local/LocalLifePage';
+import { LocalLifePage as IncidentLocalLifePage } from './features/local/LocalLifePage';
 import { PointsPage } from './features/points/PointsPage';
 import { RgpdPage } from './features/rgpd/RgpdPage';
 import { ServicesPage } from './features/services/ServicesPage';
@@ -24,6 +24,13 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { ServiceCreatePage } from './pages/ServiceCreatePage';
 import { ServiceDetailPage } from './pages/ServiceDetailPage';
 import { ServicesExplorePage } from './pages/ServicesExplorePage';
+import { EventDetailPage } from './features/local-life/EventDetailPage';
+import { EventDiscoverPage } from './features/local-life/EventDiscoverPage';
+import { EventFormPage } from './features/local-life/EventFormPage';
+import { EventsPage } from './features/local-life/EventsPage';
+import { LocalLifePage } from './features/local-life/LocalLifePage';
+import { VoteDetailPage } from './features/local-life/VoteDetailPage';
+import { VotesPage } from './features/local-life/VotesPage';
 
 const residentRoutes = [
   { index: true, element: <HomePage /> },
@@ -35,6 +42,15 @@ const residentRoutes = [
   { path: 'contracts/:contractId/document', element: <ContractDocumentPage /> },
   { path: 'disputes', element: <DisputesPage /> },
   { path: 'disputes/:disputeId', element: <DisputeDetailPage /> },
+  { path: 'local-life', element: <LocalLifePage /> },
+  { path: 'local', element: <Navigate replace to="/local-life" /> },
+  { path: 'events', element: <EventsPage /> },
+  { path: 'events/discover', element: <EventDiscoverPage /> },
+  { path: 'events/new', element: <EventFormPage /> },
+  { path: 'events/:eventId/edit', element: <EventFormPage /> },
+  { path: 'events/:eventId', element: <EventDetailPage /> },
+  { path: 'votes', element: <VotesPage /> },
+  { path: 'votes/:voteId', element: <VoteDetailPage /> },
   {
     path: 'neighbors',
     element: (
@@ -52,16 +68,6 @@ const residentRoutes = [
         description="Vos candidatures, contrats et actions personnelles seront regroupés ici."
         icon="activity"
         title="Mes activités"
-      />
-    ),
-  },
-  {
-    path: 'local',
-    element: (
-      <ComingSoonPage
-        description="Événements, votes et incidents seront réunis dans cet espace."
-        icon="map-pin"
-        title="Vie locale"
       />
     ),
   },
@@ -105,7 +111,7 @@ export const router = createBrowserRouter([
       { path: 'applications', element: <ApplicationsPage /> },
       { path: 'contracts', element: <ContractsPage /> },
       { path: 'points', element: <PointsPage /> },
-      { path: 'local', element: <LocalLifePage /> },
+      { path: 'local', element: <IncidentLocalLifePage /> },
       { path: 'incidents', element: <Navigate replace to="/app/local?tab=incidents" /> },
       { path: 'incidents/:incidentId/alerts', element: <IncidentAlertsPage /> },
       { path: 'incidents/:incidentId/alerts/new', element: <CreateAlertPage /> },

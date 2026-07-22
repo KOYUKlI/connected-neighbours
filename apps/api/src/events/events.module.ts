@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import {
+  Neighborhood,
+  NeighborhoodSchema,
+} from '../neighborhoods/schemas/neighborhood.schema';
+import { UsersModule } from '../users/users.module';
+import { AdminEventsController } from './admin-events.controller';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import {
@@ -11,12 +17,15 @@ import { EventSchema, NeighborhoodEvent } from './schemas/event.schema';
 
 @Module({
   imports: [
+    UsersModule,
     MongooseModule.forFeature([
       { name: NeighborhoodEvent.name, schema: EventSchema },
       { name: EventResponse.name, schema: EventResponseSchema },
+      { name: Neighborhood.name, schema: NeighborhoodSchema },
     ]),
   ],
-  controllers: [EventsController],
+  controllers: [EventsController, AdminEventsController],
   providers: [EventsService],
+  exports: [EventsService],
 })
 export class EventsModule {}

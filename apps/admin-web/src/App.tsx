@@ -69,6 +69,8 @@ import { ContractsListPage } from './pages/ContractsListPage'
 import { DisputesPage } from './features/disputes/DisputesPage'
 import { DocumentsPage } from './features/documents/DocumentsPage'
 import { IncidentsPage } from './features/incidents/IncidentsPage'
+import { AdminEventsPage } from './features/local-life/AdminEventsPage'
+import { AdminVotesPage } from './features/local-life/AdminVotesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NeighborhoodCreatePage } from './pages/NeighborhoodCreatePage'
@@ -86,6 +88,8 @@ const navigationItems = [
   { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts' },
   { id: 'documents', label: 'Documents', description: 'PDF et signatures', icon: 'documents' },
   { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes' },
+  { id: 'events', label: 'Événements', description: 'Vie du quartier', icon: 'events' },
+  { id: 'votes', label: 'Votes', description: 'Consultations locales', icon: 'votes' },
   { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents' },
   { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync' },
   { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users' },
@@ -253,6 +257,12 @@ function App() {
           case 'disputes': {
             break
           }
+          case 'events': {
+            break
+          }
+          case 'votes': {
+            break
+          }
           case 'incidents': {
             break
           }
@@ -348,7 +358,13 @@ function App() {
       sidebar={
         <AdminSidebar
           activeItem={activeSection}
-          items={currentUser?.role === 'moderator' ? navigationItems.filter((item) => item.id === 'disputes') : navigationItems}
+          items={
+            currentUser?.role === 'moderator'
+              ? navigationItems.filter((item) =>
+                  ['disputes', 'events', 'votes'].includes(item.id),
+                )
+              : navigationItems
+          }
           onNavigate={setActiveSection}
         />
       }
@@ -534,6 +550,10 @@ function renderSection(props: RenderSectionProps) {
       return <DocumentsPage />
     case 'disputes':
       return <DisputesPage />
+    case 'events':
+      return <AdminEventsPage />
+    case 'votes':
+      return <AdminVotesPage />
     case 'incidents':
       return <IncidentsPage />
     case 'sync':

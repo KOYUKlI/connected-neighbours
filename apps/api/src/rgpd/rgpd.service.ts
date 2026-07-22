@@ -1,12 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { User, UserDocument } from '../auth/schemas/user.schema';
-import {
-  Alert,
-  AlertDocument,
-} from '../alerts/schemas/alert.schema';
+import { Alert, AlertDocument } from '../alerts/schemas/alert.schema';
 import {
   ServiceApplication,
   ServiceApplicationDocument,
@@ -27,7 +24,20 @@ import {
   Incident,
   IncidentDocument,
 } from '../incidents/schemas/incident.schema';
+import {
+  EventResponse,
+  EventResponseDocument,
+} from '../events/schemas/event-response.schema';
+import {
+  EventDocument,
+  NeighborhoodEvent,
+} from '../events/schemas/event.schema';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
+import {
+  VoteAnswer,
+  VoteAnswerDocument,
+} from '../votes/schemas/vote-answer.schema';
+import { Vote, VoteDocument } from '../votes/schemas/vote.schema';
 import {
   SyncOperation,
   SyncOperationDocument,
@@ -66,6 +76,14 @@ export class RgpdService {
     private readonly syncOperationModel: Model<SyncOperationDocument>,
     @InjectModel(ManagedDocument.name)
     private readonly documentModel: Model<ManagedDocumentDocument>,
+    @InjectModel(NeighborhoodEvent.name)
+    private readonly eventModel: Model<EventDocument>,
+    @InjectModel(EventResponse.name)
+    private readonly eventResponseModel: Model<EventResponseDocument>,
+    @InjectModel(Vote.name)
+    private readonly voteModel: Model<VoteDocument>,
+    @InjectModel(VoteAnswer.name)
+    private readonly voteAnswerModel: Model<VoteAnswerDocument>,
   ) {}
 
   async exportPersonalData(userId: string) {
@@ -84,6 +102,10 @@ export class RgpdService {
       incidents,
       documents,
       syncOperations,
+      eventsCreated,
+      eventResponses,
+      votesCreated,
+      voteAnswers,
     ] = await Promise.all([
       this.serviceModel.find({ ownerId: userId }).exec(),
       this.applicationModel.find({ applicantId: userId }).exec(),
@@ -117,12 +139,18 @@ export class RgpdService {
           ],
         })
         .exec(),
+      this.eventModel.find({ organizerId: userId }).exec(),
+      this.eventResponseModel.find({ userId }).exec(),
+      this.voteModel.find({ createdById: userId }).exec(),
+      this.voteAnswerModel.find({ userId }).exec(),
     ]);
 
     const incidentIds = incidents.map((incident) => incident.id);
     const alerts =
       incidentIds.length > 0
-        ? await this.alertModel.find({ incidentId: { $in: incidentIds } }).exec()
+        ? await this.alertModel
+            .find({ incidentId: { $in: incidentIds } })
+            .exec()
         : [];
 
     return {
@@ -138,9 +166,7 @@ export class RgpdService {
         reservedPoints: user.reservedPoints,
       },
       services: this.normalizeDocuments(services),
-      applicationsAsApplicant: this.normalizeDocuments(
-        applicationsAsApplicant,
-      ),
+      applicationsAsApplicant: this.normalizeDocuments(applicationsAsApplicant),
       applicationsAsOwner: this.normalizeDocuments(applicationsAsOwner),
       contracts: this.normalizeDocuments(contracts),
       pointTransactions: this.normalizeDocuments(pointTransactions),
@@ -148,6 +174,10 @@ export class RgpdService {
       alerts: this.normalizeDocuments(alerts),
       syncOperations: this.normalizeDocuments(syncOperations),
       documents: this.normalizeDocuments(documents),
+      eventsCreated: this.normalizeDocuments(eventsCreated),
+      eventResponses: this.normalizeDocuments(eventResponses),
+      votesCreated: this.normalizeDocuments(votesCreated),
+      voteAnswers: this.normalizeDocuments(voteAnswers),
     };
   }
 
@@ -158,7 +188,10 @@ export class RgpdService {
   private normalizeDocument(document: unknown) {
     const plainDocument = this.toPlainDocument(document);
     const id = this.resolveDocumentId(document, plainDocument);
-    const { _id, __v, id: _plainId, ...payload } = plainDocument;
+    const payload = { ...plainDocument };
+    delete payload._id;
+    delete payload.__v;
+    delete payload.id;
 
     return {
       id,
@@ -197,13 +230,12 @@ export class RgpdService {
       return plainDocument.id;
     }
 
-    if (plainDocument._id) {
-      return String(plainDocument._id);
-    }
-
-    if (originalObject?._id) {
-      return String(originalObject._id);
-    }
+    if (plainDocument._id instanceof Types.ObjectId)
+      return plainDocument._id.toHexString();
+    if (typeof plainDocument._id === 'string') return plainDocument._id;
+    if (originalObject?._id instanceof Types.ObjectId)
+      return originalObject._id.toHexString();
+    if (typeof originalObject?._id === 'string') return originalObject._id;
 
     return null;
   }

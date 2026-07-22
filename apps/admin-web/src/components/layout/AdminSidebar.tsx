@@ -99,6 +99,10 @@ function getNavigationIcon(id: string) {
       return <path d="M7 3h7l4 4v14H7V3Zm7 0v5h5M9.5 12h5m-5 4h7M4 7h3m-3 4h3m-3 4h3" />;
     case 'disputes':
       return <><path d="M7 3h10v4l3 3-3 3v8H7v-8l-3-3 3-3V3Z" /><path d="M9 9h6M9 13h6M9 17h4" /></>;
+    case 'events':
+      return <><path d="M5 5h14v15H5V5Zm3-2v4m8-4v4M5 9h14" /><path d="m9 14 2 2 4-4" /></>;
+    case 'votes':
+      return <><path d="M6 4h12v16H6V4Z" /><path d="m9 10 2 2 4-4M9 16h6" /></>;
     case 'incidents':
       return <path d="M12 4 3 20h18L12 4Zm0 5v5m0 3h.01" />;
     case 'sync':

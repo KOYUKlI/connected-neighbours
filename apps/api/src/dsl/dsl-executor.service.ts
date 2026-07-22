@@ -7,9 +7,14 @@ import {
   NeighborhoodEvent,
   EventDocument,
 } from '../events/schemas/event.schema';
-import { Incident, IncidentDocument } from '../incidents/schemas/incident.schema';
+import { normalizeEventRecord } from '../events/event-normalization';
+import {
+  Incident,
+  IncidentDocument,
+} from '../incidents/schemas/incident.schema';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
 import { Vote, VoteDocument } from '../votes/schemas/vote.schema';
+import { normalizeVoteRecord } from '../votes/vote-normalization';
 import {
   DslCollection,
   DslCondition,
@@ -45,6 +50,13 @@ export class DslExecutorService {
 
   async execute(parsedQuery: ParsedDslQuery) {
     const filter = this.buildFilter(parsedQuery.conditions);
+    if (parsedQuery.collection === 'votes' && filter.title) {
+      const titleFilter = filter.title;
+      delete filter.title;
+      filter.$and = [
+        { $or: [{ title: titleFilter }, { question: titleFilter }] },
+      ];
+    }
     const model = this.getModel(parsedQuery.collection);
     const results = await model
       .find(filter)
@@ -57,7 +69,16 @@ export class DslExecutorService {
       filter,
       limit: parsedQuery.limit,
       count: results.length,
-      results,
+      results:
+        parsedQuery.collection === 'events'
+          ? results.map((row) =>
+              normalizeEventRecord(row as Record<string, unknown>),
+            )
+          : parsedQuery.collection === 'votes'
+            ? results.map((row) =>
+                normalizeVoteRecord(row as Record<string, unknown>),
+              )
+            : results,
     };
   }
 
