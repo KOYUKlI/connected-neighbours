@@ -15,21 +15,26 @@ COPY apps/api apps/api
 
 RUN pnpm --filter ./apps/api run build
 
+RUN pnpm --filter ./apps/api deploy --prod --legacy /app/deploy
+
 FROM node:24-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/src/dsl/grammar ./apps/api/src/dsl/grammar
+RUN addgroup -S app && adduser -S app -G app
 
-WORKDIR /app/apps/api
+COPY --from=builder --chown=app:app /app/deploy/package.json ./package.json
+COPY --from=builder --chown=app:app /app/deploy/node_modules ./node_modules
+COPY --from=builder --chown=app:app /app/apps/api/dist ./dist
+COPY --from=builder --chown=app:app /app/apps/api/src/dsl/grammar ./src/dsl/grammar
+
+USER app
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 --start-period=15s \
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
 CMD ["node", "dist/main"]

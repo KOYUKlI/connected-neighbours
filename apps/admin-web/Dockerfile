@@ -30,3 +30,6 @@ COPY apps/admin-web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/apps/admin-web/dist /usr/share/nginx/html
 
 EXPOSE 80
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 --start-period=10s \
+  CMD wget -qO- http://127.0.0.1/ || exit 1
