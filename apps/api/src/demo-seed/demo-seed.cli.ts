@@ -10,6 +10,8 @@ import {
 type DemoSeedCommand =
   | 'run'
   | 'status'
+  | 'reconcile'
+  | 'reconcile-apply'
   | 'reset'
   | 'mongodb'
   | 'keycloak'
@@ -22,6 +24,8 @@ async function main() {
   const allowed: DemoSeedCommand[] = [
     'run',
     'status',
+    'reconcile',
+    'reconcile-apply',
     'reset',
     'mongodb',
     'keycloak',
@@ -37,6 +41,21 @@ async function main() {
   });
   try {
     const orchestrator = app.get(DemoSeedOrchestrator);
+    if (command === 'reconcile') {
+      printReconciliation(await orchestrator.reconciliationStatus());
+      return;
+    }
+    if (command === 'reconcile-apply') {
+      const result = await orchestrator.reconcile(
+        process.env.SEED_CONFIRM_RECONCILE,
+      );
+      printReconciliation(result.plan);
+      Logger.log(
+        `Réconciliation terminée; ${result.remaining.actions.length} action(s) restante(s).`,
+        'DemoSeed',
+      );
+      return;
+    }
     const result =
       command === 'status'
         ? await orchestrator.status()
@@ -48,6 +67,39 @@ async function main() {
     printSummary(result);
   } finally {
     await app.close();
+  }
+}
+
+function printReconciliation(
+  result: Awaited<ReturnType<DemoSeedOrchestrator['reconciliationStatus']>>,
+) {
+  Logger.log(
+    `Réconciliation dry-run: ${result.actions.length} action(s), ${result.blocked.length} blocage(s).`,
+    'DemoSeed',
+  );
+  console.table(
+    Object.entries(result.summary).map(([collection, count]) => ({
+      Collection: collection,
+      Nombre: count,
+    })),
+  );
+  console.table(
+    result.actions.map((action) => ({
+      Collection: action.entityType,
+      Identifiant: action.entityId,
+      Action: action.kind,
+      Raison: action.reason,
+    })),
+  );
+  if (result.blocked.length > 0) {
+    console.table(
+      result.blocked.map((item) => ({
+        Service: item.rootServiceId,
+        Collection: item.entityType,
+        Identifiant: item.entityId,
+        Raison: item.reason,
+      })),
+    );
   }
 }
 

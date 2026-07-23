@@ -54,6 +54,17 @@ export class DemoSeedOrchestrator {
   async run(scope: DemoSeedScope = 'all') {
     this.assertNonProduction();
     const startedAt = Date.now();
+    if (scope === 'all' || scope === 'mongodb' || scope === 'minio') {
+      const reconciliation = await this.businessSeed.planReconciliation();
+      if (
+        reconciliation.actions.length > 0 ||
+        reconciliation.blocked.length > 0
+      ) {
+        throw new ConflictException(
+          'Une réconciliation du seed est requise avant toute mutation. Exécutez seed:demo:reconcile puis seed:demo:reconcile:apply.',
+        );
+      }
+    }
     const passwords = this.readPasswords();
 
     let mongoUsers: SeededUser[] = [];
@@ -86,6 +97,21 @@ export class DemoSeedOrchestrator {
         `${status.keycloak.identities} identités Keycloak.`,
     );
     return status;
+  }
+
+  async reconciliationStatus() {
+    this.assertNonProduction();
+    return this.businessSeed.planReconciliation();
+  }
+
+  async reconcile(confirm: string | undefined) {
+    this.assertNonProduction();
+    if (confirm !== 'CONNECTED_NEIGHBOURS_DEMO') {
+      throw new ConflictException(
+        'SEED_CONFIRM_RECONCILE=CONNECTED_NEIGHBOURS_DEMO est requis.',
+      );
+    }
+    return this.businessSeed.applyReconciliation();
   }
 
   async status() {

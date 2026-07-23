@@ -542,7 +542,7 @@ export class StorageService implements OnModuleInit {
       .exec();
   }
 
-  async removeSeedFile(fileId: string) {
+  async removeSeedFile(fileId: string, requireObjectDeletion = false) {
     if (this.configService.get<string>('NODE_ENV') === 'production') {
       throw new ConflictException(
         'La suppression des fichiers de démonstration est interdite en production.',
@@ -559,6 +559,11 @@ export class StorageService implements OnModuleInit {
         );
       }
     } catch (error) {
+      if (requireObjectDeletion) {
+        throw new ConflictException(
+          `Suppression MinIO du seed interrompue pour ${file.id}; la reprise reste possible.`,
+        );
+      }
       this.logger.warn(
         `Suppression MinIO du seed différée pour ${file.id}: ${(error as Error).message}`,
       );

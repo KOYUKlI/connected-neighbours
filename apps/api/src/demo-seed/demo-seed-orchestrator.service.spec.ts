@@ -18,6 +18,13 @@ describe('DemoSeedOrchestrator', () => {
     status: jest.fn(),
   };
   const businessSeed = {
+    planReconciliation: jest.fn(() =>
+      Promise.resolve({
+        actions: [] as Array<Record<string, unknown>>,
+        blocked: [] as Array<Record<string, unknown>>,
+        summary: {},
+      }),
+    ),
     status: jest.fn(() =>
       Promise.resolve({
         counts: {},
@@ -70,5 +77,25 @@ describe('DemoSeedOrchestrator', () => {
     expect(status.services.minio).toBe('ok');
     expect(status.services.graph).toBe('disabled');
     expect(keycloakService.status).not.toHaveBeenCalled();
+  });
+
+  it('refuse de muter avant lecture des secrets si une réconciliation est requise', async () => {
+    businessSeed.planReconciliation.mockResolvedValueOnce({
+      actions: [
+        {
+          kind: 'delete',
+          entityType: 'service',
+          entityId: 'stale-service',
+          reason: 'test',
+        },
+      ],
+      blocked: [],
+      summary: { service: 1 },
+    });
+    delete process.env.SEED_DEMO_RESIDENT_PASSWORD;
+
+    await expect(orchestrator.run('all')).rejects.toThrow(
+      'Une réconciliation du seed est requise',
+    );
   });
 });

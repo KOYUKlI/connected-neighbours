@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -118,6 +123,13 @@ import {
   DEMO_VOTE_CATALOG,
 } from './demo-business.manifest';
 import { DEMO_IDENTITIES, DEMO_SEED_SOURCE } from './demo-seed.manifest';
+import {
+  buildDemoSeedReconciliationPlan,
+  DemoSeedReconciliationAction,
+  DemoSeedSnapshotNode,
+  getDemoContractPartyIds,
+  selectSeedServiceCandidate,
+} from './demo-seed-reconciliation';
 import {
   DemoSeedRecord,
   DemoSeedRecordDocument,
@@ -314,32 +326,20 @@ export class DemoSeedService implements OnModuleInit {
       .findOne({ serviceId: furniture.id })
       .exec();
     if (furnitureContract)
-      await this.ensureDocumentState(
-        furnitureContract.id,
-        alice,
-        bob,
-        admin,
-        'archived',
-      );
+      await this.ensureDocumentState(furnitureContract.id, admin, 'archived');
     const disputeDemos = await this.ensureExecutionDemos(alice, bob);
     await this.ensureDocumentState(
       disputeDemos.open.contractId,
-      alice,
-      bob,
       admin,
       'prepared',
     );
     await this.ensureDocumentState(
       disputeDemos.review.contractId,
-      alice,
-      bob,
       admin,
       'sent',
     );
     await this.ensureDocumentState(
       disputeDemos.resolved.contractId,
-      alice,
-      bob,
       admin,
       'partial',
     );
@@ -374,23 +374,23 @@ export class DemoSeedService implements OnModuleInit {
       })
       .exec();
     const usersByEmail = new Map(users.map((user) => [user.email, user]));
-    const alice = usersByEmail.get('alice@connected-neighbours.local');
-    const bob = usersByEmail.get('bob@connected-neighbours.local');
     const admin = usersByEmail.get('admin@connected-neighbours.local');
-    if (!alice || !bob || !admin) {
+    if (!admin) {
       throw new Error(
         'Les identités MongoDB doivent être créées avant les fixtures MinIO.',
       );
     }
-    const contract = await this.contractModel.findOne().sort({ _id: 1 }).exec();
+    const documentService = await this.serviceModel
+      .findOne({ title: 'Aide pour monter un meuble' })
+      .select('_id')
+      .exec();
+    const contract = documentService
+      ? await this.contractModel
+          .findOne({ serviceId: documentService.id })
+          .exec()
+      : null;
     if (contract) {
-      await this.ensureDocumentState(
-        contract.id,
-        alice,
-        bob,
-        admin,
-        'prepared',
-      );
+      await this.ensureDocumentState(contract.id, admin, 'prepared');
     }
 
     const avatarBuffer = Buffer.from(
@@ -422,6 +422,19 @@ export class DemoSeedService implements OnModuleInit {
       .findOne({ title: 'Installation d une imprimante' })
       .exec();
     if (proofService) {
+      const proofContract = await this.contractModel
+        .findOne({ serviceId: proofService.id })
+        .select('providerId')
+        .lean<{ providerId: string } | null>()
+        .exec();
+      const proofAuthor = proofContract
+        ? users.find((user) => user.id === proofContract.providerId)
+        : null;
+      if (!proofAuthor) {
+        throw new ConflictException(
+          'Le prestataire du scénario de preuve est introuvable.',
+        );
+      }
       let proof = await this.proofModel
         .findOne({
           serviceId: proofService.id,
@@ -431,7 +444,7 @@ export class DemoSeedService implements OnModuleInit {
       if (!proof) {
         proof = await this.proofModel.create({
           serviceId: proofService.id,
-          authorId: bob.id,
+          authorId: proofAuthor.id,
           type: ServiceProofType.DOCUMENT,
           message: 'Compte-rendu PDF de la page de test.',
           fileReference: null,
@@ -445,7 +458,7 @@ export class DemoSeedService implements OnModuleInit {
         ),
         filename: 'preuve-imprimante.pdf',
         mimeType: 'application/pdf',
-        ownerId: bob.id,
+        ownerId: proofAuthor.id,
         contextType: StorageContextType.SERVICE_PROOF,
         contextId: proofService.id,
         linkedEntityType: StorageLinkedEntityType.SERVICE_PROOF,
@@ -460,11 +473,25 @@ export class DemoSeedService implements OnModuleInit {
       }
     }
 
-    const dispute = await this.disputeModel
-      .findOne()
-      .sort({ openedAt: 1 })
+    const disputeService = await this.serviceModel
+      .findOne({ title: 'Réparation contestée puis validée' })
+      .select('_id')
       .exec();
+    const dispute = disputeService
+      ? await this.disputeModel
+          .findOne({ serviceId: disputeService.id })
+          .sort({ openedAt: 1 })
+          .exec()
+      : null;
     if (dispute) {
+      const evidenceAuthor = users.find(
+        (user) => user.id === dispute.openedById,
+      );
+      if (!evidenceAuthor) {
+        throw new ConflictException(
+          'L’auteur du litige de démonstration est introuvable.',
+        );
+      }
       let evidence = await this.disputeEvidenceModel
         .findOne({
           disputeId: dispute.id,
@@ -474,7 +501,7 @@ export class DemoSeedService implements OnModuleInit {
       if (!evidence) {
         evidence = await this.disputeEvidenceModel.create({
           disputeId: dispute.id,
-          authorId: alice.id,
+          authorId: evidenceAuthor.id,
           type: DisputeEvidenceType.DOCUMENT,
           message: 'Document récapitulatif ajouté pour la démonstration.',
           fileReference: null,
@@ -488,7 +515,7 @@ export class DemoSeedService implements OnModuleInit {
         ),
         filename: 'recapitulatif-litige.pdf',
         mimeType: 'application/pdf',
-        ownerId: alice.id,
+        ownerId: evidenceAuthor.id,
         contextType: StorageContextType.DISPUTE_EVIDENCE,
         contextId: dispute.id,
         linkedEntityType: StorageLinkedEntityType.DISPUTE_EVIDENCE,
@@ -642,6 +669,372 @@ export class DemoSeedService implements OnModuleInit {
     await this.neighborhoodModel
       .deleteMany({ _id: { $in: idsFor('neighborhood') } })
       .exec();
+  }
+
+  async planReconciliation() {
+    const [records, currentUsers] = await Promise.all([
+      this.seedRecordModel
+        .find({ seedSource: DEMO_SEED_SOURCE })
+        .select('_id entityType entityId')
+        .lean<Array<{ _id: unknown; entityType: string; entityId: string }>>()
+        .exec(),
+      this.userModel
+        .find({ email: { $in: DEMO_IDENTITIES.map((item) => item.email) } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const serviceIds = records
+      .filter((record) => record.entityType === 'service')
+      .map((record) => record.entityId);
+    const services = await this.serviceModel
+      .find({ _id: { $in: serviceIds } })
+      .select('_id title ownerId description type category isPaid pricePoints')
+      .lean<
+        Array<{
+          _id: unknown;
+          title: string;
+          ownerId: string;
+          description: string;
+          type: ServiceType;
+          category: string;
+          isPaid: boolean;
+          pricePoints: number | null;
+        }>
+      >()
+      .exec();
+    const loadedServiceIds = services.map((service) => String(service._id));
+    const idsForRecordType = (entityType: string) =>
+      records
+        .filter((record) => record.entityType === entityType)
+        .map((record) => record.entityId);
+    const [
+      applications,
+      contracts,
+      proofs,
+      reviews,
+      transactions,
+      disputes,
+      eventResponses,
+      voteAnswers,
+      securityEvents,
+    ] = await Promise.all([
+      this.applicationModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId applicantId ownerId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            applicantId: string;
+            ownerId: string;
+          }>
+        >()
+        .exec(),
+      this.contractModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId requesterId providerId payerId receiverId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            requesterId: string;
+            providerId: string;
+            payerId: string;
+            receiverId: string;
+          }>
+        >()
+        .exec(),
+      this.proofModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId authorId')
+        .lean<Array<{ _id: unknown; serviceId: string; authorId: string }>>()
+        .exec(),
+      this.reviewModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId contractId authorId targetUserId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            authorId: string;
+            targetUserId: string;
+          }>
+        >()
+        .exec(),
+      this.pointTransactionModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId contractId disputeId fromUserId toUserId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            disputeId: string | null;
+            fromUserId: string;
+            toUserId: string | null;
+          }>
+        >()
+        .exec(),
+      this.disputeModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId contractId openedById')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            openedById: string;
+          }>
+        >()
+        .exec(),
+      this.eventResponseModel
+        .find({ _id: { $in: idsForRecordType('event-response') } })
+        .select('_id userId')
+        .lean<Array<{ _id: unknown; userId: string }>>()
+        .exec(),
+      this.voteAnswerModel
+        .find({ _id: { $in: idsForRecordType('vote-answer') } })
+        .select('_id userId')
+        .lean<Array<{ _id: unknown; userId: string }>>()
+        .exec(),
+      this.securityAuditModel
+        .find({ _id: { $in: idsForRecordType('security-audit') } })
+        .select('_id userId')
+        .lean<Array<{ _id: unknown; userId: string | null }>>()
+        .exec(),
+    ]);
+    const contractIds = contracts.map((contract) => String(contract._id));
+    const disputeIds = disputes.map((dispute) => String(dispute._id));
+    const [documents, evidence, graphJobs] = await Promise.all([
+      this.documentModel
+        .find({ contractId: { $in: contractIds } })
+        .select('_id serviceId contractId ownerId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            ownerId: string;
+          }>
+        >()
+        .exec(),
+      this.disputeEvidenceModel
+        .find({ disputeId: { $in: disputeIds } })
+        .select('_id disputeId authorId')
+        .lean<Array<{ _id: unknown; disputeId: string; authorId: string }>>()
+        .exec(),
+      this.graphJobModel
+        .find({ entityId: { $in: loadedServiceIds } })
+        .select('_id entityId')
+        .lean<Array<{ _id: unknown; entityId: string }>>()
+        .exec(),
+    ]);
+    const linkedIds = [
+      ...proofs.map((proof) => String(proof._id)),
+      ...evidence.map((item) => String(item._id)),
+      ...documents.map((document) => String(document._id)),
+    ];
+    const storageFiles = await this.storageFileModel
+      .find({
+        $or: [
+          { linkedEntityId: { $in: linkedIds } },
+          {
+            contextId: {
+              $in: [...loadedServiceIds, ...contractIds, ...linkedIds],
+            },
+          },
+        ],
+      })
+      .select('_id contextId linkedEntityId')
+      .lean<
+        Array<{
+          _id: unknown;
+          contextId: string;
+          linkedEntityId: string | null;
+        }>
+      >()
+      .exec();
+    const nodes: DemoSeedSnapshotNode[] = [
+      ...applications.map((item) => ({
+        ...node('application', item, 'serviceId'),
+        actorIds: [item.applicantId, item.ownerId],
+      })),
+      ...contracts.map((item) => ({
+        ...node('contract', item, 'serviceId'),
+        actorIds: [
+          item.requesterId,
+          item.providerId,
+          item.payerId,
+          item.receiverId,
+        ],
+      })),
+      ...proofs.map((item) => ({
+        ...node('service-proof', item, 'serviceId'),
+        actorId: item.authorId,
+      })),
+      ...reviews.map((item) => ({
+        ...node('review', item, 'serviceId'),
+        contractId: item.contractId,
+        actorIds: [item.authorId, item.targetUserId],
+      })),
+      ...transactions.map((item) => ({
+        ...node('point-transaction', item, 'serviceId'),
+        contractId: item.contractId,
+        disputeId: item.disputeId,
+        actorIds: [item.fromUserId, ...(item.toUserId ? [item.toUserId] : [])],
+      })),
+      ...disputes.map((item) => ({
+        ...node('dispute', item, 'serviceId'),
+        contractId: item.contractId,
+        actorId: item.openedById,
+      })),
+      ...documents.map((item) => ({
+        ...node('document', item, 'serviceId'),
+        contractId: item.contractId,
+        actorId: item.ownerId,
+      })),
+      ...evidence.map((item) => ({
+        entityType: 'dispute-evidence' as const,
+        id: String(item._id),
+        disputeId: item.disputeId,
+        actorId: item.authorId,
+      })),
+      ...storageFiles.map((item) => ({
+        entityType: 'storage-file' as const,
+        id: String(item._id),
+        contextId: item.contextId,
+        linkedEntityId: item.linkedEntityId,
+      })),
+      ...graphJobs.map((item) => ({
+        entityType: 'graph-sync-job' as const,
+        id: String(item._id),
+        serviceId: item.entityId,
+      })),
+      ...eventResponses.map((item) => ({
+        entityType: 'event-response' as const,
+        id: String(item._id),
+        actorId: item.userId,
+      })),
+      ...voteAnswers.map((item) => ({
+        entityType: 'vote-answer' as const,
+        id: String(item._id),
+        actorId: item.userId,
+      })),
+      ...securityEvents.map((item) => ({
+        entityType: 'security-audit' as const,
+        id: String(item._id),
+        actorId: item.userId,
+      })),
+    ];
+    return buildDemoSeedReconciliationPlan({
+      currentUserIds: new Set(currentUsers.map((user) => String(user._id))),
+      services: services.map((service) => ({
+        entityType: 'service',
+        id: String(service._id),
+        title: service.title,
+        ownerId: service.ownerId,
+        scenarioFingerprint: this.serviceScenarioFingerprint(service),
+      })),
+      nodes,
+      records: records.map((record) => ({
+        id: String(record._id),
+        entityType: record.entityType,
+        entityId: record.entityId,
+      })),
+    });
+  }
+
+  async applyReconciliation() {
+    const plan = await this.planReconciliation();
+    if (plan.blocked.length > 0) {
+      throw new ConflictException(
+        'La réconciliation est bloquée par des dépendances non prouvées comme appartenant au seed.',
+      );
+    }
+    for (const action of plan.actions) {
+      await this.applyReconciliationAction(action);
+    }
+    return { plan, remaining: await this.planReconciliation() };
+  }
+
+  private async applyReconciliationAction(
+    action: DemoSeedReconciliationAction,
+  ) {
+    if (action.kind === 'delete-registry-record') {
+      await this.seedRecordModel
+        .deleteOne({
+          _id: action.recordId,
+          seedSource: DEMO_SEED_SOURCE,
+          entityType: 'service',
+          entityId: action.entityId,
+        })
+        .exec();
+      return;
+    }
+    if (action.entityType === 'graph-sync-job') {
+      const rootOwned = await this.seedRecordModel.exists({
+        seedSource: DEMO_SEED_SOURCE,
+        entityType: 'service',
+        entityId: action.rootServiceId,
+      });
+      if (!rootOwned) throw this.reconciliationOwnershipError(action);
+      await this.graphJobModel.deleteOne({ _id: action.entityId }).exec();
+      return;
+    }
+    const record = await this.seedRecordModel.findOne({
+      seedSource: DEMO_SEED_SOURCE,
+      entityType: action.entityType,
+      entityId: action.entityId,
+    });
+    if (!record) throw this.reconciliationOwnershipError(action);
+    if (action.entityType === 'storage-file') {
+      await this.storageService.removeSeedFile(action.entityId, true);
+    } else {
+      await this.deleteReconciliationEntity(action);
+    }
+    await record.deleteOne();
+  }
+
+  private deleteReconciliationEntity(action: DemoSeedReconciliationAction) {
+    const filter = { _id: action.entityId };
+    switch (action.entityType) {
+      case 'application':
+        return this.applicationModel.deleteOne(filter).exec();
+      case 'contract':
+        return this.contractModel.deleteOne(filter).exec();
+      case 'dispute':
+        return this.disputeModel.deleteOne(filter).exec();
+      case 'dispute-evidence':
+        return this.disputeEvidenceModel.deleteOne(filter).exec();
+      case 'document':
+        return this.documentModel.deleteOne(filter).exec();
+      case 'event-response':
+        return this.eventResponseModel.deleteOne(filter).exec();
+      case 'point-transaction':
+        return this.pointTransactionModel.deleteOne(filter).exec();
+      case 'review':
+        return this.reviewModel.deleteOne(filter).exec();
+      case 'security-audit':
+        return this.securityAuditModel.deleteOne(filter).exec();
+      case 'service-proof':
+        return this.proofModel.deleteOne(filter).exec();
+      case 'service':
+        return this.serviceModel.deleteOne(filter).exec();
+      case 'vote-answer':
+        return this.voteAnswerModel.deleteOne(filter).exec();
+      default:
+        throw new ConflictException(
+          `Type de réconciliation non pris en charge: ${action.entityType}.`,
+        );
+    }
+  }
+
+  private reconciliationOwnershipError(action: DemoSeedReconciliationAction) {
+    return new ConflictException(
+      `Suppression refusée pour ${action.entityType}:${action.entityId}: provenance seed absente.`,
+    );
   }
 
   private async ensureNeighborhoods(adminId: string) {
@@ -836,13 +1229,7 @@ export class DemoSeedService implements OnModuleInit {
         fixture.status,
         fixture.proofMessage,
       );
-      await this.ensureDocumentState(
-        reference.contractId,
-        requester,
-        provider,
-        admin,
-        'archived',
-      );
+      await this.ensureDocumentState(reference.contractId, admin, 'archived');
     }
   }
 
@@ -985,8 +1372,15 @@ export class DemoSeedService implements OnModuleInit {
       .lean<Array<{ _id: unknown }>>()
       .exec();
     const userIds = demoUsers.map((user) => String(user._id));
+    const registeredServices = await this.seedRecordModel
+      .find({ seedSource: DEMO_SEED_SOURCE, entityType: 'service' })
+      .select('entityId')
+      .lean<Array<{ entityId: string }>>()
+      .exec();
     const services = await this.serviceModel
-      .find({ ownerId: { $in: userIds } })
+      .find({
+        _id: { $in: registeredServices.map((record) => record.entityId) },
+      })
       .select('_id')
       .lean<Array<{ _id: unknown }>>()
       .exec();
@@ -1518,50 +1912,74 @@ export class DemoSeedService implements OnModuleInit {
 
   private async ensureDocumentState(
     contractId: string,
-    alice: UserDocument,
-    bob: UserDocument,
     admin: UserDocument,
     target: 'prepared' | 'sent' | 'partial' | 'archived',
   ) {
-    const aliceActor = this.seedActor(alice, Role.RESIDENT);
-    const bobActor = this.seedActor(bob, Role.RESIDENT);
+    const contract = await this.contractModel
+      .findById(contractId)
+      .select('requesterId providerId')
+      .lean<{ requesterId: string; providerId: string } | null>()
+      .exec();
+    if (!contract) {
+      throw new ConflictException('Contrat de démonstration introuvable.');
+    }
+    const parties = getDemoContractPartyIds(contract);
+    const [requester, provider] = await Promise.all([
+      this.userModel.findById(parties.requesterId).exec(),
+      this.userModel.findById(parties.providerId).exec(),
+    ]);
+    if (!requester || !provider) {
+      throw new ConflictException(
+        'Les parties du contrat de démonstration sont introuvables.',
+      );
+    }
+    const requesterActor = this.seedActor(requester, Role.RESIDENT);
+    const providerActor = this.seedActor(provider, Role.RESIDENT);
     const adminActor = this.seedActor(admin, Role.ADMIN);
     let document = await this.documentsService.findForContract(
       contractId,
-      aliceActor,
+      requesterActor,
     );
     if (!document)
       document = await this.documentsService.generateContractDocument(
         contractId,
-        aliceActor,
+        requesterActor,
       );
     if (target === 'prepared') return;
     if (document.status === ManagedDocumentStatus.PREPARED) {
       document = await this.documentsService.sendForSignature(
         document.id,
-        aliceActor,
+        requesterActor,
       );
     }
     if (target === 'sent') return;
     if (document.status === ManagedDocumentStatus.SENT_FOR_SIGNATURE) {
-      await this.documentsService.legacySignContract(contractId, aliceActor, {
-        consent: true,
-        signatureText: alice.displayName,
-      });
+      await this.documentsService.legacySignContract(
+        contractId,
+        requesterActor,
+        {
+          consent: true,
+          signatureText: requester.displayName,
+        },
+      );
       document = await this.documentsService.findForContract(
         contractId,
-        aliceActor,
+        requesterActor,
       );
     }
     if (!document || target === 'partial') return;
     if (document.status === ManagedDocumentStatus.PARTIALLY_SIGNED) {
-      await this.documentsService.legacySignContract(contractId, bobActor, {
-        consent: true,
-        signatureText: bob.displayName,
-      });
+      await this.documentsService.legacySignContract(
+        contractId,
+        providerActor,
+        {
+          consent: true,
+          signatureText: provider.displayName,
+        },
+      );
       document = await this.documentsService.findForContract(
         contractId,
-        aliceActor,
+        requesterActor,
       );
     }
     if (document?.status === ManagedDocumentStatus.FINALIZED) {
@@ -1768,16 +2186,77 @@ export class DemoSeedService implements OnModuleInit {
     };
   }
   private async ensureService(ownerId: string, input: DemoServiceInput) {
-    const existing = await this.serviceModel
-      .findOne({ ownerId, title: input.title })
+    const [owner, candidates, currentUsers] = await Promise.all([
+      this.userModel
+        .findById(ownerId)
+        .select('neighborhoodId')
+        .lean<{ neighborhoodId: string } | null>()
+        .exec(),
+      this.serviceModel.find({ title: input.title }).exec(),
+      this.userModel
+        .find({ email: { $in: DEMO_IDENTITIES.map((item) => item.email) } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const records = await this.seedRecordModel
+      .find({
+        seedSource: DEMO_SEED_SOURCE,
+        entityType: 'service',
+        entityId: { $in: candidates.map((candidate) => candidate.id) },
+      })
+      .select('entityId')
+      .lean<Array<{ entityId: string }>>()
       .exec();
-    if (existing) return existing;
-    const owner = await this.userModel
-      .findById(ownerId)
-      .select('neighborhoodId')
-      .lean<{ neighborhoodId: string } | null>()
-      .exec();
-    return this.serviceModel.create({
+    const ownedIds = new Set(records.map((record) => record.entityId));
+    const selection = selectSeedServiceCandidate({
+      expectedOwnerId: ownerId,
+      currentUserIds: new Set(currentUsers.map((user) => String(user._id))),
+      candidates: candidates.map((candidate) => ({
+        id: candidate.id,
+        ownerId: candidate.ownerId,
+        seedOwned: ownedIds.has(candidate.id),
+      })),
+    });
+    if (selection.kind === 'existing') {
+      const existing = candidates.find(
+        (candidate) => candidate.id === selection.candidate.id,
+      ) as ServiceDocument;
+      if (!this.matchesServiceScenario(existing, input)) {
+        throw new ConflictException(
+          `Un service non conforme utilise déjà le titre réservé « ${input.title} ».`,
+        );
+      }
+      await this.markSeedRecord('service', existing.id);
+      return existing;
+    }
+    if (selection.kind === 'conflict') {
+      throw new ConflictException(
+        `Plusieurs anciens services seed correspondent au scénario « ${input.title} ». Lancez d’abord la réconciliation du seed.`,
+      );
+    }
+    if (selection.kind === 'adopt') {
+      const adopted = await this.serviceModel
+        .findOneAndUpdate(
+          { _id: selection.candidate.id },
+          {
+            $set: {
+              ownerId,
+              neighborhoodId: owner?.neighborhoodId ?? 'quartier-centre',
+            },
+          },
+          { returnDocument: 'after' },
+        )
+        .exec();
+      if (!adopted) {
+        throw new ConflictException(
+          `Le service seed « ${input.title} » a changé pendant sa réconciliation.`,
+        );
+      }
+      await this.markSeedRecord('service', adopted.id);
+      return adopted;
+    }
+    const created = await this.serviceModel.create({
       title: input.title,
       description: input.description,
       type: input.type,
@@ -1791,6 +2270,33 @@ export class DemoSeedService implements OnModuleInit {
       selectedApplicationId: null,
       contractId: null,
     });
+    await this.markSeedRecord('service', created.id);
+    return created;
+  }
+
+  private matchesServiceScenario(
+    service: ServiceDocument,
+    input: DemoServiceInput,
+  ) {
+    return (
+      this.serviceScenarioFingerprint(service) ===
+      this.serviceScenarioFingerprint(input)
+    );
+  }
+
+  private serviceScenarioFingerprint(
+    service: Pick<
+      Service,
+      'description' | 'type' | 'category' | 'isPaid' | 'pricePoints'
+    >,
+  ) {
+    return JSON.stringify([
+      service.description,
+      service.type,
+      service.category,
+      service.isPaid,
+      service.pricePoints,
+    ]);
   }
 
   private async ensureFurnitureWorkflow(
@@ -2327,4 +2833,16 @@ export class DemoSeedService implements OnModuleInit {
       rejectedAt: status === ServiceApplicationStatus.REJECTED ? now : null,
     });
   }
+}
+
+function node<T extends { _id: unknown }>(
+  entityType: DemoSeedSnapshotNode['entityType'],
+  value: T,
+  reference: keyof T,
+): DemoSeedSnapshotNode {
+  return {
+    entityType,
+    id: String(value._id),
+    serviceId: String(value[reference]),
+  };
 }

@@ -18,6 +18,8 @@
     "format": "pnpm -r --if-present run format",
     "seed:demo": "pnpm --filter ./apps/api run seed:demo",
     "seed:demo:status": "pnpm --filter ./apps/api run seed:demo:status",
+    "seed:demo:reconcile": "pnpm --filter ./apps/api run seed:demo:reconcile",
+    "seed:demo:reconcile:apply": "pnpm --filter ./apps/api run seed:demo:reconcile:apply",
     "seed:demo:reset": "pnpm --filter ./apps/api run seed:demo:reset",
     "seed:keycloak": "pnpm --filter ./apps/api run seed:keycloak",
     "seed:mongodb": "pnpm --filter ./apps/api run seed:mongodb",
