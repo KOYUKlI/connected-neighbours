@@ -1,6 +1,12 @@
-import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { isValidObjectId, Model } from 'mongoose';
 import { GraphSyncService } from '../graph/graph-sync.service';
 import { GraphEntityType } from '../graph/graph.types';
 
@@ -283,6 +289,95 @@ export class UsersService implements OnModuleInit {
 
     if (linked) this.queueUserProjection(linked.id);
     return linked;
+  }
+
+  async listIdentitySummaries(input: {
+    page: number;
+    limit: number;
+    search?: string;
+  }) {
+    const filter: Record<string, unknown> = {};
+    const search = input.search?.trim();
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { email: { $regex: escaped, $options: 'i' } },
+        { displayName: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+
+    const skip = (input.page - 1) * input.limit;
+    const [users, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(input.limit)
+        .select(
+          'email displayName role isActive identityProvider identityMigrationStatus emailVerified keycloakSubject identityLinkedAt lastIdentitySyncAt createdAt updatedAt',
+        )
+        .exec(),
+      this.userModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      items: users.map((user) => this.toIdentitySummary(user)),
+      pagination: {
+        page: input.page,
+        limit: input.limit,
+        total,
+        pages: Math.max(1, Math.ceil(total / input.limit)),
+      },
+    };
+  }
+
+  async getIdentitySummary(userId: string) {
+    const user = await this.findIdentityRecord(userId);
+    return this.toIdentitySummary(user);
+  }
+
+  async getKeycloakSubject(userId: string) {
+    const user = await this.findIdentityRecord(userId);
+    return user.keycloakSubject ?? null;
+  }
+
+  async requireKeycloakSubject(userId: string) {
+    const subject = await this.getKeycloakSubject(userId);
+    if (!subject) {
+      throw new ConflictException('Ce compte n’est pas lié à Keycloak.');
+    }
+    return subject;
+  }
+
+  private async findIdentityRecord(userId: string) {
+    if (!isValidObjectId(userId)) {
+      throw new NotFoundException('Utilisateur introuvable.');
+    }
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) throw new NotFoundException('Utilisateur introuvable.');
+    return user;
+  }
+
+  private toIdentitySummary(user: UserDocument) {
+    return {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+      isActive: user.isActive,
+      identityProvider: user.identityProvider,
+      identityMigrationStatus: user.identityMigrationStatus,
+      emailVerified: user.emailVerified,
+      keycloakLinked: Boolean(user.keycloakSubject),
+      identityLinkedAt: user.identityLinkedAt ?? null,
+      lastIdentitySyncAt: user.lastIdentitySyncAt ?? null,
+      createdAt: this.safeDate(user.get('createdAt')),
+      updatedAt: this.safeDate(user.get('updatedAt')),
+    };
+  }
+
+  private safeDate(value: unknown) {
+    return value instanceof Date ? value : null;
   }
 
   async findByNeighborhood(neighborhoodId: string, excludeUserId: string) {

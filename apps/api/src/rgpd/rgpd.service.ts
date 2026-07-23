@@ -3,6 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { User, UserDocument } from '../auth/schemas/user.schema';
+import {
+  SecurityAuditEvent,
+  SecurityAuditEventDocument,
+} from '../auth/schemas/security-audit-event.schema';
 import { Alert, AlertDocument } from '../alerts/schemas/alert.schema';
 import {
   ServiceApplication,
@@ -90,6 +94,8 @@ export class RgpdService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(SecurityAuditEvent.name)
+    private readonly securityAuditModel: Model<SecurityAuditEventDocument>,
     @InjectModel(ServiceApplication.name)
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Service.name)
@@ -151,6 +157,7 @@ export class RgpdService {
       avatarFile,
       serviceProofsAuthored,
       disputeEvidenceAuthored,
+      securityEvents,
     ] = await Promise.all([
       this.serviceModel.find({ ownerId: userId }).exec(),
       this.applicationModel.find({ applicantId: userId }).exec(),
@@ -202,6 +209,13 @@ export class RgpdService {
         : Promise.resolve(null),
       this.serviceProofModel.find({ authorId: userId }).lean().exec(),
       this.disputeEvidenceModel.find({ authorId: userId }).lean().exec(),
+      this.securityAuditModel
+        .find({ userId })
+        .sort({ occurredAt: -1 })
+        .limit(500)
+        .select('-_id eventType provider result occurredAt context')
+        .lean()
+        .exec(),
     ]);
 
     const incidentIds = incidents.map((incident) => incident.id);
@@ -238,7 +252,16 @@ export class RgpdService {
         showCompletedServices: user.showCompletedServices,
         showReputation: user.showReputation,
         profileUpdatedAt: user.profileUpdatedAt,
+        identity: {
+          provider: user.identityProvider,
+          migrationStatus: user.identityMigrationStatus,
+          emailVerified: user.emailVerified,
+          linkedAt: user.identityLinkedAt,
+          lastSynchronizedAt: user.lastIdentitySyncAt,
+          onboardingCompleted: user.onboardingCompleted,
+        },
       },
+      securityEvents: this.normalizeDocuments(securityEvents),
       avatar: avatarFile ? this.normalizeDocument(avatarFile) : null,
       reputation,
       reviewsWritten: this.normalizeDocuments(reviewsWritten),

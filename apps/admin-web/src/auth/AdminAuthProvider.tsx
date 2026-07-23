@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   ADMIN_AUTH_EXPIRED_EVENT,
@@ -8,24 +14,31 @@ import {
   getAuthToken,
   getCurrentAdmin,
   loginAdmin,
+  recordAdminSecurityLogout,
   removeAuthToken,
   setAuthToken,
   type PublicUser,
-} from '../api/client';
-import { getErrorMessage } from '../shared/utils/errors';
-import { AdminAuthContext, type AdminAuthContextValue, type AdminAuthMode } from './AdminAuthContext';
+} from "../api/client";
+import { getErrorMessage } from "../shared/utils/errors";
+import {
+  AdminAuthContext,
+  type AdminAuthContextValue,
+  type AdminAuthMode,
+} from "./AdminAuthContext";
 import {
   getAdminKeycloakToken,
   initializeAdminKeycloak,
   isAdminKeycloakEnabled,
   logoutAdminKeycloak,
   startAdminKeycloakLogin,
-} from './keycloak';
+} from "./keycloak";
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const authMode: AdminAuthMode = isAdminKeycloakEnabled() ? 'keycloak' : 'local';
+  const authMode: AdminAuthMode = isAdminKeycloakEnabled()
+    ? "keycloak"
+    : "local";
   const [token, setToken] = useState(() =>
-    authMode === 'local' ? getAuthToken() : null,
+    authMode === "local" ? getAuthToken() : null,
   );
   const [currentUser, setCurrentUser] = useState<PublicUser | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -43,21 +56,21 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       getCurrentAdmin(),
       getAdminSecurity(),
     ]);
-    if (!['admin', 'moderator'].includes(user.role)) {
+    if (!["admin", "moderator"].includes(user.role)) {
       throw new ApiError(
-        'Ce compte ne dispose pas d’un rôle de modération.',
+        "Ce compte ne dispose pas d’un rôle de modération.",
         403,
       );
     }
     if (
-      authMode === 'keycloak' &&
-      security.session.provider === 'keycloak' &&
+      authMode === "keycloak" &&
+      security.session.provider === "keycloak" &&
       !security.session.mfaSatisfied
     ) {
       throw new ApiError(
-        'Une double authentification est requise pour le back-office.',
+        "Une double authentification est requise pour le back-office.",
         403,
-        'mfa_required',
+        "mfa_required",
       );
     }
     return user;
@@ -68,7 +81,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     async function bootstrap() {
       try {
-        if (authMode === 'keycloak') {
+        if (authMode === "keycloak") {
           removeAuthToken();
           configureAuthTokenProvider(getAdminKeycloakToken);
           if (!(await initializeAdminKeycloak())) return;
@@ -93,7 +106,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [authMode, authorize, clearSession]);
 
   useEffect(() => {
-    const expired = () => clearSession('Votre session administrateur a expiré.');
+    const expired = () =>
+      clearSession("Votre session administrateur a expiré.");
     window.addEventListener(ADMIN_AUTH_EXPIRED_EVENT, expired);
     return () => window.removeEventListener(ADMIN_AUTH_EXPIRED_EVENT, expired);
   }, [clearSession]);
@@ -102,8 +116,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     setLoginError(null);
     try {
       const response = await loginAdmin(email, password);
-      if (!['admin', 'moderator'].includes(response.user.role)) {
-        setLoginError('Ce compte ne dispose pas d’un rôle de modération.');
+      if (!["admin", "moderator"].includes(response.user.role)) {
+        setLoginError("Ce compte ne dispose pas d’un rôle de modération.");
         return null;
       }
       setAuthToken(response.accessToken);
@@ -123,14 +137,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    try {
+      await recordAdminSecurityLogout();
+    } catch {
+      // Logout remains available if the audit endpoint or Keycloak is down.
+    }
     clearSession();
-    if (authMode === 'keycloak') await logoutAdminKeycloak();
+    if (authMode === "keycloak") await logoutAdminKeycloak();
   }, [authMode, clearSession]);
 
   const handleSessionError = useCallback(
     (error: unknown) => {
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
-        clearSession('Session expirée ou rôle de modération requis.');
+        clearSession("Session expirée ou rôle de modération requis.");
         return true;
       }
       return false;
@@ -165,5 +184,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
+  return (
+    <AdminAuthContext.Provider value={value}>
+      {children}
+    </AdminAuthContext.Provider>
+  );
 }

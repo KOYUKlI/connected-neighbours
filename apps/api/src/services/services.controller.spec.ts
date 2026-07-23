@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/role.enum';
 import { ServiceExecutionService } from './service-execution.service';
 import { ServicesController } from './services.controller';
@@ -29,7 +30,10 @@ describe('ServicesController', () => {
           useValue: {},
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ServicesController>(ServicesController);
     servicesService = module.get(ServicesService);

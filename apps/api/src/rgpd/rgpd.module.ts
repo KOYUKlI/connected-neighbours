@@ -3,6 +3,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import {
+  SecurityAuditEvent,
+  SecurityAuditEventSchema,
+} from '../auth/schemas/security-audit-event.schema';
+import {
   ServiceApplication,
   ServiceApplicationSchema,
 } from '../applications/schemas/service-application.schema';
@@ -51,6 +55,7 @@ import { StorageModule } from '../storage/storage.module';
     StorageModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
+      { name: SecurityAuditEvent.name, schema: SecurityAuditEventSchema },
       { name: ServiceApplication.name, schema: ServiceApplicationSchema },
       { name: Service.name, schema: ServiceSchema },
       { name: ServiceProof.name, schema: ServiceProofSchema },

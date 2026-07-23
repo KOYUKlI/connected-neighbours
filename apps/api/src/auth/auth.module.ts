@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import type { SignOptions } from 'jsonwebtoken';
 
+import { AdminIdentitiesController } from './admin-identities.controller';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { DualAuthService } from './dual-auth.service';
@@ -13,6 +14,7 @@ import { IdentityLinkService } from './identity-link.service';
 import { IdentityResolutionService } from './identity-resolution.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
+import { KeycloakAdminService } from './keycloak-admin.service';
 import { MfaGuard } from './mfa.guard';
 import { KeycloakTokenVerifier } from './keycloak-token-verifier.service';
 import { PasswordService } from './password.service';
@@ -67,7 +69,12 @@ import { UsersService } from './users.service';
       },
     ]),
   ],
-  controllers: [AuthController, IdentityController, SecurityController],
+  controllers: [
+    AdminIdentitiesController,
+    AuthController,
+    IdentityController,
+    SecurityController,
+  ],
   providers: [
     AuthService,
     UsersService,
@@ -76,6 +83,7 @@ import { UsersService } from './users.service';
     JwtAuthGuard,
     DualAuthService,
     KeycloakTokenVerifier,
+    KeycloakAdminService,
     IdentityResolutionService,
     IdentityLinkService,
     SecurityAuditService,
@@ -88,6 +96,7 @@ import { UsersService } from './users.service';
     JwtAuthGuard,
     DualAuthService,
     KeycloakTokenVerifier,
+    KeycloakAdminService,
     SecurityAuditService,
     MfaGuard,
   ],

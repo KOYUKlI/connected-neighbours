@@ -68,6 +68,7 @@ import { AdminEventsPage } from './features/local-life/AdminEventsPage'
 import { AdminVotesPage } from './features/local-life/AdminVotesPage'
 import { AdminReviewsPage } from './features/reviews/AdminReviewsPage'
 import { AdminGraphPage } from './features/graph/AdminGraphPage'
+import { AdminIdentitiesPage } from './features/identities/AdminIdentitiesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NeighborhoodCreatePage } from './pages/NeighborhoodCreatePage'
@@ -93,6 +94,7 @@ const navigationItems = [
   { id: 'alerts', label: 'Alertes', description: 'Suivi par incident', icon: 'alerts', group: 'Opérations' },
   { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync', group: 'Opérations' },
   { id: 'graph', label: 'Recommandations', description: 'Santé et projections', icon: 'graph', group: 'Système' },
+  { id: 'identities', label: 'Identités', description: 'SSO et sessions', icon: 'identities', group: 'Système' },
 ] as const
 
 type SectionId = (typeof navigationItems)[number]['id']
@@ -256,6 +258,9 @@ function App() {
             break
           }
           case 'graph': {
+            break
+          }
+          case 'identities': {
             break
           }
           case 'users': {
@@ -563,6 +568,8 @@ function renderSection(props: RenderSectionProps) {
       return <SyncPage syncStates={props.syncStates} />
     case 'graph':
       return <AdminGraphPage />
+    case 'identities':
+      return <AdminIdentitiesPage />
     case 'users':
       return <UsersListPage neighborhoods={props.neighborhoods} users={props.users} />
   }

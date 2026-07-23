@@ -15,6 +15,10 @@ export enum SecurityEventType {
   LOGOUT = 'logout',
   LOGOUT_ALL = 'logout_all',
   ADMIN_SESSION_REVOKED = 'admin_session_revoked',
+  ADMIN_ACCOUNT_ACTION_REQUESTED = 'admin_account_action_requested',
+  EMAIL_VERIFICATION_REQUESTED = 'email_verification_requested',
+  PASSWORD_CHANGE_REQUESTED = 'password_change_requested',
+  MFA_SETUP_REQUESTED = 'mfa_setup_requested',
   MFA_ENABLED = 'mfa_enabled',
   MFA_DISABLED = 'mfa_disabled',
 }

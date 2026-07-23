@@ -4,7 +4,7 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from 'react';
+} from "react";
 
 import {
   completeIdentityLink,
@@ -13,7 +13,7 @@ import {
   requestIdentityLink,
   type AuthUser,
   type LoginInput,
-} from '../api/auth';
+} from "../api/auth";
 import {
   AUTH_EXPIRED_EVENT,
   ApiError,
@@ -21,9 +21,14 @@ import {
   configureAuthTokenProvider,
   getAuthToken,
   setAuthToken,
-} from '../api/client';
-import { AuthContext, type AuthContextValue, type AuthMode } from './AuthContext';
-import { storePostLoginRedirect } from './redirect';
+} from "../api/client";
+import { recordSecurityLogout } from "../api/security";
+import {
+  AuthContext,
+  type AuthContextValue,
+  type AuthMode,
+} from "./AuthContext";
+import { storePostLoginRedirect } from "./redirect";
 import {
   getKeycloakAccessToken,
   initializeKeycloak,
@@ -31,14 +36,14 @@ import {
   logoutFromKeycloak,
   startKeycloakLogin,
   startKeycloakRegistration,
-} from './keycloak';
+} from "./keycloak";
 
-const IDENTITY_LINK_TOKEN_KEY = 'connected-neighbours.identity-link-token';
+const IDENTITY_LINK_TOKEN_KEY = "connected-neighbours.identity-link-token";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const authMode: AuthMode = isKeycloakAuthEnabled() ? 'keycloak' : 'local';
+  const authMode: AuthMode = isKeycloakAuthEnabled() ? "keycloak" : "local";
   const [token, setToken] = useState<string | null>(() =>
-    authMode === 'local' ? getAuthToken() : null,
+    authMode === "local" ? getAuthToken() : null,
   );
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -59,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
 
     async function bootstrap() {
-      if (authMode === 'keycloak') {
+      if (authMode === "keycloak") {
         clearAuthToken();
         configureAuthTokenProvider(getKeycloakAccessToken);
         try {
@@ -69,11 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (active) setUser(profile);
         } catch (error) {
           if (!active) return;
-          if (error instanceof ApiError && error.code === 'link_required') {
+          if (error instanceof ApiError && error.code === "link_required") {
             setLinkRequired(true);
             setSessionMessage(error.message);
           } else {
-            clearSession('Impossible de vérifier votre session Keycloak.');
+            clearSession("Impossible de vérifier votre session Keycloak.");
           }
         } finally {
           if (active) setIsReady(true);
@@ -95,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(profile);
       } catch {
         if (active) {
-          clearSession('Votre session a expiré. Connectez-vous à nouveau.');
+          clearSession("Votre session a expiré. Connectez-vous à nouveau.");
         }
       } finally {
         if (active) setIsReady(true);
@@ -110,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleExpiredSession = () => {
-      clearSession('Votre session a expiré. Connectez-vous à nouveau.');
+      clearSession("Votre session a expiré. Connectez-vous à nouveau.");
     };
 
     window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
@@ -118,33 +123,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
   }, [clearSession]);
 
-  const login = useCallback(
-    async (input: LoginInput, persistent = true) => {
-      setLoginError(null);
-      const result = await loginRequest(input);
-      setAuthToken(result.accessToken, persistent);
-      configureAuthTokenProvider(null);
-      setToken(result.accessToken);
-      setUser(result.user);
-      setLinkRequired(false);
-      setSessionMessage(null);
-    },
-    [],
-  );
+  const login = useCallback(async (input: LoginInput, persistent = true) => {
+    setLoginError(null);
+    const result = await loginRequest(input);
+    setAuthToken(result.accessToken, persistent);
+    configureAuthTokenProvider(null);
+    setToken(result.accessToken);
+    setUser(result.user);
+    setLinkRequired(false);
+    setSessionMessage(null);
+  }, []);
 
-  const loginWithKeycloak = useCallback(async (returnTo = '/') => {
+  const loginWithKeycloak = useCallback(async (returnTo = "/") => {
     storePostLoginRedirect(returnTo);
     await startKeycloakLogin(`${window.location.origin}/auth/callback`);
   }, []);
 
   const registerWithKeycloak = useCallback(async () => {
-    storePostLoginRedirect('/');
+    storePostLoginRedirect("/");
     await startKeycloakRegistration(`${window.location.origin}/auth/callback`);
   }, []);
 
   const linkExistingAccount = useCallback(async (input: LoginInput) => {
     const keycloakToken = await getKeycloakAccessToken();
-    if (!keycloakToken) throw new Error('Session Keycloak indisponible.');
+    if (!keycloakToken) throw new Error("Session Keycloak indisponible.");
 
     const localSession = await loginRequest(input);
     const request = await requestIdentityLink(localSession.accessToken);
@@ -152,13 +154,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const profile = await getMe();
     setUser(profile);
     setLinkRequired(false);
-    setSessionMessage('Votre identité Keycloak est maintenant liée.');
+    setSessionMessage("Votre identité Keycloak est maintenant liée.");
   }, []);
 
   const beginIdentityLink = useCallback(async () => {
     const request = await requestIdentityLink();
     sessionStorage.setItem(IDENTITY_LINK_TOKEN_KEY, request.linkToken);
-    storePostLoginRedirect('/security');
+    storePostLoginRedirect("/security");
     await startKeycloakLogin(
       `${window.location.origin}/auth/callback?identity-link=1`,
     );
@@ -174,10 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!linkToken) return false;
 
     const authenticated = await initializeKeycloak(true);
-    const keycloakToken = authenticated
-      ? await getKeycloakAccessToken()
-      : null;
-    if (!keycloakToken) throw new Error('Session Keycloak indisponible.');
+    const keycloakToken = authenticated ? await getKeycloakAccessToken() : null;
+    if (!keycloakToken) throw new Error("Session Keycloak indisponible.");
 
     await completeIdentityLink(linkToken, keycloakToken);
     sessionStorage.removeItem(IDENTITY_LINK_TOKEN_KEY);
@@ -186,8 +186,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser]);
 
   const logout = useCallback(async () => {
+    try {
+      await recordSecurityLogout();
+    } catch {
+      // A remote outage must never trap the user in the local UI session.
+    }
     clearSession();
-    if (authMode === 'keycloak') {
+    if (authMode === "keycloak") {
       await logoutFromKeycloak(`${window.location.origin}/login`);
     }
   }, [authMode, clearSession]);
@@ -195,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSessionError = useCallback(
     (error: unknown) => {
       if (error instanceof ApiError && error.status === 401) {
-        clearSession('Votre session a expiré. Connectez-vous à nouveau.');
+        clearSession("Votre session a expiré. Connectez-vous à nouveau.");
         return true;
       }
 

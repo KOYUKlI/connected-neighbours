@@ -14,6 +14,7 @@ import {
   KeycloakTokenVerifier,
   type KeycloakTokenPayload,
 } from '../src/auth/keycloak-token-verifier.service';
+import { KeycloakAdminService } from '../src/auth/keycloak-admin.service';
 import { Role } from '../src/auth/role.enum';
 import { UsersService } from '../src/auth/users.service';
 
@@ -23,6 +24,32 @@ describe('Dual authentication (e2e)', () => {
   let users: UsersService;
   let payload: KeycloakTokenPayload;
   let keycloakUnavailable = false;
+
+  const keycloakAdmin = {
+    availability: jest.fn(() => 'available'),
+    getUserSecurity: jest.fn(() =>
+      Promise.resolve({
+        availability: 'available',
+        enabled: true,
+        emailVerified: true,
+        mfaConfigured: true,
+        sessionCount: 1,
+        sessions: [],
+      }),
+    ),
+    listSessions: jest.fn(() =>
+      Promise.resolve([
+        {
+          startedAt: '2026-01-01T00:00:00.000Z',
+          lastAccessAt: '2026-01-01T00:10:00.000Z',
+          rememberMe: false,
+          clients: ['Connected Neighbours Resident Web'],
+        },
+      ]),
+    ),
+    sendRequiredActionEmail: jest.fn(() => Promise.resolve()),
+    logoutAll: jest.fn(() => Promise.resolve()),
+  };
 
   const verifier = {
     classify: jest.fn((token: string) =>
@@ -48,6 +75,8 @@ describe('Dual authentication (e2e)', () => {
     })
       .overrideProvider(KeycloakTokenVerifier)
       .useValue(verifier)
+      .overrideProvider(KeycloakAdminService)
+      .useValue(keycloakAdmin)
       .compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
@@ -81,6 +110,7 @@ describe('Dual authentication (e2e)', () => {
 
   beforeEach(() => {
     keycloakUnavailable = false;
+    jest.clearAllMocks();
     payload = keycloakPayload(
       'new-resident@dual-auth.example',
       'kc-new-resident',
@@ -179,6 +209,88 @@ describe('Dual authentication (e2e)', () => {
       .expect(403);
   });
 
+  it('lists safe sessions and revokes them for a linked MFA identity', async () => {
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/auth/security/sessions')
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .expect(200)
+      .expect((response) => {
+        expect(JSON.stringify(response.body)).not.toMatch(
+          /sessionId|subject|access_token|refresh_token/,
+        );
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/auth/security/logout-all')
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .expect(200)
+      .expect({ revoked: true });
+
+    expect(keycloakAdmin.logoutAll).toHaveBeenCalledWith('kc-new-resident');
+  });
+
+  it('allows only a MongoDB admin with MFA to revoke another identity', async () => {
+    const target = await users.ensureDevUser({
+      email: 'target@dual-auth.example',
+      displayName: 'Target Resident',
+      role: Role.RESIDENT,
+      neighborhoodId: 'quartier-centre',
+      password: 'local-password',
+    });
+    await users.linkKeycloakIdentity({
+      userId: target.id,
+      keycloakSubject: 'kc-target',
+      emailVerified: true,
+    });
+    const mongoAdmin = await users.ensureDevUser({
+      email: 'identity-admin@dual-auth.example',
+      displayName: 'Identity Admin',
+      role: Role.ADMIN,
+      neighborhoodId: 'quartier-centre',
+      password: 'local-password',
+    });
+    await users.linkKeycloakIdentity({
+      userId: mongoAdmin.id,
+      keycloakSubject: 'kc-identity-admin',
+      emailVerified: true,
+    });
+    payload = {
+      ...keycloakPayload(
+        'identity-admin@dual-auth.example',
+        'kc-identity-admin',
+      ),
+      azp: 'connected-neighbours-admin',
+      cn_mfa: true,
+      amr: ['pwd'],
+    };
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/identities/${target.id}/revoke`)
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .send({ reason: 'Session compromise suspected during the E2E test.' })
+      .expect(201)
+      .expect({ revoked: true });
+
+    expect(keycloakAdmin.logoutAll).toHaveBeenCalledWith('kc-target');
+  });
+
+  it('refuses identity administration to a MongoDB resident', async () => {
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/admin/identities')
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .expect(403);
+  });
+
   it('keeps local login working when Keycloak validation is unavailable', async () => {
     await users.ensureDevUser({
       email: 'javafx-admin@dual-auth.example',
@@ -229,8 +341,7 @@ function keycloakPayload(email: string, subject: string): KeycloakTokenPayload {
     name: email.split('@')[0],
     iat: now,
     exp: now + 300,
-    amr: ['pwd'],
-    cn_mfa: true,
+    amr: ['pwd', 'otp'],
     realm_access: { roles: ['admin'] },
   };
 }
