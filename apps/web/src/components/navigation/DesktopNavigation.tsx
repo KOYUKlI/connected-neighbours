@@ -21,7 +21,7 @@ export function DesktopNavigation() {
             'relative inline-flex items-center px-3 text-sm font-semibold text-slate-600 transition hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-emerald-200',
             (isActive ||
               (link.to === '/local-life' &&
-                ['/events', '/votes', '/app/local'].some((prefix) =>
+                ['/events', '/votes', '/app/local', '/app/incidents'].some((prefix) =>
                   location.pathname.startsWith(prefix),
                 ))) &&
               'text-emerald-800 after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-emerald-700',

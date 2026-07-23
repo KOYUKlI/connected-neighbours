@@ -32,7 +32,7 @@ export function IncidentAlertsPage() {
     return (
       <PageContainer className="grid gap-4">
         <EmptyState icon="bell" message="Incident introuvable." />
-        <Link className={buttonStyles('ghost', 'sm', 'w-fit')} to="/app/local?tab=incidents">
+        <Link className={buttonStyles('ghost', 'sm', 'w-fit')} to="/local-life?tab=incidents">
           Retour aux incidents
         </Link>
       </PageContainer>
@@ -43,7 +43,7 @@ export function IncidentAlertsPage() {
     <PageContainer className="grid gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Link className={buttonStyles('ghost', 'sm', 'w-fit')} to="/app/incidents">
+          <Link className={buttonStyles('ghost', 'sm', 'w-fit')} to="/local-life?tab=incidents">
             Retour aux incidents
           </Link>
           <h1 className="mt-3 text-2xl font-extrabold text-slate-950 sm:text-3xl">
