@@ -335,6 +335,81 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "admin2@connected-neighbours.local",
+      "email": "admin2@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "Demo 2",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin2Demo2026!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "admin3@connected-neighbours.local",
+      "email": "admin3@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "Demo 3",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin3Demo2026!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "david@connected-neighbours.local",
+      "email": "david@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "David",
+      "lastName": "Petit",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DavidDemo2026!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "emma@connected-neighbours.local",
+      "email": "emma@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Emma",
+      "lastName": "Rousseau",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EmmaDemo2026!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "moderator@connected-neighbours.local",
+      "email": "moderator@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Moderation",
+      "lastName": "Demo",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ModeratorDemo2026!",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

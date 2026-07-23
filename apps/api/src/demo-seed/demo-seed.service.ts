@@ -187,6 +187,37 @@ export class DemoSeedService implements OnModuleInit {
       }),
     ]);
 
+    await Promise.all([
+      this.usersService.ensureDevUser({
+        email: 'admin2@connected-neighbours.local',
+        displayName: 'Admin Demo 2',
+        role: Role.ADMIN,
+        neighborhoodId: 'quartier-centre',
+        password: 'admin2123',
+      }),
+      this.usersService.ensureDevUser({
+        email: 'admin3@connected-neighbours.local',
+        displayName: 'Admin Demo 3',
+        role: Role.ADMIN,
+        neighborhoodId: 'quartier-centre',
+        password: 'admin3123',
+      }),
+      this.usersService.ensureDevUser({
+        email: 'david@connected-neighbours.local',
+        displayName: 'David Petit',
+        role: Role.RESIDENT,
+        neighborhoodId: 'quartier-centre',
+        password: 'david123',
+      }),
+      this.usersService.ensureDevUser({
+        email: 'emma@connected-neighbours.local',
+        displayName: 'Emma Rousseau',
+        role: Role.RESIDENT,
+        neighborhoodId: 'quartier-centre',
+        password: 'emma123',
+      }),
+    ]);
+
     await this.userModel
       .updateOne(
         { _id: bob.id, pointsBalance: 100, reservedPoints: 0 },
