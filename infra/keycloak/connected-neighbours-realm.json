@@ -139,15 +139,17 @@
       "frontchannelLogout": true,
       "fullScopeAllowed": false,
       "redirectUris": [
-        "http://localhost:5173/*"
+        "http://localhost:5173/*",
+        "https://app.3al-connected-neighbours.pro/*"
       ],
       "webOrigins": [
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "https://app.3al-connected-neighbours.pro"
       ],
       "baseUrl": "http://localhost:5173",
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5173/*",
+        "post.logout.redirect.uris": "http://localhost:5173/*##https://app.3al-connected-neighbours.pro/*",
         "frontchannel.logout.session.required": "true"
       },
       "defaultClientScopes": [
@@ -191,10 +193,12 @@
       "frontchannelLogout": true,
       "fullScopeAllowed": false,
       "redirectUris": [
-        "http://localhost:5174/*"
+        "http://localhost:5174/*",
+        "https://admin.3al-connected-neighbours.pro/*"
       ],
       "webOrigins": [
-        "http://localhost:5174"
+        "http://localhost:5174",
+        "https://admin.3al-connected-neighbours.pro"
       ],
       "baseUrl": "http://localhost:5174",
       "authenticationFlowBindingOverrides": {
@@ -202,7 +206,7 @@
       },
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5174/*",
+        "post.logout.redirect.uris": "http://localhost:5174/*##https://admin.3al-connected-neighbours.pro/*",
         "frontchannel.logout.session.required": "true"
       },
       "defaultClientScopes": [
@@ -301,6 +305,36 @@
           "manage-users"
         ]
       }
+    },
+    {
+      "username": "admin@connected-neighbours.local",
+      "email": "admin@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "Demo",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AdminDemo2026!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "alice@connected-neighbours.local",
+      "email": "alice@connected-neighbours.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Alice",
+      "lastName": "Martin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AliceDemo2026!",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

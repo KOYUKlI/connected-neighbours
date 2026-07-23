@@ -1,0 +1,23 @@
+app.3al-connected-neighbours.pro {
+	reverse_proxy web:80
+}
+
+admin.3al-connected-neighbours.pro {
+	reverse_proxy admin-web:80
+}
+
+auth.3al-connected-neighbours.pro {
+	reverse_proxy keycloak:8080
+}
+
+api.3al-connected-neighbours.pro {
+	reverse_proxy api:3000
+}
+
+storage.3al-connected-neighbours.pro {
+	reverse_proxy minio:9000
+}
+
+3al-connected-neighbours.pro {
+	redir https://app.3al-connected-neighbours.pro{uri}
+}
