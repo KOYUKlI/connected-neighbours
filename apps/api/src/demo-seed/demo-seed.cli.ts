@@ -60,6 +60,17 @@ function printSummary(
     'DemoSeed',
   );
   console.table(
+    Object.entries(result.business.counts).map(([domain, count]) => ({
+      Domaine: domain,
+      Nombre: count,
+    })),
+  );
+  Logger.log(
+    `MinIO: ${result.business.storage.status}; ` +
+      `Neo4j: ${result.business.graph.status}.`,
+    'DemoSeed',
+  );
+  console.table(
     result.accounts.map((account) => ({
       Compte: account.displayName,
       Email: account.email,

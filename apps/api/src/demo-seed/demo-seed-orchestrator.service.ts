@@ -67,12 +67,15 @@ export class DemoSeedOrchestrator {
     }
     if (scope === 'all') {
       await this.businessSeed.seedBusinessData();
-    }
-    if (scope === 'minio') {
       await this.businessSeed.seedStorageFixtures();
-    }
-    if (scope === 'graph') {
       await this.businessSeed.reconcileGraph();
+    } else {
+      if (scope === 'minio') {
+        await this.businessSeed.seedStorageFixtures();
+      }
+      if (scope === 'graph') {
+        await this.businessSeed.reconcileGraph();
+      }
     }
 
     const status = await this.status();
@@ -122,12 +125,15 @@ export class DemoSeedOrchestrator {
       keycloak.map((identity) => [identity.seedKey, identity]),
     );
 
+    const business = await this.businessSeed.status();
     return {
       services: {
         mongodb: 'available' as const,
         keycloak: this.keycloakService.isEnabled
           ? ('available' as const)
           : ('disabled' as const),
+        minio: business.storage.status,
+        graph: business.graph.status,
       },
       mongodb: {
         users: users.length,
@@ -139,6 +145,7 @@ export class DemoSeedOrchestrator {
         enabled: this.keycloakService.isEnabled,
         identities: keycloak.length,
       },
+      business,
       accounts: DEMO_IDENTITIES.map((identity) => {
         const user = userByEmail.get(identity.email);
         const keycloakIdentity = keycloakByKey.get(identity.seedKey);
@@ -176,12 +183,18 @@ export class DemoSeedOrchestrator {
       );
     }
 
-    const userRecords = await this.seedRecordModel
-      .find({ seedSource: DEMO_SEED_SOURCE, entityType: 'user' })
-      .select('entityId')
-      .lean<Array<{ entityId: string }>>()
+    const records = await this.seedRecordModel
+      .find({ seedSource: DEMO_SEED_SOURCE })
+      .select('entityType entityId')
+      .lean<Array<{ entityType: string; entityId: string }>>()
       .exec();
+    const userRecords = records.filter(
+      (record) => record.entityType === 'user',
+    );
     const userIds = userRecords.map((record) => record.entityId);
+    await this.businessSeed.resetOwnedData(
+      records.filter((record) => record.entityType !== 'user'),
+    );
     const keycloak = await this.keycloakService.removeManifestIdentities();
     const users =
       userIds.length > 0
@@ -247,8 +260,6 @@ export class DemoSeedOrchestrator {
       emailVerified: identity.emailVerified,
       onboardingCompleted: identity.onboardingCompleted,
       isActive: identity.isActive,
-      pointsBalance: identity.pointsBalance,
-      reservedPoints: 0,
       bio: identity.bio,
       interests: identity.interests,
       profileVisibility: identity.profileVisibility,
@@ -281,6 +292,8 @@ export class DemoSeedOrchestrator {
     return this.userModel.create({
       email: identity.email,
       ...patch,
+      pointsBalance: identity.pointsBalance,
+      reservedPoints: 0,
       keycloakSubject: null,
       identityLinkedAt: null,
       lastIdentitySyncAt: null,

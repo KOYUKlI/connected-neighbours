@@ -453,6 +453,120 @@ export class StorageService implements OnModuleInit {
     });
   }
 
+  async putVerifiedSeedBuffer(input: {
+    seedKey: string;
+    buffer: Uint8Array;
+    filename: string;
+    mimeType: AvatarMimeType | ProofMimeType;
+    ownerId: string;
+    contextType:
+      | StorageContextType.USER_AVATAR
+      | StorageContextType.SERVICE_PROOF
+      | StorageContextType.DISPUTE_EVIDENCE;
+    contextId: string;
+    linkedEntityType?: StorageLinkedEntityType;
+    linkedEntityId?: string;
+  }) {
+    if (this.configService.get<string>('NODE_ENV') === 'production') {
+      throw new ConflictException(
+        'Les fichiers de démonstration sont interdits en production.',
+      );
+    }
+    this.assertReady();
+    const buffer = Buffer.from(input.buffer);
+    const isAvatar = input.contextType === StorageContextType.USER_AVATAR;
+    if (isAvatar) {
+      this.validateAvatar(
+        buffer,
+        buffer.length,
+        input.mimeType,
+        input.mimeType,
+        buffer.length,
+      );
+    } else {
+      this.validateProofFile(
+        buffer,
+        buffer.length,
+        input.mimeType,
+        input.mimeType as ProofMimeType,
+        buffer.length,
+      );
+    }
+
+    const extension = isAvatar
+      ? AVATAR_EXTENSION[input.mimeType as AvatarMimeType]
+      : PROOF_EXTENSION[input.mimeType as ProofMimeType];
+    const safeSeedKey = input.seedKey.replace(/[^a-zA-Z0-9._-]+/g, '-');
+    const objectKey = `demo/${input.contextType}/${safeSeedKey}.${extension}`;
+    if (this.useMemory) {
+      this.memoryObjects.set(objectKey, buffer);
+    } else {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+          Body: buffer,
+          ContentType: input.mimeType,
+        }),
+      );
+    }
+
+    const linkedAt = input.linkedEntityId ? new Date() : null;
+    return this.fileModel
+      .findOneAndUpdate(
+        { objectKey },
+        {
+          $set: {
+            bucket: this.bucket,
+            originalFilename: input.filename,
+            safeFilename: isAvatar
+              ? this.sanitizeImageFilename(input.filename, extension)
+              : this.sanitizeManagedFilename(input.filename, extension),
+            mimeType: input.mimeType,
+            sizeBytes: buffer.length,
+            sha256: this.sha256(buffer),
+            ownerId: input.ownerId,
+            contextType: input.contextType,
+            contextId: input.contextId,
+            status: StorageFileStatus.VERIFIED,
+            completedAt: new Date(),
+            deletedAt: null,
+            linkedEntityType: input.linkedEntityType ?? null,
+            linkedEntityId: input.linkedEntityId ?? null,
+            linkedAt,
+          },
+          $setOnInsert: { objectKey },
+        },
+        { upsert: true, returnDocument: 'after', runValidators: true },
+      )
+      .exec();
+  }
+
+  async removeSeedFile(fileId: string) {
+    if (this.configService.get<string>('NODE_ENV') === 'production') {
+      throw new ConflictException(
+        'La suppression des fichiers de démonstration est interdite en production.',
+      );
+    }
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) return false;
+    try {
+      if (this.useMemory) {
+        this.memoryObjects.delete(file.objectKey);
+      } else {
+        await this.client.send(
+          new DeleteObjectCommand({ Bucket: this.bucket, Key: file.objectKey }),
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Suppression MinIO du seed différée pour ${file.id}: ${(error as Error).message}`,
+      );
+    }
+    await this.fileModel.deleteOne({ _id: file.id }).exec();
+    return true;
+  }
+
   async getVerifiedBuffer(fileId: string) {
     const file = await this.findFile(fileId);
     if (file.status !== StorageFileStatus.VERIFIED || !file.sha256) {
