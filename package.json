@@ -15,6 +15,15 @@
     "lint": "pnpm -r --if-present run lint",
     "test": "pnpm -r --if-present run test",
     "typecheck": "pnpm -r --if-present run typecheck",
-    "format": "pnpm -r --if-present run format"
+    "format": "pnpm -r --if-present run format",
+    "seed:demo": "pnpm --filter ./apps/api run seed:demo",
+    "seed:demo:status": "pnpm --filter ./apps/api run seed:demo:status",
+    "seed:demo:reconcile": "pnpm --filter ./apps/api run seed:demo:reconcile",
+    "seed:demo:reconcile:apply": "pnpm --filter ./apps/api run seed:demo:reconcile:apply",
+    "seed:demo:reset": "pnpm --filter ./apps/api run seed:demo:reset",
+    "seed:keycloak": "pnpm --filter ./apps/api run seed:keycloak",
+    "seed:mongodb": "pnpm --filter ./apps/api run seed:mongodb",
+    "seed:minio": "pnpm --filter ./apps/api run seed:minio",
+    "seed:graph": "pnpm --filter ./apps/api run seed:graph"
   }
 }

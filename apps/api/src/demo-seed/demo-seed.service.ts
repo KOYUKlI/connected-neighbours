@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -14,6 +19,12 @@ import {
   User,
   UserDocument,
 } from '../auth/schemas/user.schema';
+import {
+  SecurityAuditEvent,
+  SecurityAuditEventDocument,
+  SecurityEventResult,
+  SecurityEventType,
+} from '../auth/schemas/security-audit-event.schema';
 import { UsersService } from '../auth/users.service';
 import {
   Contract,
@@ -36,14 +47,6 @@ import {
   DisputeStatus,
 } from '../disputes/schemas/dispute.schema';
 import {
-  Incident,
-  IncidentDocument,
-  IncidentSeverity,
-  IncidentSource,
-  IncidentStatus,
-  IncidentType,
-} from '../incidents/schemas/incident.schema';
-import {
   EventResponse,
   EventResponseDocument,
   EventResponseStatus,
@@ -56,7 +59,21 @@ import {
 } from '../events/schemas/event.schema';
 import { DocumentsService } from '../documents/documents.service';
 import { ManagedDocumentStatus } from '../documents/schemas/managed-document.schema';
+import {
+  ManagedDocument,
+  ManagedDocumentDocument,
+} from '../documents/schemas/managed-document.schema';
 import { PointsService } from '../points/points.service';
+import {
+  PointTransaction,
+  PointTransactionDocument,
+  PointTransactionType,
+} from '../points/schemas/point-transaction.schema';
+import {
+  Neighborhood,
+  NeighborhoodAuditType,
+  NeighborhoodDocument,
+} from '../neighborhoods/schemas/neighborhood.schema';
 import {
   ServiceProof,
   ServiceProofDocument,
@@ -87,6 +104,36 @@ import {
 } from '../reviews/schemas/review.schema';
 import { GraphSyncService } from '../graph/graph-sync.service';
 import { GraphEntityType } from '../graph/graph.types';
+import {
+  GraphSyncJob,
+  GraphSyncJobDocument,
+  GraphSyncJobStatus,
+} from '../graph/schemas/graph-sync-job.schema';
+import { StorageService } from '../storage/storage.service';
+import {
+  StorageContextType,
+  StorageFile,
+  StorageFileDocument,
+  StorageLinkedEntityType,
+} from '../storage/schemas/storage-file.schema';
+import {
+  DEMO_EVENT_CATALOG,
+  DEMO_NEIGHBORHOODS,
+  DEMO_SERVICE_CATALOG,
+  DEMO_VOTE_CATALOG,
+} from './demo-business.manifest';
+import { DEMO_IDENTITIES, DEMO_SEED_SOURCE } from './demo-seed.manifest';
+import {
+  buildDemoSeedReconciliationPlan,
+  DemoSeedReconciliationAction,
+  DemoSeedSnapshotNode,
+  getDemoContractPartyIds,
+  selectSeedServiceCandidate,
+} from './demo-seed-reconciliation';
+import {
+  DemoSeedRecord,
+  DemoSeedRecordDocument,
+} from './schemas/demo-seed-record.schema';
 
 type DemoExecutionReference = {
   serviceId: string;
@@ -123,8 +170,6 @@ export class DemoSeedService implements OnModuleInit {
     private readonly disputeEvidenceModel: Model<DisputeEvidenceDocument>,
     @InjectModel(ServiceProof.name)
     private readonly proofModel: Model<ServiceProofDocument>,
-    @InjectModel(Incident.name)
-    private readonly incidentModel: Model<IncidentDocument>,
     @InjectModel(NeighborhoodEvent.name)
     private readonly eventModel: Model<EventDocument>,
     @InjectModel(EventResponse.name)
@@ -135,9 +180,24 @@ export class DemoSeedService implements OnModuleInit {
     private readonly voteAnswerModel: Model<VoteAnswerDocument>,
     @InjectModel(Review.name)
     private readonly reviewModel: Model<ReviewDocument>,
+    @InjectModel(Neighborhood.name)
+    private readonly neighborhoodModel: Model<NeighborhoodDocument>,
+    @InjectModel(PointTransaction.name)
+    private readonly pointTransactionModel: Model<PointTransactionDocument>,
+    @InjectModel(ManagedDocument.name)
+    private readonly documentModel: Model<ManagedDocumentDocument>,
+    @InjectModel(StorageFile.name)
+    private readonly storageFileModel: Model<StorageFileDocument>,
+    @InjectModel(SecurityAuditEvent.name)
+    private readonly securityAuditModel: Model<SecurityAuditEventDocument>,
+    @InjectModel(GraphSyncJob.name)
+    private readonly graphJobModel: Model<GraphSyncJobDocument>,
+    @InjectModel(DemoSeedRecord.name)
+    private readonly seedRecordModel: Model<DemoSeedRecordDocument>,
     private readonly usersService: UsersService,
     private readonly pointsService: PointsService,
     private readonly documentsService: DocumentsService,
+    private readonly storageService: StorageService,
     @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
@@ -149,41 +209,51 @@ export class DemoSeedService implements OnModuleInit {
       return;
     }
 
+    await this.seedBusinessData();
+  }
+
+  async seedBusinessData() {
+    const residentPassword =
+      process.env.SEED_DEMO_RESIDENT_PASSWORD ?? 'local-development-only';
+    const moderatorPassword =
+      process.env.SEED_DEMO_MODERATOR_PASSWORD ?? residentPassword;
+    const adminPassword =
+      process.env.SEED_DEMO_ADMIN_PASSWORD ?? residentPassword;
     const [alice, bob, claire, moderator, admin] = await Promise.all([
       this.usersService.ensureDevUser({
         email: 'alice@connected-neighbours.local',
         displayName: 'Alice Martin',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'alice123',
+        password: residentPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'bob@connected-neighbours.local',
         displayName: 'Bob Dupont',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'bob123',
+        password: residentPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'claire@connected-neighbours.local',
         displayName: 'Claire Bernard',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'claire123',
+        password: residentPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'moderator@connected-neighbours.local',
         displayName: 'Moderation Demo',
         role: Role.MODERATOR,
         neighborhoodId: 'quartier-centre',
-        password: 'moderator123',
+        password: moderatorPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'admin@connected-neighbours.local',
         displayName: 'Admin Demo',
         role: Role.ADMIN,
         neighborhoodId: 'quartier-centre',
-        password: 'admin123',
+        password: adminPassword,
       }),
     ]);
 
@@ -194,6 +264,7 @@ export class DemoSeedService implements OnModuleInit {
       )
       .exec();
 
+    await this.ensureNeighborhoods(admin.id);
     await this.ensureProfileDemos(alice, bob, claire);
 
     const furniture = await this.ensureService(alice.id, {
@@ -255,32 +326,20 @@ export class DemoSeedService implements OnModuleInit {
       .findOne({ serviceId: furniture.id })
       .exec();
     if (furnitureContract)
-      await this.ensureDocumentState(
-        furnitureContract.id,
-        alice,
-        bob,
-        admin,
-        'archived',
-      );
+      await this.ensureDocumentState(furnitureContract.id, admin, 'archived');
     const disputeDemos = await this.ensureExecutionDemos(alice, bob);
     await this.ensureDocumentState(
       disputeDemos.open.contractId,
-      alice,
-      bob,
       admin,
       'prepared',
     );
     await this.ensureDocumentState(
       disputeDemos.review.contractId,
-      alice,
-      bob,
       admin,
       'sent',
     );
     await this.ensureDocumentState(
       disputeDemos.resolved.contractId,
-      alice,
-      bob,
       admin,
       'partial',
     );
@@ -293,9 +352,1202 @@ export class DemoSeedService implements OnModuleInit {
       ServiceApplicationStatus.SUBMITTED,
       "Bonjour Bob, j'aurais besoin d'aide pour securiser mon ordinateur.",
     );
-    await this.ensureIncident(alice.id);
     await this.ensureLocalLife(alice, bob, claire, admin);
+    const users = await this.userModel
+      .find({
+        email: { $in: DEMO_IDENTITIES.map((identity) => identity.email) },
+      })
+      .exec();
+    const usersByEmail = new Map(users.map((user) => [user.email, user]));
+    await this.ensureServiceCatalog(usersByEmail);
+    await this.ensureAdditionalExecutionStates(usersByEmail, admin);
+    await this.ensureLocalLifeCatalog(usersByEmail, admin);
+    await this.ensureSecurityAuditDemos(usersByEmail);
+    await this.reconcileDemoPointBalances(usersByEmail);
+    await this.registerOwnedBusinessData();
+  }
+
+  async seedStorageFixtures() {
+    const users = await this.userModel
+      .find({
+        email: { $in: DEMO_IDENTITIES.map((identity) => identity.email) },
+      })
+      .exec();
+    const usersByEmail = new Map(users.map((user) => [user.email, user]));
+    const admin = usersByEmail.get('admin@connected-neighbours.local');
+    if (!admin) {
+      throw new Error(
+        'Les identités MongoDB doivent être créées avant les fixtures MinIO.',
+      );
+    }
+    const documentService = await this.serviceModel
+      .findOne({ title: 'Aide pour monter un meuble' })
+      .select('_id')
+      .exec();
+    const contract = documentService
+      ? await this.contractModel
+          .findOne({ serviceId: documentService.id })
+          .exec()
+      : null;
+    if (contract) {
+      await this.ensureDocumentState(contract.id, admin, 'prepared');
+    }
+
+    const avatarBuffer = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZcXcAAAAASUVORK5CYII=',
+      'base64',
+    );
+    for (const identity of DEMO_IDENTITIES.filter(
+      (item) => item.role === Role.RESIDENT && item.isActive,
+    ).slice(0, 10)) {
+      const user = usersByEmail.get(identity.email);
+      if (!user) continue;
+      const file = await this.storageService.putVerifiedSeedBuffer({
+        seedKey: `avatar-${identity.seedKey}`,
+        buffer: avatarBuffer,
+        filename: `${identity.seedKey}.png`,
+        mimeType: 'image/png',
+        ownerId: user.id,
+        contextType: StorageContextType.USER_AVATAR,
+        contextId: user.id,
+      });
+      if (!file) continue;
+      await this.userModel
+        .updateOne({ _id: user.id }, { $set: { avatarFileId: file.id } })
+        .exec();
+      await this.markSeedRecord('storage-file', file.id);
+    }
+
+    const proofService = await this.serviceModel
+      .findOne({ title: 'Installation d une imprimante' })
+      .exec();
+    if (proofService) {
+      const proofContract = await this.contractModel
+        .findOne({ serviceId: proofService.id })
+        .select('providerId')
+        .lean<{ providerId: string } | null>()
+        .exec();
+      const proofAuthor = proofContract
+        ? users.find((user) => user.id === proofContract.providerId)
+        : null;
+      if (!proofAuthor) {
+        throw new ConflictException(
+          'Le prestataire du scénario de preuve est introuvable.',
+        );
+      }
+      let proof = await this.proofModel
+        .findOne({
+          serviceId: proofService.id,
+          message: 'Compte-rendu PDF de la page de test.',
+        })
+        .exec();
+      if (!proof) {
+        proof = await this.proofModel.create({
+          serviceId: proofService.id,
+          authorId: proofAuthor.id,
+          type: ServiceProofType.DOCUMENT,
+          message: 'Compte-rendu PDF de la page de test.',
+          fileReference: null,
+        });
+      }
+      const file = await this.storageService.putVerifiedSeedBuffer({
+        seedKey: 'proof-printer-report',
+        buffer: Buffer.from(
+          '%PDF-1.4\n% Connected Neighbours demo proof\n%%EOF\n',
+          'utf8',
+        ),
+        filename: 'preuve-imprimante.pdf',
+        mimeType: 'application/pdf',
+        ownerId: proofAuthor.id,
+        contextType: StorageContextType.SERVICE_PROOF,
+        contextId: proofService.id,
+        linkedEntityType: StorageLinkedEntityType.SERVICE_PROOF,
+        linkedEntityId: proof.id,
+      });
+      if (file) {
+        await this.proofModel
+          .updateOne({ _id: proof.id }, { $set: { fileReference: file.id } })
+          .exec();
+        await this.markSeedRecord('service-proof', proof.id);
+        await this.markSeedRecord('storage-file', file.id);
+      }
+    }
+
+    const disputeService = await this.serviceModel
+      .findOne({ title: 'Réparation contestée puis validée' })
+      .select('_id')
+      .exec();
+    const dispute = disputeService
+      ? await this.disputeModel
+          .findOne({ serviceId: disputeService.id })
+          .sort({ openedAt: 1 })
+          .exec()
+      : null;
+    if (dispute) {
+      const evidenceAuthor = users.find(
+        (user) => user.id === dispute.openedById,
+      );
+      if (!evidenceAuthor) {
+        throw new ConflictException(
+          'L’auteur du litige de démonstration est introuvable.',
+        );
+      }
+      let evidence = await this.disputeEvidenceModel
+        .findOne({
+          disputeId: dispute.id,
+          message: 'Document récapitulatif ajouté pour la démonstration.',
+        })
+        .exec();
+      if (!evidence) {
+        evidence = await this.disputeEvidenceModel.create({
+          disputeId: dispute.id,
+          authorId: evidenceAuthor.id,
+          type: DisputeEvidenceType.DOCUMENT,
+          message: 'Document récapitulatif ajouté pour la démonstration.',
+          fileReference: null,
+        });
+      }
+      const file = await this.storageService.putVerifiedSeedBuffer({
+        seedKey: 'dispute-summary-document',
+        buffer: Buffer.from(
+          '%PDF-1.4\n% Connected Neighbours demo dispute evidence\n%%EOF\n',
+          'utf8',
+        ),
+        filename: 'recapitulatif-litige.pdf',
+        mimeType: 'application/pdf',
+        ownerId: evidenceAuthor.id,
+        contextType: StorageContextType.DISPUTE_EVIDENCE,
+        contextId: dispute.id,
+        linkedEntityType: StorageLinkedEntityType.DISPUTE_EVIDENCE,
+        linkedEntityId: evidence.id,
+      });
+      if (file) {
+        await this.disputeEvidenceModel
+          .updateOne({ _id: evidence.id }, { $set: { fileReference: file.id } })
+          .exec();
+        await this.markSeedRecord('dispute-evidence', evidence.id);
+        await this.markSeedRecord('storage-file', file.id);
+      }
+    }
+    await this.registerOwnedBusinessData();
+  }
+
+  async reconcileGraph() {
     await this.enqueueGraphSeed();
+  }
+
+  async status() {
+    const [
+      neighborhoods,
+      users,
+      services,
+      applications,
+      contracts,
+      proofs,
+      documents,
+      storageFiles,
+      disputes,
+      disputeEvidence,
+      events,
+      eventResponses,
+      votes,
+      voteAnswers,
+      reviews,
+      pointTransactions,
+      securityEvents,
+      graphJobs,
+    ] = await Promise.all([
+      this.neighborhoodModel.countDocuments().exec(),
+      this.userModel.countDocuments().exec(),
+      this.serviceModel.countDocuments().exec(),
+      this.applicationModel.countDocuments().exec(),
+      this.contractModel.countDocuments().exec(),
+      this.proofModel.countDocuments().exec(),
+      this.documentModel.countDocuments().exec(),
+      this.storageFileModel.countDocuments().exec(),
+      this.disputeModel.countDocuments().exec(),
+      this.disputeEvidenceModel.countDocuments().exec(),
+      this.eventModel.countDocuments().exec(),
+      this.eventResponseModel.countDocuments().exec(),
+      this.voteModel.countDocuments().exec(),
+      this.voteAnswerModel.countDocuments().exec(),
+      this.reviewModel.countDocuments().exec(),
+      this.pointTransactionModel.countDocuments().exec(),
+      this.securityAuditModel.countDocuments().exec(),
+      this.graphJobModel
+        .aggregate<{
+          _id: GraphSyncJobStatus;
+          count: number;
+        }>([{ $group: { _id: '$status', count: { $sum: 1 } } }])
+        .exec(),
+    ]);
+    const graphJobsByStatus = Object.fromEntries(
+      graphJobs.map((row) => [row._id, row.count]),
+    );
+    const graphEnabled = process.env.NEO4J_ENABLED === 'true';
+    return {
+      counts: {
+        neighborhoods,
+        users,
+        services,
+        applications,
+        contracts,
+        proofs,
+        documents,
+        storageFiles,
+        disputes,
+        disputeEvidence,
+        events,
+        eventResponses,
+        votes,
+        voteAnswers,
+        reviews,
+        pointTransactions,
+        securityEvents,
+      },
+      storage: this.storageService.health(),
+      graph: {
+        enabled: graphEnabled,
+        status: graphEnabled
+          ? (graphJobsByStatus[GraphSyncJobStatus.FAILED] ?? 0) > 0
+            ? ('degraded' as const)
+            : ('available' as const)
+          : ('disabled' as const),
+        jobs: graphJobsByStatus,
+      },
+    };
+  }
+
+  async resetOwnedData(
+    records: Array<{ entityType: string; entityId: string }>,
+  ) {
+    const idsFor = (entityType: string) =>
+      records
+        .filter((record) => record.entityType === entityType)
+        .map((record) => record.entityId);
+    for (const fileId of idsFor('storage-file')) {
+      await this.storageService.removeSeedFile(fileId);
+    }
+    await Promise.all([
+      this.disputeEvidenceModel
+        .deleteMany({ _id: { $in: idsFor('dispute-evidence') } })
+        .exec(),
+      this.proofModel
+        .deleteMany({ _id: { $in: idsFor('service-proof') } })
+        .exec(),
+      this.eventResponseModel
+        .deleteMany({ _id: { $in: idsFor('event-response') } })
+        .exec(),
+      this.voteAnswerModel
+        .deleteMany({ _id: { $in: idsFor('vote-answer') } })
+        .exec(),
+      this.reviewModel.deleteMany({ _id: { $in: idsFor('review') } }).exec(),
+      this.documentModel
+        .deleteMany({ _id: { $in: idsFor('document') } })
+        .exec(),
+      this.pointTransactionModel
+        .deleteMany({ _id: { $in: idsFor('point-transaction') } })
+        .exec(),
+      this.applicationModel
+        .deleteMany({ _id: { $in: idsFor('application') } })
+        .exec(),
+      this.disputeModel.deleteMany({ _id: { $in: idsFor('dispute') } }).exec(),
+      this.contractModel
+        .deleteMany({ _id: { $in: idsFor('contract') } })
+        .exec(),
+      this.eventModel.deleteMany({ _id: { $in: idsFor('event') } }).exec(),
+      this.voteModel.deleteMany({ _id: { $in: idsFor('vote') } }).exec(),
+      this.securityAuditModel
+        .deleteMany({ _id: { $in: idsFor('security-audit') } })
+        .exec(),
+    ]);
+    const serviceIds = idsFor('service');
+    await this.graphJobModel
+      .deleteMany({ entityId: { $in: serviceIds } })
+      .exec();
+    await this.serviceModel.deleteMany({ _id: { $in: serviceIds } }).exec();
+    await this.neighborhoodModel
+      .deleteMany({ _id: { $in: idsFor('neighborhood') } })
+      .exec();
+  }
+
+  async planReconciliation() {
+    const [records, currentUsers] = await Promise.all([
+      this.seedRecordModel
+        .find({ seedSource: DEMO_SEED_SOURCE })
+        .select('_id entityType entityId')
+        .lean<Array<{ _id: unknown; entityType: string; entityId: string }>>()
+        .exec(),
+      this.userModel
+        .find({ email: { $in: DEMO_IDENTITIES.map((item) => item.email) } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const serviceIds = records
+      .filter((record) => record.entityType === 'service')
+      .map((record) => record.entityId);
+    const services = await this.serviceModel
+      .find({ _id: { $in: serviceIds } })
+      .select('_id title ownerId description type category isPaid pricePoints')
+      .lean<
+        Array<{
+          _id: unknown;
+          title: string;
+          ownerId: string;
+          description: string;
+          type: ServiceType;
+          category: string;
+          isPaid: boolean;
+          pricePoints: number | null;
+        }>
+      >()
+      .exec();
+    const loadedServiceIds = services.map((service) => String(service._id));
+    const idsForRecordType = (entityType: string) =>
+      records
+        .filter((record) => record.entityType === entityType)
+        .map((record) => record.entityId);
+    const [
+      applications,
+      contracts,
+      proofs,
+      reviews,
+      transactions,
+      disputes,
+      eventResponses,
+      voteAnswers,
+      securityEvents,
+    ] = await Promise.all([
+      this.applicationModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId applicantId ownerId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            applicantId: string;
+            ownerId: string;
+          }>
+        >()
+        .exec(),
+      this.contractModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId requesterId providerId payerId receiverId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            requesterId: string;
+            providerId: string;
+            payerId: string;
+            receiverId: string;
+          }>
+        >()
+        .exec(),
+      this.proofModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId authorId')
+        .lean<Array<{ _id: unknown; serviceId: string; authorId: string }>>()
+        .exec(),
+      this.reviewModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId contractId authorId targetUserId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            authorId: string;
+            targetUserId: string;
+          }>
+        >()
+        .exec(),
+      this.pointTransactionModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId contractId disputeId fromUserId toUserId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            disputeId: string | null;
+            fromUserId: string;
+            toUserId: string | null;
+          }>
+        >()
+        .exec(),
+      this.disputeModel
+        .find({ serviceId: { $in: loadedServiceIds } })
+        .select('_id serviceId contractId openedById')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            openedById: string;
+          }>
+        >()
+        .exec(),
+      this.eventResponseModel
+        .find({ _id: { $in: idsForRecordType('event-response') } })
+        .select('_id userId')
+        .lean<Array<{ _id: unknown; userId: string }>>()
+        .exec(),
+      this.voteAnswerModel
+        .find({ _id: { $in: idsForRecordType('vote-answer') } })
+        .select('_id userId')
+        .lean<Array<{ _id: unknown; userId: string }>>()
+        .exec(),
+      this.securityAuditModel
+        .find({ _id: { $in: idsForRecordType('security-audit') } })
+        .select('_id userId')
+        .lean<Array<{ _id: unknown; userId: string | null }>>()
+        .exec(),
+    ]);
+    const contractIds = contracts.map((contract) => String(contract._id));
+    const disputeIds = disputes.map((dispute) => String(dispute._id));
+    const [documents, evidence, graphJobs] = await Promise.all([
+      this.documentModel
+        .find({ contractId: { $in: contractIds } })
+        .select('_id serviceId contractId ownerId')
+        .lean<
+          Array<{
+            _id: unknown;
+            serviceId: string;
+            contractId: string;
+            ownerId: string;
+          }>
+        >()
+        .exec(),
+      this.disputeEvidenceModel
+        .find({ disputeId: { $in: disputeIds } })
+        .select('_id disputeId authorId')
+        .lean<Array<{ _id: unknown; disputeId: string; authorId: string }>>()
+        .exec(),
+      this.graphJobModel
+        .find({ entityId: { $in: loadedServiceIds } })
+        .select('_id entityId')
+        .lean<Array<{ _id: unknown; entityId: string }>>()
+        .exec(),
+    ]);
+    const linkedIds = [
+      ...proofs.map((proof) => String(proof._id)),
+      ...evidence.map((item) => String(item._id)),
+      ...documents.map((document) => String(document._id)),
+    ];
+    const storageFiles = await this.storageFileModel
+      .find({
+        $or: [
+          { linkedEntityId: { $in: linkedIds } },
+          {
+            contextId: {
+              $in: [...loadedServiceIds, ...contractIds, ...linkedIds],
+            },
+          },
+        ],
+      })
+      .select('_id contextId linkedEntityId')
+      .lean<
+        Array<{
+          _id: unknown;
+          contextId: string;
+          linkedEntityId: string | null;
+        }>
+      >()
+      .exec();
+    const nodes: DemoSeedSnapshotNode[] = [
+      ...applications.map((item) => ({
+        ...node('application', item, 'serviceId'),
+        actorIds: [item.applicantId, item.ownerId],
+      })),
+      ...contracts.map((item) => ({
+        ...node('contract', item, 'serviceId'),
+        actorIds: [
+          item.requesterId,
+          item.providerId,
+          item.payerId,
+          item.receiverId,
+        ],
+      })),
+      ...proofs.map((item) => ({
+        ...node('service-proof', item, 'serviceId'),
+        actorId: item.authorId,
+      })),
+      ...reviews.map((item) => ({
+        ...node('review', item, 'serviceId'),
+        contractId: item.contractId,
+        actorIds: [item.authorId, item.targetUserId],
+      })),
+      ...transactions.map((item) => ({
+        ...node('point-transaction', item, 'serviceId'),
+        contractId: item.contractId,
+        disputeId: item.disputeId,
+        actorIds: [item.fromUserId, ...(item.toUserId ? [item.toUserId] : [])],
+      })),
+      ...disputes.map((item) => ({
+        ...node('dispute', item, 'serviceId'),
+        contractId: item.contractId,
+        actorId: item.openedById,
+      })),
+      ...documents.map((item) => ({
+        ...node('document', item, 'serviceId'),
+        contractId: item.contractId,
+        actorId: item.ownerId,
+      })),
+      ...evidence.map((item) => ({
+        entityType: 'dispute-evidence' as const,
+        id: String(item._id),
+        disputeId: item.disputeId,
+        actorId: item.authorId,
+      })),
+      ...storageFiles.map((item) => ({
+        entityType: 'storage-file' as const,
+        id: String(item._id),
+        contextId: item.contextId,
+        linkedEntityId: item.linkedEntityId,
+      })),
+      ...graphJobs.map((item) => ({
+        entityType: 'graph-sync-job' as const,
+        id: String(item._id),
+        serviceId: item.entityId,
+      })),
+      ...eventResponses.map((item) => ({
+        entityType: 'event-response' as const,
+        id: String(item._id),
+        actorId: item.userId,
+      })),
+      ...voteAnswers.map((item) => ({
+        entityType: 'vote-answer' as const,
+        id: String(item._id),
+        actorId: item.userId,
+      })),
+      ...securityEvents.map((item) => ({
+        entityType: 'security-audit' as const,
+        id: String(item._id),
+        actorId: item.userId,
+      })),
+    ];
+    return buildDemoSeedReconciliationPlan({
+      currentUserIds: new Set(currentUsers.map((user) => String(user._id))),
+      services: services.map((service) => ({
+        entityType: 'service',
+        id: String(service._id),
+        title: service.title,
+        ownerId: service.ownerId,
+        scenarioFingerprint: this.serviceScenarioFingerprint(service),
+      })),
+      nodes,
+      records: records.map((record) => ({
+        id: String(record._id),
+        entityType: record.entityType,
+        entityId: record.entityId,
+      })),
+    });
+  }
+
+  async applyReconciliation() {
+    const plan = await this.planReconciliation();
+    if (plan.blocked.length > 0) {
+      throw new ConflictException(
+        'La réconciliation est bloquée par des dépendances non prouvées comme appartenant au seed.',
+      );
+    }
+    for (const action of plan.actions) {
+      await this.applyReconciliationAction(action);
+    }
+    return { plan, remaining: await this.planReconciliation() };
+  }
+
+  private async applyReconciliationAction(
+    action: DemoSeedReconciliationAction,
+  ) {
+    if (action.kind === 'delete-registry-record') {
+      await this.seedRecordModel
+        .deleteOne({
+          _id: action.recordId,
+          seedSource: DEMO_SEED_SOURCE,
+          entityType: 'service',
+          entityId: action.entityId,
+        })
+        .exec();
+      return;
+    }
+    if (action.entityType === 'graph-sync-job') {
+      const rootOwned = await this.seedRecordModel.exists({
+        seedSource: DEMO_SEED_SOURCE,
+        entityType: 'service',
+        entityId: action.rootServiceId,
+      });
+      if (!rootOwned) throw this.reconciliationOwnershipError(action);
+      await this.graphJobModel.deleteOne({ _id: action.entityId }).exec();
+      return;
+    }
+    const record = await this.seedRecordModel.findOne({
+      seedSource: DEMO_SEED_SOURCE,
+      entityType: action.entityType,
+      entityId: action.entityId,
+    });
+    if (!record) throw this.reconciliationOwnershipError(action);
+    if (action.entityType === 'storage-file') {
+      await this.storageService.removeSeedFile(action.entityId, true);
+    } else {
+      await this.deleteReconciliationEntity(action);
+    }
+    await record.deleteOne();
+  }
+
+  private deleteReconciliationEntity(action: DemoSeedReconciliationAction) {
+    const filter = { _id: action.entityId };
+    switch (action.entityType) {
+      case 'application':
+        return this.applicationModel.deleteOne(filter).exec();
+      case 'contract':
+        return this.contractModel.deleteOne(filter).exec();
+      case 'dispute':
+        return this.disputeModel.deleteOne(filter).exec();
+      case 'dispute-evidence':
+        return this.disputeEvidenceModel.deleteOne(filter).exec();
+      case 'document':
+        return this.documentModel.deleteOne(filter).exec();
+      case 'event-response':
+        return this.eventResponseModel.deleteOne(filter).exec();
+      case 'point-transaction':
+        return this.pointTransactionModel.deleteOne(filter).exec();
+      case 'review':
+        return this.reviewModel.deleteOne(filter).exec();
+      case 'security-audit':
+        return this.securityAuditModel.deleteOne(filter).exec();
+      case 'service-proof':
+        return this.proofModel.deleteOne(filter).exec();
+      case 'service':
+        return this.serviceModel.deleteOne(filter).exec();
+      case 'vote-answer':
+        return this.voteAnswerModel.deleteOne(filter).exec();
+      default:
+        throw new ConflictException(
+          `Type de réconciliation non pris en charge: ${action.entityType}.`,
+        );
+    }
+  }
+
+  private reconciliationOwnershipError(action: DemoSeedReconciliationAction) {
+    return new ConflictException(
+      `Suppression refusée pour ${action.entityType}:${action.entityId}: provenance seed absente.`,
+    );
+  }
+
+  private async ensureNeighborhoods(adminId: string) {
+    for (const neighborhood of DEMO_NEIGHBORHOODS) {
+      await this.neighborhoodModel
+        .findOneAndUpdate(
+          { slug: neighborhood.slug },
+          {
+            $set: {
+              name: neighborhood.name,
+              description: neighborhood.description,
+              city: neighborhood.city,
+              postalCode: neighborhood.postalCode,
+              postalCodes: neighborhood.postalCodes,
+              boundary: null,
+              geometry: neighborhood.geometry,
+              center: neighborhood.center,
+              status: neighborhood.status,
+              isActive: true,
+              archivedAt: null,
+            },
+            $setOnInsert: {
+              slug: neighborhood.slug,
+              createdById: adminId,
+              history: [
+                {
+                  type: NeighborhoodAuditType.CREATED,
+                  actorId: adminId,
+                  occurredAt: new Date('2026-07-01T08:00:00.000Z'),
+                  metadata: { seedSource: DEMO_SEED_SOURCE },
+                },
+              ],
+            },
+          },
+          { upsert: true, returnDocument: 'after', runValidators: true },
+        )
+        .exec();
+    }
+  }
+
+  private async ensureServiceCatalog(
+    usersByEmail: ReadonlyMap<string, UserDocument>,
+  ) {
+    const servicesByTitle = new Map<string, ServiceDocument>();
+    for (const input of DEMO_SERVICE_CATALOG) {
+      const owner = usersByEmail.get(input.ownerEmail);
+      if (!owner || !owner.isActive) continue;
+      const service = await this.ensureService(owner.id, input);
+      servicesByTitle.set(service.title, service);
+    }
+    const applications = [
+      {
+        title: 'Partenaire pour courir le dimanche',
+        applicantEmail: 'emma@connected-neighbours.local',
+        message: 'Je suis disponible dimanche et je cours à allure modérée.',
+      },
+      {
+        title: 'Cherche covoiturage vers la bibliothèque',
+        applicantEmail: 'lucas@connected-neighbours.local',
+        message: 'Je peux aider avec une voiture adaptée aux cartons.',
+      },
+      {
+        title: 'Garde de chien en soirée',
+        applicantEmail: 'lina.keycloak@connected-neighbours.local',
+        message:
+          'Je connais bien les chiens et je serai présente dans le quartier.',
+      },
+      {
+        title: 'Fixer une tringle à rideaux',
+        applicantEmail: 'marc.legacy@connected-neighbours.local',
+        message: 'Je dispose des outils et des chevilles nécessaires.',
+      },
+      {
+        title: 'Réparer une poignée de porte',
+        applicantEmail: 'bob@connected-neighbours.local',
+        message: 'Je peux intervenir jeudi soir avec les pièces courantes.',
+      },
+      {
+        title: 'Révisions de français au collège',
+        applicantEmail: 'lina.keycloak@connected-neighbours.local',
+        message:
+          'Je peux aider à préparer les exercices et relire les réponses.',
+      },
+    ];
+    for (const application of applications) {
+      const service = servicesByTitle.get(application.title);
+      const applicant = usersByEmail.get(application.applicantEmail);
+      if (!service || !applicant) continue;
+      await this.ensureApplication(
+        service,
+        applicant.id,
+        service.ownerId,
+        ServiceApplicationStatus.SUBMITTED,
+        application.message,
+      );
+      await this.serviceModel
+        .updateOne(
+          { _id: service.id, status: ServiceStatus.PUBLISHED },
+          { $set: { status: ServiceStatus.APPLICATION_RECEIVED } },
+        )
+        .exec();
+    }
+  }
+
+  private async ensureLocalLifeCatalog(
+    usersByEmail: ReadonlyMap<string, UserDocument>,
+    admin: UserDocument,
+  ) {
+    for (const input of DEMO_EVENT_CATALOG) {
+      const organizer = usersByEmail.get(input.organizerEmail);
+      if (!organizer || !organizer.isActive) continue;
+      await this.ensureEvent(organizer.id, input);
+    }
+    for (const input of DEMO_VOTE_CATALOG) {
+      const vote = await this.ensureVote(admin.id, input);
+      const voter = [...usersByEmail.values()].find(
+        (user) =>
+          user.isActive &&
+          user.role === Role.RESIDENT &&
+          user.neighborhoodId === input.neighborhoodSlug,
+      );
+      if (voter && vote.status !== VoteStatus.SCHEDULED) {
+        await this.ensureVoteAnswer(vote, voter.id, [vote.options[0].id]);
+      }
+    }
+  }
+
+  private async ensureAdditionalExecutionStates(
+    usersByEmail: ReadonlyMap<string, UserDocument>,
+    admin: UserDocument,
+  ) {
+    const fixtures = [
+      {
+        requesterEmail: 'nadia@connected-neighbours.local',
+        providerEmail: 'emma@connected-neighbours.local',
+        input: {
+          title: 'Classer des documents administratifs',
+          description: 'Emma aide Nadia à organiser ses documents importants.',
+          type: ServiceType.REQUEST,
+          category: 'Administration',
+          availability: 'Mercredi soir',
+          isPaid: true,
+          pricePoints: 10,
+          status: ServiceStatus.IN_PROGRESS,
+        },
+        status: ServiceStatus.IN_PROGRESS,
+        proofMessage: null,
+      },
+      {
+        requesterEmail: 'hugo@connected-neighbours.local',
+        providerEmail: 'lucas@connected-neighbours.local',
+        input: {
+          title: 'Accorder une guitare avant un concert',
+          description:
+            'Lucas a réglé l’instrument et vérifié sa tenue d’accord.',
+          type: ServiceType.REQUEST,
+          category: 'Musique',
+          availability: 'Terminé ce matin',
+          isPaid: true,
+          pricePoints: 12,
+          status: ServiceStatus.AWAITING_VALIDATION,
+        },
+        status: ServiceStatus.AWAITING_VALIDATION,
+        proofMessage: 'Accordage terminé et vérifié sur plusieurs accords.',
+      },
+      {
+        requesterEmail: 'sarah@connected-neighbours.local',
+        providerEmail: 'lina.keycloak@connected-neighbours.local',
+        input: {
+          title: 'Préparer des fiches de révision',
+          description:
+            'Création de fiches synthétiques pour une évaluation scolaire.',
+          type: ServiceType.REQUEST,
+          category: 'Cours',
+          availability: 'Correction demandée',
+          isPaid: true,
+          pricePoints: 8,
+          status: ServiceStatus.CORRECTION_REQUESTED,
+        },
+        status: ServiceStatus.CORRECTION_REQUESTED,
+        proofMessage: 'Première version des fiches déposée pour relecture.',
+      },
+    ] as const;
+    for (const fixture of fixtures) {
+      const requester = usersByEmail.get(fixture.requesterEmail);
+      const provider = usersByEmail.get(fixture.providerEmail);
+      if (!requester || !provider) continue;
+      const reference = await this.ensureExecutionDemo(
+        requester,
+        provider,
+        fixture.input,
+        fixture.status,
+        fixture.proofMessage,
+      );
+      await this.ensureDocumentState(reference.contractId, admin, 'archived');
+    }
+  }
+
+  private async reconcileDemoPointBalances(
+    usersByEmail: ReadonlyMap<string, UserDocument>,
+  ) {
+    const balances = new Map<string, { available: number; reserved: number }>();
+    for (const identity of DEMO_IDENTITIES) {
+      const user = usersByEmail.get(identity.email);
+      if (!user) continue;
+      balances.set(user.id, {
+        available: identity.pointsBalance,
+        reserved: 0,
+      });
+    }
+    const userIds = [...balances.keys()];
+    const transactions = await this.pointTransactionModel
+      .find({
+        $or: [{ fromUserId: { $in: userIds } }, { toUserId: { $in: userIds } }],
+      })
+      .sort({ createdAt: 1, _id: 1 })
+      .lean<
+        Array<{
+          type: PointTransactionType;
+          amount: number;
+          fromUserId: string;
+          toUserId: string | null;
+        }>
+      >()
+      .exec();
+    for (const transaction of transactions) {
+      const from = balances.get(transaction.fromUserId);
+      const to = transaction.toUserId
+        ? balances.get(transaction.toUserId)
+        : undefined;
+      if (transaction.type === PointTransactionType.RESERVATION && from) {
+        from.available -= transaction.amount;
+        from.reserved += transaction.amount;
+      }
+      if (transaction.type === PointTransactionType.RELEASE && from) {
+        from.available += transaction.amount;
+        from.reserved -= transaction.amount;
+      }
+      if (transaction.type === PointTransactionType.TRANSFER) {
+        if (from) from.reserved -= transaction.amount;
+        if (to) to.available += transaction.amount;
+      }
+    }
+    for (const [userId, balance] of balances) {
+      if (balance.available < 0 || balance.reserved < 0) {
+        throw new Error(
+          `Le registre de points du seed est incohérent pour ${userId}.`,
+        );
+      }
+    }
+    if (balances.size === 0) return;
+    await this.userModel.bulkWrite(
+      [...balances.entries()].map(([userId, balance]) => ({
+        updateOne: {
+          filter: { _id: userId },
+          update: {
+            $set: {
+              pointsBalance: balance.available,
+              reservedPoints: balance.reserved,
+            },
+          },
+        },
+      })),
+      { ordered: false },
+    );
+  }
+
+  private async ensureSecurityAuditDemos(
+    usersByEmail: ReadonlyMap<string, UserDocument>,
+  ) {
+    const fixtures = [
+      {
+        seedKey: 'audit-alice-local-success',
+        email: 'alice@connected-neighbours.local',
+        provider: 'local',
+        eventType: SecurityEventType.LOGIN_LOCAL_SUCCESS,
+        result: SecurityEventResult.SUCCESS,
+      },
+      {
+        seedKey: 'audit-bob-keycloak-success',
+        email: 'bob@connected-neighbours.local',
+        provider: 'keycloak',
+        eventType: SecurityEventType.LOGIN_KEYCLOAK_SUCCESS,
+        result: SecurityEventResult.SUCCESS,
+      },
+      {
+        seedKey: 'audit-sophie-link-requested',
+        email: 'sophie.link@connected-neighbours.local',
+        provider: 'keycloak',
+        eventType: SecurityEventType.IDENTITY_LINK_REQUESTED,
+        result: SecurityEventResult.SUCCESS,
+      },
+      {
+        seedKey: 'audit-thomas-disabled',
+        email: 'thomas.disabled@connected-neighbours.local',
+        provider: 'system',
+        eventType: SecurityEventType.ACCOUNT_DISABLED_REJECTION,
+        result: SecurityEventResult.DENIED,
+      },
+    ] as const;
+    for (const fixture of fixtures) {
+      const user = usersByEmail.get(fixture.email);
+      if (!user) continue;
+      await this.securityAuditModel
+        .findOneAndUpdate(
+          {
+            userId: user.id,
+            eventType: fixture.eventType,
+            'context.seedKey': fixture.seedKey,
+          },
+          {
+            $set: {
+              provider: fixture.provider,
+              result: fixture.result,
+              occurredAt: new Date('2026-07-22T08:00:00.000Z'),
+              context: {
+                seedSource: DEMO_SEED_SOURCE,
+                seedKey: fixture.seedKey,
+              },
+            },
+            $setOnInsert: { userId: user.id, eventType: fixture.eventType },
+          },
+          { upsert: true, returnDocument: 'after', runValidators: true },
+        )
+        .exec();
+    }
+  }
+
+  private async registerOwnedBusinessData() {
+    const demoUsers = await this.userModel
+      .find({
+        email: { $in: DEMO_IDENTITIES.map((identity) => identity.email) },
+      })
+      .select('_id')
+      .lean<Array<{ _id: unknown }>>()
+      .exec();
+    const userIds = demoUsers.map((user) => String(user._id));
+    const registeredServices = await this.seedRecordModel
+      .find({ seedSource: DEMO_SEED_SOURCE, entityType: 'service' })
+      .select('entityId')
+      .lean<Array<{ entityId: string }>>()
+      .exec();
+    const services = await this.serviceModel
+      .find({
+        _id: { $in: registeredServices.map((record) => record.entityId) },
+      })
+      .select('_id')
+      .lean<Array<{ _id: unknown }>>()
+      .exec();
+    const serviceIds = services.map((service) => String(service._id));
+    const [
+      neighborhoods,
+      applications,
+      contracts,
+      proofs,
+      disputes,
+      events,
+      votes,
+      reviews,
+      pointTransactions,
+      securityEvents,
+    ] = await Promise.all([
+      this.neighborhoodModel
+        .find({ slug: { $in: DEMO_NEIGHBORHOODS.map((item) => item.slug) } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.applicationModel
+        .find({ serviceId: { $in: serviceIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.contractModel
+        .find({ serviceId: { $in: serviceIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.proofModel
+        .find({ serviceId: { $in: serviceIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.disputeModel
+        .find({ serviceId: { $in: serviceIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.eventModel
+        .find({ organizerId: { $in: userIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.voteModel
+        .find({ createdById: { $in: userIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.reviewModel
+        .find({ authorId: { $in: userIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.pointTransactionModel
+        .find({ serviceId: { $in: serviceIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.securityAuditModel
+        .find({ 'context.seedSource': DEMO_SEED_SOURCE })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const contractIds = contracts.map((item) => String(item._id));
+    const disputeIds = disputes.map((item) => String(item._id));
+    const eventIds = events.map((item) => String(item._id));
+    const voteIds = votes.map((item) => String(item._id));
+    const [
+      documents,
+      disputeEvidence,
+      eventResponses,
+      voteAnswers,
+      storageFiles,
+    ] = await Promise.all([
+      this.documentModel
+        .find({ contractId: { $in: contractIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.disputeEvidenceModel
+        .find({ disputeId: { $in: disputeIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.eventResponseModel
+        .find({ eventId: { $in: eventIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.voteAnswerModel
+        .find({ voteId: { $in: voteIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.storageFileModel
+        .find({ ownerId: { $in: userIds } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+
+    const entries: Array<readonly [string, unknown]> = [
+      ...neighborhoods.map((item) => ['neighborhood', item._id] as const),
+      ...services.map((item) => ['service', item._id] as const),
+      ...applications.map((item) => ['application', item._id] as const),
+      ...contracts.map((item) => ['contract', item._id] as const),
+      ...proofs.map((item) => ['service-proof', item._id] as const),
+      ...disputes.map((item) => ['dispute', item._id] as const),
+      ...disputeEvidence.map((item) => ['dispute-evidence', item._id] as const),
+      ...events.map((item) => ['event', item._id] as const),
+      ...eventResponses.map((item) => ['event-response', item._id] as const),
+      ...votes.map((item) => ['vote', item._id] as const),
+      ...voteAnswers.map((item) => ['vote-answer', item._id] as const),
+      ...reviews.map((item) => ['review', item._id] as const),
+      ...documents.map((item) => ['document', item._id] as const),
+      ...storageFiles.map((item) => ['storage-file', item._id] as const),
+      ...pointTransactions.map(
+        (item) => ['point-transaction', item._id] as const,
+      ),
+      ...securityEvents.map((item) => ['security-audit', item._id] as const),
+    ];
+    if (entries.length === 0) return;
+    await this.seedRecordModel.bulkWrite(
+      entries.map(([entityType, entityId]) => ({
+        updateOne: {
+          filter: {
+            seedSource: DEMO_SEED_SOURCE,
+            entityType,
+            entityId: String(entityId),
+          },
+          update: {
+            $set: {
+              seedKey: `${entityType}:${String(entityId)}`,
+              entityType,
+              entityId: String(entityId),
+              metadata: {},
+            },
+            $setOnInsert: {
+              seedSource: DEMO_SEED_SOURCE,
+            },
+          },
+          upsert: true,
+        },
+      })),
+      { ordered: false },
+    );
+  }
+
+  private markSeedRecord(entityType: string, entityId: string) {
+    const seedKey = `${entityType}:${entityId}`;
+    return this.seedRecordModel
+      .findOneAndUpdate(
+        {
+          seedSource: DEMO_SEED_SOURCE,
+          $or: [{ seedKey }, { entityType, entityId }],
+        },
+        {
+          $set: { seedKey, entityType, entityId, metadata: {} },
+          $setOnInsert: { seedSource: DEMO_SEED_SOURCE },
+        },
+        { upsert: true, returnDocument: 'after' },
+      )
+      .exec();
   }
 
   private async enqueueGraphSeed() {
@@ -516,6 +1768,7 @@ export class DemoSeedService implements OnModuleInit {
   private async ensureEvent(
     organizerId: string,
     input: {
+      neighborhoodSlug?: string;
       title: string;
       description: string;
       category: EventCategory;
@@ -526,14 +1779,22 @@ export class DemoSeedService implements OnModuleInit {
       status: EventStatus;
     },
   ) {
+    const neighborhoodId = input.neighborhoodSlug ?? 'quartier-centre';
     const existing = await this.eventModel
-      .findOne({ title: input.title, neighborhoodId: 'quartier-centre' })
+      .findOne({ title: input.title, neighborhoodId })
       .exec();
     if (existing) return existing;
     const published = input.status !== EventStatus.DRAFT;
     return this.eventModel.create({
-      ...input,
-      neighborhoodId: 'quartier-centre',
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      locationLabel: input.locationLabel,
+      capacity: input.capacity,
+      status: input.status,
+      neighborhoodId,
       organizerId,
       registrationDeadline: new Date(input.startsAt.getTime() - 60 * 60 * 1000),
       participantCount: 0,
@@ -577,6 +1838,7 @@ export class DemoSeedService implements OnModuleInit {
   private async ensureVote(
     createdById: string,
     input: {
+      neighborhoodSlug?: string;
       title: string;
       ballotType: VoteBallotType;
       privacy: VotePrivacy;
@@ -590,8 +1852,9 @@ export class DemoSeedService implements OnModuleInit {
       maxSelections?: number;
     },
   ) {
+    const neighborhoodId = input.neighborhoodSlug ?? 'quartier-centre';
     const existing = await this.voteModel
-      .findOne({ title: input.title, neighborhoodId: 'quartier-centre' })
+      .findOne({ title: input.title, neighborhoodId })
       .exec();
     if (existing) return existing;
     const key = input.title
@@ -599,9 +1862,16 @@ export class DemoSeedService implements OnModuleInit {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     return this.voteModel.create({
-      ...input,
-      description: 'Consultation des habitants du Quartier Centre.',
-      neighborhoodId: 'quartier-centre',
+      title: input.title,
+      ballotType: input.ballotType,
+      privacy: input.privacy,
+      resultsVisibility: input.resultsVisibility,
+      status: input.status,
+      opensAt: input.opensAt,
+      closesAt: input.closesAt,
+      allowAnswerChange: input.allowAnswerChange,
+      description: `Consultation des habitants de ${neighborhoodId}.`,
+      neighborhoodId,
       createdById,
       options: input.options.map((label, index) => ({
         id: `${key}-${index + 1}`,
@@ -642,50 +1912,74 @@ export class DemoSeedService implements OnModuleInit {
 
   private async ensureDocumentState(
     contractId: string,
-    alice: UserDocument,
-    bob: UserDocument,
     admin: UserDocument,
     target: 'prepared' | 'sent' | 'partial' | 'archived',
   ) {
-    const aliceActor = this.seedActor(alice, Role.RESIDENT);
-    const bobActor = this.seedActor(bob, Role.RESIDENT);
+    const contract = await this.contractModel
+      .findById(contractId)
+      .select('requesterId providerId')
+      .lean<{ requesterId: string; providerId: string } | null>()
+      .exec();
+    if (!contract) {
+      throw new ConflictException('Contrat de démonstration introuvable.');
+    }
+    const parties = getDemoContractPartyIds(contract);
+    const [requester, provider] = await Promise.all([
+      this.userModel.findById(parties.requesterId).exec(),
+      this.userModel.findById(parties.providerId).exec(),
+    ]);
+    if (!requester || !provider) {
+      throw new ConflictException(
+        'Les parties du contrat de démonstration sont introuvables.',
+      );
+    }
+    const requesterActor = this.seedActor(requester, Role.RESIDENT);
+    const providerActor = this.seedActor(provider, Role.RESIDENT);
     const adminActor = this.seedActor(admin, Role.ADMIN);
     let document = await this.documentsService.findForContract(
       contractId,
-      aliceActor,
+      requesterActor,
     );
     if (!document)
       document = await this.documentsService.generateContractDocument(
         contractId,
-        aliceActor,
+        requesterActor,
       );
     if (target === 'prepared') return;
     if (document.status === ManagedDocumentStatus.PREPARED) {
       document = await this.documentsService.sendForSignature(
         document.id,
-        aliceActor,
+        requesterActor,
       );
     }
     if (target === 'sent') return;
     if (document.status === ManagedDocumentStatus.SENT_FOR_SIGNATURE) {
-      await this.documentsService.legacySignContract(contractId, aliceActor, {
-        consent: true,
-        signatureText: alice.displayName,
-      });
+      await this.documentsService.legacySignContract(
+        contractId,
+        requesterActor,
+        {
+          consent: true,
+          signatureText: requester.displayName,
+        },
+      );
       document = await this.documentsService.findForContract(
         contractId,
-        aliceActor,
+        requesterActor,
       );
     }
     if (!document || target === 'partial') return;
     if (document.status === ManagedDocumentStatus.PARTIALLY_SIGNED) {
-      await this.documentsService.legacySignContract(contractId, bobActor, {
-        consent: true,
-        signatureText: bob.displayName,
-      });
+      await this.documentsService.legacySignContract(
+        contractId,
+        providerActor,
+        {
+          consent: true,
+          signatureText: provider.displayName,
+        },
+      );
       document = await this.documentsService.findForContract(
         contractId,
-        aliceActor,
+        requesterActor,
       );
     }
     if (document?.status === ManagedDocumentStatus.FINALIZED) {
@@ -892,17 +2186,117 @@ export class DemoSeedService implements OnModuleInit {
     };
   }
   private async ensureService(ownerId: string, input: DemoServiceInput) {
-    const existing = await this.serviceModel
-      .findOne({ ownerId, title: input.title })
+    const [owner, candidates, currentUsers] = await Promise.all([
+      this.userModel
+        .findById(ownerId)
+        .select('neighborhoodId')
+        .lean<{ neighborhoodId: string } | null>()
+        .exec(),
+      this.serviceModel.find({ title: input.title }).exec(),
+      this.userModel
+        .find({ email: { $in: DEMO_IDENTITIES.map((item) => item.email) } })
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const records = await this.seedRecordModel
+      .find({
+        seedSource: DEMO_SEED_SOURCE,
+        entityType: 'service',
+        entityId: { $in: candidates.map((candidate) => candidate.id) },
+      })
+      .select('entityId')
+      .lean<Array<{ entityId: string }>>()
       .exec();
-    if (existing) return existing;
-    return this.serviceModel.create({
-      ...input,
+    const ownedIds = new Set(records.map((record) => record.entityId));
+    const selection = selectSeedServiceCandidate({
+      expectedOwnerId: ownerId,
+      currentUserIds: new Set(currentUsers.map((user) => String(user._id))),
+      candidates: candidates.map((candidate) => ({
+        id: candidate.id,
+        ownerId: candidate.ownerId,
+        seedOwned: ownedIds.has(candidate.id),
+      })),
+    });
+    if (selection.kind === 'existing') {
+      const existing = candidates.find(
+        (candidate) => candidate.id === selection.candidate.id,
+      ) as ServiceDocument;
+      if (!this.matchesServiceScenario(existing, input)) {
+        throw new ConflictException(
+          `Un service non conforme utilise déjà le titre réservé « ${input.title} ».`,
+        );
+      }
+      await this.markSeedRecord('service', existing.id);
+      return existing;
+    }
+    if (selection.kind === 'conflict') {
+      throw new ConflictException(
+        `Plusieurs anciens services seed correspondent au scénario « ${input.title} ». Lancez d’abord la réconciliation du seed.`,
+      );
+    }
+    if (selection.kind === 'adopt') {
+      const adopted = await this.serviceModel
+        .findOneAndUpdate(
+          { _id: selection.candidate.id },
+          {
+            $set: {
+              ownerId,
+              neighborhoodId: owner?.neighborhoodId ?? 'quartier-centre',
+            },
+          },
+          { returnDocument: 'after' },
+        )
+        .exec();
+      if (!adopted) {
+        throw new ConflictException(
+          `Le service seed « ${input.title} » a changé pendant sa réconciliation.`,
+        );
+      }
+      await this.markSeedRecord('service', adopted.id);
+      return adopted;
+    }
+    const created = await this.serviceModel.create({
+      title: input.title,
+      description: input.description,
+      type: input.type,
+      category: input.category,
+      availability: input.availability,
+      isPaid: input.isPaid,
+      pricePoints: input.pricePoints,
+      status: input.status,
       ownerId,
-      neighborhoodId: 'quartier-centre',
+      neighborhoodId: owner?.neighborhoodId ?? 'quartier-centre',
       selectedApplicationId: null,
       contractId: null,
     });
+    await this.markSeedRecord('service', created.id);
+    return created;
+  }
+
+  private matchesServiceScenario(
+    service: ServiceDocument,
+    input: DemoServiceInput,
+  ) {
+    return (
+      this.serviceScenarioFingerprint(service) ===
+      this.serviceScenarioFingerprint(input)
+    );
+  }
+
+  private serviceScenarioFingerprint(
+    service: Pick<
+      Service,
+      'description' | 'type' | 'category' | 'isPaid' | 'pricePoints'
+    >,
+  ) {
+    return JSON.stringify([
+      service.description,
+      service.type,
+      service.category,
+      service.isPaid,
+      service.pricePoints,
+    ]);
   }
 
   private async ensureFurnitureWorkflow(
@@ -1104,12 +2498,22 @@ export class DemoSeedService implements OnModuleInit {
             scheduledAt: service.scheduledAt ?? now,
             startedAt:
               status === ServiceStatus.IN_PROGRESS ||
-              status === ServiceStatus.AWAITING_VALIDATION
+              status === ServiceStatus.AWAITING_VALIDATION ||
+              status === ServiceStatus.CORRECTION_REQUESTED
                 ? (service.startedAt ?? now)
                 : null,
             markedDoneAt:
-              status === ServiceStatus.AWAITING_VALIDATION
+              status === ServiceStatus.AWAITING_VALIDATION ||
+              status === ServiceStatus.CORRECTION_REQUESTED
                 ? (service.markedDoneAt ?? now)
+                : null,
+            correctionRequestedAt:
+              status === ServiceStatus.CORRECTION_REQUESTED
+                ? (service.correctionRequestedAt ?? now)
+                : null,
+            correctionReason:
+              status === ServiceStatus.CORRECTION_REQUESTED
+                ? 'Ajouter un exemple concret avant la validation finale.'
                 : null,
           },
         },
@@ -1429,25 +2833,16 @@ export class DemoSeedService implements OnModuleInit {
       rejectedAt: status === ServiceApplicationStatus.REJECTED ? now : null,
     });
   }
+}
 
-  private async ensureIncident(reportedById: string) {
-    const title = 'Eclairage public en panne';
-    const existing = await this.incidentModel
-      .findOne({ title, reportedById, neighborhoodId: 'quartier-centre' })
-      .exec();
-    if (existing) return existing;
-    return this.incidentModel.create({
-      title,
-      description:
-        "Le lampadaire a l'angle de la rue reste eteint depuis deux soirs.",
-      type: IncidentType.MAINTENANCE,
-      status: IncidentStatus.REPORTED,
-      severity: IncidentSeverity.MEDIUM,
-      neighborhoodId: 'quartier-centre',
-      reportedById,
-      source: IncidentSource.WEB,
-      externalId: null,
-      lastSyncedAt: null,
-    });
-  }
+function node<T extends { _id: unknown }>(
+  entityType: DemoSeedSnapshotNode['entityType'],
+  value: T,
+  reference: keyof T,
+): DemoSeedSnapshotNode {
+  return {
+    entityType,
+    id: String(value._id),
+    serviceId: String(value[reference]),
+  };
 }
