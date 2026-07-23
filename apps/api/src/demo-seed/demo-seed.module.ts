@@ -21,6 +21,12 @@ import {
 import { EventSchema, NeighborhoodEvent } from '../events/schemas/event.schema';
 import { DocumentsModule } from '../documents/documents.module';
 import { PointsModule } from '../points/points.module';
+import { DemoKeycloakService } from './demo-keycloak.service';
+import { DemoSeedOrchestrator } from './demo-seed-orchestrator.service';
+import {
+  DemoSeedRecord,
+  DemoSeedRecordSchema,
+} from './schemas/demo-seed-record.schema';
 import {
   ServiceProof,
   ServiceProofSchema,
@@ -53,9 +59,10 @@ import { DemoSeedService } from './demo-seed.service';
       { name: Vote.name, schema: VoteSchema },
       { name: VoteAnswer.name, schema: VoteAnswerSchema },
       { name: Review.name, schema: ReviewSchema },
-      { name: Review.name, schema: ReviewSchema },
+      { name: DemoSeedRecord.name, schema: DemoSeedRecordSchema },
     ]),
   ],
-  providers: [DemoSeedService],
+  providers: [DemoKeycloakService, DemoSeedOrchestrator, DemoSeedService],
+  exports: [DemoSeedOrchestrator, DemoSeedService],
 })
 export class DemoSeedModule {}

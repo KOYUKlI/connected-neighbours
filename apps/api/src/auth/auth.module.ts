@@ -97,6 +97,7 @@ import { UsersService } from './users.service';
     DualAuthService,
     KeycloakTokenVerifier,
     KeycloakAdminService,
+    PasswordService,
     SecurityAuditService,
     MfaGuard,
   ],

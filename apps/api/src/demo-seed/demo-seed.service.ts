@@ -149,41 +149,51 @@ export class DemoSeedService implements OnModuleInit {
       return;
     }
 
+    await this.seedBusinessData();
+  }
+
+  async seedBusinessData() {
+    const residentPassword =
+      process.env.SEED_DEMO_RESIDENT_PASSWORD ?? 'local-development-only';
+    const moderatorPassword =
+      process.env.SEED_DEMO_MODERATOR_PASSWORD ?? residentPassword;
+    const adminPassword =
+      process.env.SEED_DEMO_ADMIN_PASSWORD ?? residentPassword;
     const [alice, bob, claire, moderator, admin] = await Promise.all([
       this.usersService.ensureDevUser({
         email: 'alice@connected-neighbours.local',
         displayName: 'Alice Martin',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'alice123',
+        password: residentPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'bob@connected-neighbours.local',
         displayName: 'Bob Dupont',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'bob123',
+        password: residentPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'claire@connected-neighbours.local',
         displayName: 'Claire Bernard',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'claire123',
+        password: residentPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'moderator@connected-neighbours.local',
         displayName: 'Moderation Demo',
         role: Role.MODERATOR,
         neighborhoodId: 'quartier-centre',
-        password: 'moderator123',
+        password: moderatorPassword,
       }),
       this.usersService.ensureDevUser({
         email: 'admin@connected-neighbours.local',
         displayName: 'Admin Demo',
         role: Role.ADMIN,
         neighborhoodId: 'quartier-centre',
-        password: 'admin123',
+        password: adminPassword,
       }),
     ]);
 
@@ -298,6 +308,38 @@ export class DemoSeedService implements OnModuleInit {
     await this.enqueueGraphSeed();
   }
 
+  async seedStorageFixtures() {
+    const [alice, bob, admin] = await Promise.all([
+      this.userModel
+        .findOne({ email: 'alice@connected-neighbours.local' })
+        .exec(),
+      this.userModel
+        .findOne({ email: 'bob@connected-neighbours.local' })
+        .exec(),
+      this.userModel
+        .findOne({ email: 'admin@connected-neighbours.local' })
+        .exec(),
+    ]);
+    if (!alice || !bob || !admin) {
+      throw new Error(
+        'Les identités MongoDB doivent être créées avant les fixtures MinIO.',
+      );
+    }
+    const contract = await this.contractModel.findOne().sort({ _id: 1 }).exec();
+    if (contract) {
+      await this.ensureDocumentState(
+        contract.id,
+        alice,
+        bob,
+        admin,
+        'prepared',
+      );
+    }
+  }
+
+  async reconcileGraph() {
+    await this.enqueueGraphSeed();
+  }
   private async enqueueGraphSeed() {
     if (!this.graphSyncService) return;
     const [users, services, events, reviews] = await Promise.all([
