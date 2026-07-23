@@ -14,5 +14,10 @@ export default defineConfig({
         ws: true,
       },
     },
+    watch: {
+      // WSL2 doesn't reliably propagate inotify events for /mnt/* (drvfs) mounts.
+      usePolling: true,
+      interval: 300,
+    },
   },
 })

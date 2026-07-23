@@ -18,6 +18,7 @@ export type IconName =
   | 'map-pin'
   | 'menu'
   | 'message'
+  | 'mic'
   | 'monitor'
   | 'paw'
   | 'plus'
@@ -67,6 +68,7 @@ export function Icon({ name, ...props }: SVGProps<SVGSVGElement> & { name: IconN
       {name === 'paw' ? <><circle cx="8" cy="8" r="2" /><circle cx="16" cy="8" r="2" /><circle cx="5" cy="13" r="2" /><circle cx="19" cy="13" r="2" /><path d="M8 18c0-3 2-5 4-5s4 2 4 5c0 2-2 3-4 3s-4-1-4-3Z" /></> : null}
       {name === 'leaf' ? <><path d="M20 4C10 4 5 9 5 15c0 3 2 5 5 5 6 0 10-6 10-16Z" /><path d="M4 21c3-6 7-9 13-12" /></> : null}
       {name === 'monitor' ? <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></> : null}
+      {name === 'mic' ? <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 19v3" /></> : null}
     </svg>
   );
 }
