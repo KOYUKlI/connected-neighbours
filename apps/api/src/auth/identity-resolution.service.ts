@@ -131,7 +131,11 @@ export class IdentityResolutionService {
       tokenExpiresAt: new Date(payload.exp * 1000),
       sessionId: payload.sid ?? payload.session_state,
       authenticationMethods,
-      mfaSatisfied: this.hasMfa(authenticationMethods, payload.acr),
+      mfaSatisfied: this.hasMfa(
+        authenticationMethods,
+        payload.acr,
+        payload.cn_mfa,
+      ),
       role: user.role,
       neighborhoodId: user.neighborhoodId,
       displayName: user.displayName,
@@ -170,7 +174,8 @@ export class IdentityResolutionService {
     return value.trim().slice(0, 120);
   }
 
-  private hasMfa(methods: string[], acr?: string) {
+  private hasMfa(methods: string[], acr?: string, signedMfaClaim?: boolean) {
+    if (signedMfaClaim === true) return true;
     if (methods.some((method) => /otp|totp|mfa/i.test(method))) return true;
 
     const numericAcr = Number(acr);

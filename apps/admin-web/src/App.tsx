@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { LatLngExpression, LeafletEvent } from 'leaflet'
 import {
@@ -11,15 +11,8 @@ import {
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
-import {
-  ApiError,
-  getAuthToken,
-  getCurrentAdmin,
-  loginAdmin,
-  removeAuthToken,
-  setAuthToken,
-} from './api/client'
-import type { PublicUser } from './api/client'
+import { ApiError } from './api/client'
+import { useAdminAuth } from './auth/useAdminAuth'
 import {
   fetchContracts,
   fetchDashboard,
@@ -103,6 +96,7 @@ const navigationItems = [
 ] as const
 
 type SectionId = (typeof navigationItems)[number]['id']
+const moderatorSections = new Set<SectionId>(['disputes', 'events', 'votes', 'reviews'])
 
 const demoEmail = 'admin@connected-neighbours.local'
 const numberFormatter = new Intl.NumberFormat('fr-FR')
@@ -140,13 +134,20 @@ const formGridClass =
 const mutedClass = 'text-slate-500';
 
 function App() {
-  const [token, setToken] = useState(() => getAuthToken())
-  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null)
+  const {
+    authMode,
+    clearSession,
+    currentUser,
+    isReady,
+    login,
+    loginError,
+    loginWithKeycloak,
+    logout,
+  } = useAdminAuth()
   const [activeSection, setActiveSection] = useState<SectionId>('dashboard')
   const [refreshKey, setRefreshKey] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [loginError, setLoginError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null)
   const [neighborhoods, setNeighborhoods] = useState<NeighborhoodItem[]>([])
   const [services, setServices] = useState<AdminServiceRow[]>([])
@@ -155,45 +156,13 @@ function App() {
   const [syncStates, setSyncStates] = useState<AdminSyncStateRow[]>([])
   const [users, setUsers] = useState<AdminUserRow[]>([])
   const isBackgroundRefreshRef = useRef(false)
-
-  const clearSession = useCallback((message?: string) => {
-    removeAuthToken()
-    setToken(null)
-    setCurrentUser(null)
-    setActiveSection('dashboard')
-    setLoginError(message ?? null)
-  }, [])
+  const resolvedSection =
+    currentUser?.role === 'moderator' && !moderatorSections.has(activeSection)
+      ? 'disputes'
+      : activeSection
 
   useEffect(() => {
-    if (!token || currentUser) {
-      return
-    }
-
-    let ignore = false
-    async function restoreSession() {
-      try {
-        const user = await getCurrentAdmin()
-        if (!['admin', 'moderator'].includes(user.role)) {
-          clearSession('Ce compte ne dispose pas d’un rôle de modération.')
-          return
-        }
-        if (!ignore) {
-          setCurrentUser(user)
-          setActiveSection(user.role === 'moderator' ? 'disputes' : 'dashboard')
-        }
-      } catch (error) {
-        if (!ignore) clearSession(getErrorMessage(error))
-      }
-    }
-
-    void restoreSession()
-    return () => {
-      ignore = true
-    }
-  }, [clearSession, currentUser, token])
-
-  useEffect(() => {
-    if (!token || !currentUser) {
+    if (!currentUser) {
       return
     }
 
@@ -208,7 +177,7 @@ function App() {
       }
 
       try {
-        switch (activeSection) {
+        switch (resolvedSection) {
           case 'dashboard': {
             const [nextDashboard, nextServices, nextIncidents, nextSyncStates] =
               await Promise.all([
@@ -325,10 +294,10 @@ function App() {
     return () => {
       ignore = true
     }
-  }, [activeSection, clearSession, currentUser, refreshKey, token])
+  }, [clearSession, currentUser, refreshKey, resolvedSection])
 
   useEffect(() => {
-    if (!token) {
+    if (!currentUser) {
       return
     }
 
@@ -338,47 +307,43 @@ function App() {
     }, 60000)
 
     return () => window.clearInterval(interval)
-  }, [token])
+  }, [currentUser])
 
   async function handleLogin(email: string, password: string) {
-    setLoginError(null)
-
-    try {
-      const response = await loginAdmin(email, password)
-
-      if (!['admin', 'moderator'].includes(response.user.role)) {
-        setLoginError('Ce compte ne dispose pas d’un rôle de modération.')
-        return
-      }
-
-      setAuthToken(response.accessToken)
-      setCurrentUser(response.user)
-      setToken(response.accessToken)
-      setActiveSection(response.user.role === 'moderator' ? 'disputes' : 'dashboard')
-      setRefreshKey((value) => value + 1)
-    } catch (error) {
-      setLoginError(getErrorMessage(error))
-    }
+    const user = await login(email, password)
+    if (!user) return
+    setActiveSection(user.role === 'moderator' ? 'disputes' : 'dashboard')
+    setRefreshKey((value) => value + 1)
   }
 
-  if (!token) {
+  if (!isReady) {
     return (
-      <LoginPage>
-        <LoginScreen error={loginError} onSubmit={handleLogin} />
-      </LoginPage>
+      <div className="grid min-h-screen place-items-center bg-slate-100 text-sm text-slate-600">
+        Vérification de la session administrateur…
+      </div>
     )
   }
 
+  if (!currentUser) {
+    return (
+      <LoginPage>
+        <LoginScreen
+          authMode={authMode}
+          error={loginError}
+          onKeycloakLogin={loginWithKeycloak}
+          onSubmit={handleLogin}
+        />
+      </LoginPage>
+    )
+  }
   return (
     <AdminShell
       sidebar={
         <AdminSidebar
-          activeItem={activeSection}
+          activeItem={resolvedSection}
           items={
             currentUser?.role === 'moderator'
-              ? navigationItems.filter((item) =>
-                  ['disputes', 'events', 'votes', 'reviews'].includes(item.id),
-                )
+              ? navigationItems.filter((item) => moderatorSections.has(item.id))
               : navigationItems
           }
           onNavigate={setActiveSection}
@@ -390,11 +355,11 @@ function App() {
             <Breadcrumb
               items={[
                 { label: 'Administration' },
-                { label: getSectionLabel(activeSection) },
+                { label: getSectionLabel(resolvedSection) },
               ]}
             />
           }
-          onLogout={() => clearSession()}
+          onLogout={() => void logout()}
           roleLabel={currentUser?.role === 'moderator' ? 'Modérateur' : 'Administrateur'}
           userEmail={currentUser?.email ?? demoEmail}
           userName={currentUser?.displayName ?? 'Session admin'}
@@ -414,7 +379,7 @@ function App() {
 
       <section className="min-w-0">
         {renderSection({
-          activeSection,
+          activeSection: resolvedSection,
           dashboard,
           neighborhoods,
           services,
@@ -430,24 +395,34 @@ function App() {
 }
 
 type LoginScreenProps = {
+  authMode: 'local' | 'keycloak'
   error: string | null
+  onKeycloakLogin: () => Promise<void>
   onSubmit: (email: string, password: string) => Promise<void>
 }
 
-function LoginScreen({ error, onSubmit }: LoginScreenProps) {
-  const [email, setEmail] = useState(demoEmail)
+function LoginScreen({
+  authMode,
+  error,
+  onKeycloakLogin,
+  onSubmit,
+}: LoginScreenProps) {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submit(action: () => Promise<void>) {
     setIsSubmitting(true)
-
     try {
-      await onSubmit(email, password)
+      await action()
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await submit(() => onSubmit(email, password))
   }
 
   return (
@@ -470,50 +445,58 @@ function LoginScreen({ error, onSubmit }: LoginScreenProps) {
             Connexion administrateur
           </h1>
           <p className="mt-2 text-slate-500">
-            Compte demo : {demoEmail} / admin123
+            Un rôle de modération actif et une double authentification sont requis en mode SSO.
           </p>
         </div>
 
-        <form className={formGridClass} onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              autoComplete="email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-100 px-4 py-3 font-bold text-red-700">
+            {error}
+          </div>
+        ) : null}
 
-          <label>
-            Mot de passe
-            <input
-              autoComplete="current-password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-100 px-4 py-3 font-bold text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <button className={buttonClasses.primary} type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Connexion...' : 'Se connecter'}
+        {authMode === 'keycloak' ? (
+          <button
+            className={buttonClasses.primary}
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void submit(onKeycloakLogin)}
+          >
+            {isSubmitting ? 'Redirection…' : 'Se connecter avec Keycloak'}
           </button>
-        </form>
+        ) : (
+          <form className={formGridClass} onSubmit={handleSubmit}>
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Mot de passe
+              <input
+                autoComplete="current-password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            <button className={buttonClasses.primary} type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Connexion…' : 'Se connecter'}
+            </button>
+          </form>
+        )}
       </section>
     </main>
   )
 }
-
 type RenderSectionProps = {
   activeSection: SectionId
   dashboard: AdminDashboard | null

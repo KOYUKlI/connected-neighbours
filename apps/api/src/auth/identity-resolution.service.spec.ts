@@ -64,6 +64,21 @@ describe('IdentityResolutionService', () => {
     expect(createKeycloakUser).not.toHaveBeenCalled();
   });
 
+  it('recognizes the signed MFA marker from the dedicated admin flow', async () => {
+    jest
+      .spyOn(users, 'findByKeycloakSubject')
+      .mockResolvedValue(user({ role: Role.ADMIN }));
+
+    const resolved = await service.resolveKeycloak({
+      ...keycloakPayload(),
+      amr: ['pwd'],
+      acr: '1',
+      cn_mfa: true,
+    });
+
+    expect(resolved.identity?.mfaSatisfied).toBe(true);
+  });
+
   it('auto-provisions only a resident when no local account exists', async () => {
     jest.spyOn(users, 'findByKeycloakSubject').mockResolvedValue(null);
     jest.spyOn(users, 'findIdentityByEmail').mockResolvedValue(null);

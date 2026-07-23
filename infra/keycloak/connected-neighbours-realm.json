@@ -208,6 +208,21 @@
             "access.token.claim": "true",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "name": "connected-neighbours-admin-mfa",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "cn_mfa",
+            "claim.value": "true",
+            "jsonType.label": "boolean",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
         }
       ]
     },

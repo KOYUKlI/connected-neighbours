@@ -13,6 +13,15 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/admin-web apps/admin-web
 
+ARG VITE_KEYCLOAK_ENABLED=false
+ARG VITE_KEYCLOAK_URL=http://localhost:8080
+ARG VITE_KEYCLOAK_REALM=connected-neighbours
+ARG VITE_KEYCLOAK_CLIENT_ID=connected-neighbours-admin
+ENV VITE_KEYCLOAK_ENABLED=$VITE_KEYCLOAK_ENABLED
+ENV VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
+ENV VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM
+ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
+
 RUN pnpm --filter ./apps/admin-web run build
 
 FROM nginx:1.27-alpine

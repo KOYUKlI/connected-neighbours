@@ -153,6 +153,32 @@ describe('Dual authentication (e2e)', () => {
       .expect(200);
   });
 
+  it('rejects a MongoDB admin Keycloak session without MFA', async () => {
+    const mongoAdmin = await users.ensureDevUser({
+      email: 'admin-no-mfa@dual-auth.example',
+      displayName: 'Admin without MFA',
+      role: Role.ADMIN,
+      neighborhoodId: 'quartier-centre',
+      password: 'local-password',
+    });
+    await users.linkKeycloakIdentity({
+      userId: mongoAdmin.id,
+      keycloakSubject: 'kc-admin-no-mfa',
+      emailVerified: true,
+    });
+    payload = {
+      ...keycloakPayload('admin-no-mfa@dual-auth.example', 'kc-admin-no-mfa'),
+      amr: ['pwd'],
+      acr: '1',
+      cn_mfa: false,
+    };
+
+    await request(app.getHttpServer())
+      .get('/api/auth/admin-only')
+      .set('Authorization', 'Bearer keycloak-e2e-token')
+      .expect(403);
+  });
+
   it('keeps local login working when Keycloak validation is unavailable', async () => {
     await users.ensureDevUser({
       email: 'javafx-admin@dual-auth.example',
@@ -204,6 +230,7 @@ function keycloakPayload(email: string, subject: string): KeycloakTokenPayload {
     iat: now,
     exp: now + 300,
     amr: ['pwd'],
+    cn_mfa: true,
     realm_access: { roles: ['admin'] },
   };
 }

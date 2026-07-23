@@ -16,6 +16,7 @@ export type KeycloakTokenPayload = JWTPayload & {
   acr?: string;
   sid?: string;
   session_state?: string;
+  cn_mfa?: boolean;
 };
 
 type RemoteJwkSet = ReturnType<typeof createRemoteJWKSet>;

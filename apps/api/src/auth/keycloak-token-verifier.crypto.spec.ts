@@ -45,6 +45,36 @@ describe('KeycloakTokenVerifier cryptography', () => {
     expect(payload.email_verified).toBe(true);
   });
 
+  it('accepts the MFA marker only when it is covered by the signature', async () => {
+    const fixture = await signedToken({
+      azp: 'connected-neighbours-admin',
+      cnMfa: true,
+      authenticationMethods: ['pwd'],
+    });
+    currentJwk = fixture.publicJwk;
+
+    await expect(
+      makeVerifier(baseUrl).verify(fixture.token),
+    ).resolves.toMatchObject({
+      cn_mfa: true,
+    });
+
+    const [header, encodedPayload, signature] = fixture.token.split('.');
+    const forgedPayload = JSON.parse(
+      Buffer.from(encodedPayload, 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    forgedPayload.cn_mfa = false;
+    const forgedToken = [
+      header,
+      Buffer.from(JSON.stringify(forgedPayload)).toString('base64url'),
+      signature,
+    ].join('.');
+
+    await expect(
+      makeVerifier(baseUrl).verify(forgedToken),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
   it('rejects an invalid audience', async () => {
     const fixture = await signedToken({ audience: 'another-api' });
     currentJwk = fixture.publicJwk;
@@ -106,6 +136,8 @@ async function signedToken(
     audience?: string;
     azp?: string;
     keyId?: string;
+    cnMfa?: boolean;
+    authenticationMethods?: string[];
   } = {},
 ) {
   const { privateKey, publicKey } = await generateKeyPair('RS256');
@@ -119,7 +151,8 @@ async function signedToken(
     email: 'alice@example.test',
     email_verified: true,
     azp: options.azp ?? 'connected-neighbours-web',
-    amr: ['pwd', 'otp'],
+    amr: options.authenticationMethods ?? ['pwd', 'otp'],
+    ...(options.cnMfa === undefined ? {} : { cn_mfa: options.cnMfa }),
   })
     .setProtectedHeader({ alg: 'RS256', kid: keyId })
     .setIssuer('http://localhost:8080/realms/connected-neighbours')

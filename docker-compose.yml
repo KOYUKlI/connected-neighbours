@@ -206,6 +206,11 @@ services:
     build:
       context: .
       dockerfile: apps/admin-web/Dockerfile
+      args:
+        VITE_KEYCLOAK_ENABLED: "${VITE_ADMIN_KEYCLOAK_ENABLED:-false}"
+        VITE_KEYCLOAK_URL: "${VITE_KEYCLOAK_URL:-http://localhost:8080}"
+        VITE_KEYCLOAK_REALM: "${VITE_KEYCLOAK_REALM:-connected-neighbours}"
+        VITE_KEYCLOAK_CLIENT_ID: "${VITE_ADMIN_KEYCLOAK_CLIENT_ID:-connected-neighbours-admin}"
     container_name: cn-admin-web
     restart: unless-stopped
     depends_on:
