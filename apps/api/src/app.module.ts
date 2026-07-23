@@ -91,7 +91,9 @@ import { VotesModule } from './votes/votes.module';
         KEYCLOAK_PUBLIC_URL: Joi.string().uri().optional().allow(''),
         KEYCLOAK_REALM: Joi.string().default('connected-neighbours'),
         KEYCLOAK_API_AUDIENCE: Joi.string().default('connected-neighbours-api'),
-        KEYCLOAK_WEB_CLIENT_ID: Joi.string().default('connected-neighbours-web'),
+        KEYCLOAK_WEB_CLIENT_ID: Joi.string().default(
+          'connected-neighbours-web',
+        ),
         KEYCLOAK_ADMIN_CLIENT_ID: Joi.string().default(
           'connected-neighbours-admin',
         ),
@@ -107,7 +109,7 @@ import { VotesModule } from './votes/votes.module';
 
         JWT_SECRET: Joi.string().min(16).required(),
         JWT_EXPIRES_IN: Joi.string().default('1d'),
-        DEV_AUTH_SEED: Joi.boolean().default(true),
+        DEV_AUTH_SEED: Joi.boolean().default(false),
       }),
       validationOptions: {
         allowUnknown: true,

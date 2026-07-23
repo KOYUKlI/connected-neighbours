@@ -9,13 +9,7 @@ services:
       - mongodb_data:/data/db
     healthcheck:
       test:
-        [
-          "CMD",
-          "mongosh",
-          "--quiet",
-          "--eval",
-          "db.adminCommand('ping').ok",
-        ]
+        ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,7 +50,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "cypher-shell -u \"$${NEO4J_AUTH%%/*}\" -p \"$${NEO4J_AUTH#*/}\" 'RETURN 1' >/dev/null 2>&1",
+          'cypher-shell -u "$${NEO4J_AUTH%%/*}" -p "$${NEO4J_AUTH#*/}" ''RETURN 1'' >/dev/null 2>&1',
         ]
       interval: 10s
       timeout: 5s
@@ -74,7 +68,11 @@ services:
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -149,7 +147,7 @@ services:
       PORT: 3000
       CORS_ORIGIN: http://localhost:5173,http://localhost:5174
       COOKIE_SECRET: connected-neighbours-cookie-secret-docker
-      MONGODB_URI: mongodb://mongodb:27017/connected-neighbours
+      MONGODB_URI: mongodb://mongodb:27017/connected_neighbours
       NEO4J_ENABLED: "${NEO4J_ENABLED:-true}"
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USERNAME: "${NEO4J_USERNAME}"
@@ -182,7 +180,7 @@ services:
       KEYCLOAK_REQUEST_TIMEOUT_MS: "${KEYCLOAK_REQUEST_TIMEOUT_MS:-2500}"
       JWT_SECRET: connected-neighbours-jwt-secret-docker
       JWT_EXPIRES_IN: 1d
-      DEV_AUTH_SEED: "true"
+      DEV_AUTH_SEED: "false"
     ports:
       - "3000:3000"
 

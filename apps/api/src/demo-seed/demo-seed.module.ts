@@ -13,7 +13,10 @@ import {
   DisputeEvidenceSchema,
 } from '../disputes/schemas/dispute-evidence.schema';
 import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
-import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
+import {
+  ManagedDocument,
+  ManagedDocumentSchema,
+} from '../documents/schemas/managed-document.schema';
 import {
   EventResponse,
   EventResponseSchema,
@@ -21,6 +24,33 @@ import {
 import { EventSchema, NeighborhoodEvent } from '../events/schemas/event.schema';
 import { DocumentsModule } from '../documents/documents.module';
 import { PointsModule } from '../points/points.module';
+import {
+  PointTransaction,
+  PointTransactionSchema,
+} from '../points/schemas/point-transaction.schema';
+import {
+  Neighborhood,
+  NeighborhoodSchema,
+} from '../neighborhoods/schemas/neighborhood.schema';
+import {
+  SecurityAuditEvent,
+  SecurityAuditEventSchema,
+} from '../auth/schemas/security-audit-event.schema';
+import {
+  GraphSyncJob,
+  GraphSyncJobSchema,
+} from '../graph/schemas/graph-sync-job.schema';
+import { StorageModule } from '../storage/storage.module';
+import {
+  StorageFile,
+  StorageFileSchema,
+} from '../storage/schemas/storage-file.schema';
+import { DemoKeycloakService } from './demo-keycloak.service';
+import { DemoSeedOrchestrator } from './demo-seed-orchestrator.service';
+import {
+  DemoSeedRecord,
+  DemoSeedRecordSchema,
+} from './schemas/demo-seed-record.schema';
 import {
   ServiceProof,
   ServiceProofSchema,
@@ -39,6 +69,7 @@ import { DemoSeedService } from './demo-seed.service';
     AuthModule,
     DocumentsModule,
     PointsModule,
+    StorageModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Service.name, schema: ServiceSchema },
@@ -47,15 +78,21 @@ import { DemoSeedService } from './demo-seed.service';
       { name: Contract.name, schema: ContractSchema },
       { name: Dispute.name, schema: DisputeSchema },
       { name: DisputeEvidence.name, schema: DisputeEvidenceSchema },
-      { name: Incident.name, schema: IncidentSchema },
+      { name: Neighborhood.name, schema: NeighborhoodSchema },
+      { name: PointTransaction.name, schema: PointTransactionSchema },
+      { name: ManagedDocument.name, schema: ManagedDocumentSchema },
+      { name: StorageFile.name, schema: StorageFileSchema },
+      { name: SecurityAuditEvent.name, schema: SecurityAuditEventSchema },
+      { name: GraphSyncJob.name, schema: GraphSyncJobSchema },
       { name: NeighborhoodEvent.name, schema: EventSchema },
       { name: EventResponse.name, schema: EventResponseSchema },
       { name: Vote.name, schema: VoteSchema },
       { name: VoteAnswer.name, schema: VoteAnswerSchema },
       { name: Review.name, schema: ReviewSchema },
-      { name: Review.name, schema: ReviewSchema },
+      { name: DemoSeedRecord.name, schema: DemoSeedRecordSchema },
     ]),
   ],
-  providers: [DemoSeedService],
+  providers: [DemoKeycloakService, DemoSeedOrchestrator, DemoSeedService],
+  exports: [DemoSeedOrchestrator, DemoSeedService],
 })
 export class DemoSeedModule {}

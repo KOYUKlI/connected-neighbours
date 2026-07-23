@@ -17,7 +17,16 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:demo": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts run",
+    "seed:demo:status": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts status",
+    "seed:demo:reconcile": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts reconcile",
+    "seed:demo:reconcile:apply": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts reconcile-apply",
+    "seed:demo:reset": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts reset",
+    "seed:keycloak": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts keycloak",
+    "seed:mongodb": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts mongodb",
+    "seed:minio": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts minio",
+    "seed:graph": "ts-node -r tsconfig-paths/register src/demo-seed/demo-seed.cli.ts graph"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1015.0",
