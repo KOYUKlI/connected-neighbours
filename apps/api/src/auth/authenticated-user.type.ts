@@ -1,3 +1,4 @@
+import type { AuthenticatedIdentity } from './authenticated-identity.type';
 import { Role } from './role.enum';
 
 export type AuthenticatedUser = {
@@ -6,6 +7,7 @@ export type AuthenticatedUser = {
   role: Role;
   displayName: string;
   neighborhoodId: string;
+  identity?: AuthenticatedIdentity;
 };
 
 export type AuthenticatedRequest = {

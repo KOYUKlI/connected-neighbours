@@ -1,37 +1,131 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  IsArray,
   IsBoolean,
   IsDate,
-  IsNotEmpty,
+  IsEnum,
+  IsInt,
   IsOptional,
   IsString,
+  Length,
+  Min,
 } from 'class-validator';
 
+import {
+  VoteBallotType,
+  VotePrivacy,
+  VoteResultsVisibility,
+  VoteStatus,
+} from '../schemas/vote.schema';
+
+export type VoteOptionInput =
+  | string
+  | {
+      label: string;
+      description?: string;
+    };
+
 export class CreateVoteDto {
-  @ApiProperty({ example: 'Quel jour organiser le nettoyage du parc ?' })
+  @ApiPropertyOptional({ example: 'Quel projet financer en priorité ?' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  question: string;
+  @Length(3, 180)
+  title?: string;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: 'Ancien nom accepté temporairement. Utiliser title.',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(3, 180)
+  question?: string;
+
+  @ApiPropertyOptional({
+    example: 'Choisissez le projet prioritaire pour le quartier.',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(0, 4000)
+  description?: string;
 
   @ApiProperty({ example: 'quartier-centre' })
   @IsString()
-  @IsNotEmpty()
+  @Length(2, 120)
   neighborhoodId: string;
 
-  @ApiProperty({ example: ['Samedi matin', 'Dimanche après-midi'] })
-  @ArrayMinSize(2)
-  @IsString({ each: true })
-  options: string[];
+  @ApiPropertyOptional({ enum: VoteBallotType })
+  @IsOptional()
+  @IsEnum(VoteBallotType)
+  ballotType?: VoteBallotType;
 
-  @ApiProperty({ example: '2026-06-20T18:00:00.000Z' })
+  @ApiPropertyOptional({ enum: VotePrivacy, default: VotePrivacy.PUBLIC })
+  @IsOptional()
+  @IsEnum(VotePrivacy)
+  privacy?: VotePrivacy;
+
+  @ApiPropertyOptional({
+    enum: VoteResultsVisibility,
+    default: VoteResultsVisibility.AFTER_CLOSE,
+  })
+  @IsOptional()
+  @IsEnum(VoteResultsVisibility)
+  resultsVisibility?: VoteResultsVisibility;
+
+  @ApiProperty({
+    description:
+      'Libellés historiques ou objets { label, description } canoniques.',
+    example: [{ label: 'Composteur partagé' }, { label: 'Arceaux vélo' }],
+  })
+  @IsArray()
+  @ArrayMinSize(2)
+  options: VoteOptionInput[];
+
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  minSelections?: number;
+
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maxSelections?: number;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  allowAnswerChange?: boolean;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: 'Ancien indicateur accepté pour déduire ballotType.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  allowMultipleChoices?: boolean;
+
+  @ApiPropertyOptional({ example: '2026-08-01T08:00:00.000Z' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  opensAt?: Date;
+
+  @ApiProperty({ example: '2026-08-10T18:00:00.000Z' })
   @Type(() => Date)
   @IsDate()
   closesAt: Date;
 
-  @ApiProperty({ example: false, required: false })
+  @ApiPropertyOptional({
+    enum: [VoteStatus.DRAFT, VoteStatus.SCHEDULED],
+    default: VoteStatus.DRAFT,
+  })
   @IsOptional()
-  @IsBoolean()
-  allowMultipleChoices?: boolean;
+  @IsEnum(VoteStatus)
+  status?: VoteStatus;
 }

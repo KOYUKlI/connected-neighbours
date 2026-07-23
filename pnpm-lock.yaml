@@ -22,6 +22,9 @@ importers:
       i18next:
         specifier: ^25.10.5
         version: 25.10.5(typescript@5.9.3)
+      keycloak-js:
+        specifier: 26.2.4
+        version: 26.2.4
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -155,6 +158,9 @@ importers:
       joi:
         specifier: ^18.1.1
         version: 18.1.1
+      jose:
+        specifier: 5.10.0
+        version: 5.10.0
       mongoose:
         specifier: ^9.3.2
         version: 9.3.2
@@ -273,6 +279,9 @@ importers:
       i18next:
         specifier: ^25.10.5
         version: 25.10.5(typescript@5.9.3)
+      keycloak-js:
+        specifier: 26.2.4
+        version: 26.2.4
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -3390,6 +3399,9 @@ packages:
     resolution: {integrity: sha512-pJkBiPtNo+o0h19LfSvUN46Y5zY+ck99AtHwch9n2HqVLNRgP0ZMyIH8FRMoP+HV8hy/+AG99dXFfwpf83iZfQ==}
     engines: {node: '>= 20'}
 
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -3453,6 +3465,9 @@ packages:
   kareem@3.2.0:
     resolution: {integrity: sha512-VS8MWZz/cT+SqBCpVfNN4zoVz5VskR3N4+sTmUXme55e9avQHntpwpNq0yjnosISXqwJ3AQVjlbI4Dyzv//JtA==}
     engines: {node: '>=18.0.0'}
+
+  keycloak-js@26.2.4:
+    resolution: {integrity: sha512-PnXpR3ubETGOt0B/Qt2lxmPbkZr5bc3vlQsOqDoTPPQsZRp7JjhTKxlJ187uWh8qJhvBab6Gsjb06a8ayOPfuw==}
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
@@ -8717,6 +8732,8 @@ snapshots:
       '@hapi/topo': 6.0.2
       '@standard-schema/spec': 1.1.0
 
+  jose@5.10.0: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@3.14.2:
@@ -8784,6 +8801,8 @@ snapshots:
       safe-buffer: 5.2.1
 
   kareem@3.2.0: {}
+
+  keycloak-js@26.2.4: {}
 
   keyv@4.5.4:
     dependencies:

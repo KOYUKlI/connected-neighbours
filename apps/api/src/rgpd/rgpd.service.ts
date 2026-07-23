@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import {
-  Alert,
-  AlertDocument,
-} from '../alerts/schemas/alert.schema';
+  SecurityAuditEvent,
+  SecurityAuditEventDocument,
+} from '../auth/schemas/security-audit-event.schema';
+import { Alert, AlertDocument } from '../alerts/schemas/alert.schema';
 import {
   ServiceApplication,
   ServiceApplicationDocument,
@@ -27,11 +28,38 @@ import {
   Incident,
   IncidentDocument,
 } from '../incidents/schemas/incident.schema';
+import {
+  EventResponse,
+  EventResponseDocument,
+} from '../events/schemas/event-response.schema';
+import {
+  EventDocument,
+  NeighborhoodEvent,
+} from '../events/schemas/event.schema';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
+import {
+  ServiceProof,
+  ServiceProofDocument,
+} from '../services/schemas/service-proof.schema';
+import {
+  DisputeEvidence,
+  DisputeEvidenceDocument,
+} from '../disputes/schemas/dispute-evidence.schema';
+import {
+  VoteAnswer,
+  VoteAnswerDocument,
+} from '../votes/schemas/vote-answer.schema';
+import { Vote, VoteDocument } from '../votes/schemas/vote.schema';
 import {
   SyncOperation,
   SyncOperationDocument,
 } from '../sync/schemas/sync-operation.schema';
+import { Review, ReviewDocument } from '../reviews/schemas/review.schema';
+import { ReputationService } from '../reviews/reputation.service';
+import {
+  StorageFile,
+  StorageFileDocument,
+} from '../storage/schemas/storage-file.schema';
 
 type RgpdExportDocument = Record<string, unknown> & {
   _id?: unknown;
@@ -45,11 +73,29 @@ type ObjectLikeDocument = {
   toObject?: (options?: { virtuals?: boolean }) => Record<string, unknown>;
 };
 
+type ProofExportRow = {
+  _id?: Types.ObjectId | string;
+  serviceId?: string;
+  disputeId?: string;
+  type: string;
+  message: string | null;
+  fileId: string | null;
+  fileKind: string | null;
+  originalFilename: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  sha256: string | null;
+  attachmentDeletedAt: Date | null;
+  createdAt?: Date;
+};
+
 @Injectable()
 export class RgpdService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(SecurityAuditEvent.name)
+    private readonly securityAuditModel: Model<SecurityAuditEventDocument>,
     @InjectModel(ServiceApplication.name)
     private readonly applicationModel: Model<ServiceApplicationDocument>,
     @InjectModel(Service.name)
@@ -66,6 +112,23 @@ export class RgpdService {
     private readonly syncOperationModel: Model<SyncOperationDocument>,
     @InjectModel(ManagedDocument.name)
     private readonly documentModel: Model<ManagedDocumentDocument>,
+    @InjectModel(NeighborhoodEvent.name)
+    private readonly eventModel: Model<EventDocument>,
+    @InjectModel(EventResponse.name)
+    private readonly eventResponseModel: Model<EventResponseDocument>,
+    @InjectModel(Vote.name)
+    private readonly voteModel: Model<VoteDocument>,
+    @InjectModel(VoteAnswer.name)
+    private readonly voteAnswerModel: Model<VoteAnswerDocument>,
+    @InjectModel(Review.name)
+    private readonly reviewModel: Model<ReviewDocument>,
+    @InjectModel(StorageFile.name)
+    private readonly storageFileModel: Model<StorageFileDocument>,
+    @InjectModel(ServiceProof.name)
+    private readonly serviceProofModel: Model<ServiceProofDocument>,
+    @InjectModel(DisputeEvidence.name)
+    private readonly disputeEvidenceModel: Model<DisputeEvidenceDocument>,
+    private readonly reputationService: ReputationService,
   ) {}
 
   async exportPersonalData(userId: string) {
@@ -84,6 +147,17 @@ export class RgpdService {
       incidents,
       documents,
       syncOperations,
+      eventsCreated,
+      eventResponses,
+      votesCreated,
+      voteAnswers,
+      reviewsWritten,
+      reviewsReceived,
+      reputation,
+      avatarFile,
+      serviceProofsAuthored,
+      disputeEvidenceAuthored,
+      securityEvents,
     ] = await Promise.all([
       this.serviceModel.find({ ownerId: userId }).exec(),
       this.applicationModel.find({ applicantId: userId }).exec(),
@@ -117,12 +191,39 @@ export class RgpdService {
           ],
         })
         .exec(),
+      this.eventModel.find({ organizerId: userId }).exec(),
+      this.eventResponseModel.find({ userId }).exec(),
+      this.voteModel.find({ createdById: userId }).exec(),
+      this.voteAnswerModel.find({ userId }).exec(),
+      this.reviewModel.find({ authorId: userId }).exec(),
+      this.reviewModel.find({ targetUserId: userId }).exec(),
+      this.reputationService.getOne(userId),
+      user.avatarFileId
+        ? this.storageFileModel
+            .findById(user.avatarFileId)
+            .select(
+              '_id originalFilename safeFilename mimeType sizeBytes sha256 status completedAt createdAt',
+            )
+            .lean()
+            .exec()
+        : Promise.resolve(null),
+      this.serviceProofModel.find({ authorId: userId }).lean().exec(),
+      this.disputeEvidenceModel.find({ authorId: userId }).lean().exec(),
+      this.securityAuditModel
+        .find({ userId })
+        .sort({ occurredAt: -1 })
+        .limit(500)
+        .select('-_id eventType provider result occurredAt context')
+        .lean()
+        .exec(),
     ]);
 
     const incidentIds = incidents.map((incident) => incident.id);
     const alerts =
       incidentIds.length > 0
-        ? await this.alertModel.find({ incidentId: { $in: incidentIds } }).exec()
+        ? await this.alertModel
+            .find({ incidentId: { $in: incidentIds } })
+            .exec()
         : [];
 
     return {
@@ -133,14 +234,40 @@ export class RgpdService {
         displayName: user.displayName,
         role: user.role,
         neighborhoodId: user.neighborhoodId,
+        neighborhoodAssignment: {
+          assignedAt: user.neighborhoodAssignedAt,
+          source: user.neighborhoodAssignmentSource,
+          actorId: user.neighborhoodAssignmentActorId,
+          history: user.neighborhoodAssignmentHistory,
+          exactPositionStored: false,
+        },
         isActive: user.isActive,
         pointsBalance: user.pointsBalance,
         reservedPoints: user.reservedPoints,
+        bio: user.bio,
+        interests: user.interests,
+        profileVisibility: user.profileVisibility,
+        showNeighborhood: user.showNeighborhood,
+        showReviews: user.showReviews,
+        showCompletedServices: user.showCompletedServices,
+        showReputation: user.showReputation,
+        profileUpdatedAt: user.profileUpdatedAt,
+        identity: {
+          provider: user.identityProvider,
+          migrationStatus: user.identityMigrationStatus,
+          emailVerified: user.emailVerified,
+          linkedAt: user.identityLinkedAt,
+          lastSynchronizedAt: user.lastIdentitySyncAt,
+          onboardingCompleted: user.onboardingCompleted,
+        },
       },
+      securityEvents: this.normalizeDocuments(securityEvents),
+      avatar: avatarFile ? this.normalizeDocument(avatarFile) : null,
+      reputation,
+      reviewsWritten: this.normalizeDocuments(reviewsWritten),
+      reviewsReceived: this.normalizeDocuments(reviewsReceived),
       services: this.normalizeDocuments(services),
-      applicationsAsApplicant: this.normalizeDocuments(
-        applicationsAsApplicant,
-      ),
+      applicationsAsApplicant: this.normalizeDocuments(applicationsAsApplicant),
       applicationsAsOwner: this.normalizeDocuments(applicationsAsOwner),
       contracts: this.normalizeDocuments(contracts),
       pointTransactions: this.normalizeDocuments(pointTransactions),
@@ -148,6 +275,68 @@ export class RgpdService {
       alerts: this.normalizeDocuments(alerts),
       syncOperations: this.normalizeDocuments(syncOperations),
       documents: this.normalizeDocuments(documents),
+      eventsCreated: this.normalizeDocuments(eventsCreated),
+      eventResponses: this.normalizeDocuments(eventResponses),
+      votesCreated: this.normalizeDocuments(votesCreated),
+      voteAnswers: this.normalizeDocuments(voteAnswers),
+      serviceProofsAuthored: serviceProofsAuthored.map((proof) =>
+        this.presentProofExport(proof),
+      ),
+      disputeEvidenceAuthored: disputeEvidenceAuthored.map((evidence) =>
+        this.presentProofExport(evidence),
+      ),
+      graphProjection: {
+        sourceOfTruth: 'MongoDB',
+        derivedDataOnly: true,
+        projectedUserId: user.id,
+        categories: [
+          'profil public minimal',
+          'quartier attribué',
+          'services publics',
+          'participations publiques aux événements',
+          'avis publiés',
+        ],
+        relationships: [
+          'appartenance au quartier',
+          'services créés ou réalisés',
+          'participations publiques aux événements',
+          'relations de confiance issues de services terminés',
+          'avis publiés',
+        ],
+        lastSynchronizationAt: null,
+        rebuildableFromMongoDb: true,
+        exactPositionStored: false,
+        privateMessagesStored: false,
+        anonymousVoteAnswersStored: false,
+      },
+    };
+  }
+
+  private presentProofExport(
+    proof: ServiceProof | DisputeEvidence,
+  ): Record<string, unknown> {
+    const source = proof as unknown as ProofExportRow;
+    return {
+      id:
+        source._id instanceof Types.ObjectId
+          ? source._id.toHexString()
+          : (source._id ?? null),
+      serviceId: source.serviceId ?? null,
+      disputeId: source.disputeId ?? null,
+      type: source.type,
+      message: source.message,
+      attachment: source.fileId
+        ? {
+            fileId: source.fileId,
+            fileKind: source.fileKind,
+            originalFilename: source.originalFilename,
+            mimeType: source.mimeType,
+            sizeBytes: source.sizeBytes,
+            sha256: source.sha256,
+            deletedAt: source.attachmentDeletedAt,
+          }
+        : null,
+      createdAt: source.createdAt ?? null,
     };
   }
 
@@ -158,7 +347,10 @@ export class RgpdService {
   private normalizeDocument(document: unknown) {
     const plainDocument = this.toPlainDocument(document);
     const id = this.resolveDocumentId(document, plainDocument);
-    const { _id, __v, id: _plainId, ...payload } = plainDocument;
+    const payload = { ...plainDocument };
+    delete payload._id;
+    delete payload.__v;
+    delete payload.id;
 
     return {
       id,
@@ -197,13 +389,12 @@ export class RgpdService {
       return plainDocument.id;
     }
 
-    if (plainDocument._id) {
-      return String(plainDocument._id);
-    }
-
-    if (originalObject?._id) {
-      return String(originalObject._id);
-    }
+    if (plainDocument._id instanceof Types.ObjectId)
+      return plainDocument._id.toHexString();
+    if (typeof plainDocument._id === 'string') return plainDocument._id;
+    if (originalObject?._id instanceof Types.ObjectId)
+      return originalObject._id.toHexString();
+    if (typeof originalObject?._id === 'string') return originalObject._id;
 
     return null;
   }

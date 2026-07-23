@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -9,7 +9,11 @@ import {
 } from '../applications/schemas/service-application.schema';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
-import { User, UserDocument } from '../auth/schemas/user.schema';
+import {
+  ProfileVisibility,
+  User,
+  UserDocument,
+} from '../auth/schemas/user.schema';
 import { UsersService } from '../auth/users.service';
 import {
   Contract,
@@ -39,6 +43,17 @@ import {
   IncidentStatus,
   IncidentType,
 } from '../incidents/schemas/incident.schema';
+import {
+  EventResponse,
+  EventResponseDocument,
+  EventResponseStatus,
+} from '../events/schemas/event-response.schema';
+import {
+  EventCategory,
+  EventDocument,
+  EventStatus,
+  NeighborhoodEvent,
+} from '../events/schemas/event.schema';
 import { DocumentsService } from '../documents/documents.service';
 import { ManagedDocumentStatus } from '../documents/schemas/managed-document.schema';
 import { PointsService } from '../points/points.service';
@@ -53,6 +68,25 @@ import {
   ServiceStatus,
   ServiceType,
 } from '../services/schemas/service.schema';
+import {
+  VoteAnswer,
+  VoteAnswerDocument,
+} from '../votes/schemas/vote-answer.schema';
+import {
+  Vote,
+  VoteBallotType,
+  VoteDocument,
+  VotePrivacy,
+  VoteResultsVisibility,
+  VoteStatus,
+} from '../votes/schemas/vote.schema';
+import {
+  Review,
+  ReviewDocument,
+  ReviewStatus,
+} from '../reviews/schemas/review.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 
 type DemoExecutionReference = {
   serviceId: string;
@@ -91,9 +125,20 @@ export class DemoSeedService implements OnModuleInit {
     private readonly proofModel: Model<ServiceProofDocument>,
     @InjectModel(Incident.name)
     private readonly incidentModel: Model<IncidentDocument>,
+    @InjectModel(NeighborhoodEvent.name)
+    private readonly eventModel: Model<EventDocument>,
+    @InjectModel(EventResponse.name)
+    private readonly eventResponseModel: Model<EventResponseDocument>,
+    @InjectModel(Vote.name)
+    private readonly voteModel: Model<VoteDocument>,
+    @InjectModel(VoteAnswer.name)
+    private readonly voteAnswerModel: Model<VoteAnswerDocument>,
+    @InjectModel(Review.name)
+    private readonly reviewModel: Model<ReviewDocument>,
     private readonly usersService: UsersService,
     private readonly pointsService: PointsService,
     private readonly documentsService: DocumentsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async onModuleInit() {
@@ -148,6 +193,8 @@ export class DemoSeedService implements OnModuleInit {
         { $set: { pointsBalance: 125 } },
       )
       .exec();
+
+    await this.ensureProfileDemos(alice, bob, claire);
 
     const furniture = await this.ensureService(alice.id, {
       title: 'Aide pour monter un meuble',
@@ -238,6 +285,7 @@ export class DemoSeedService implements OnModuleInit {
       'partial',
     );
     await this.ensureDisputeDemos(disputeDemos, alice, bob, moderator);
+    await this.ensureReviewDemos(disputeDemos.resolved, alice, bob, claire);
     await this.ensureApplication(
       computerHelp,
       claire.id,
@@ -246,6 +294,350 @@ export class DemoSeedService implements OnModuleInit {
       "Bonjour Bob, j'aurais besoin d'aide pour securiser mon ordinateur.",
     );
     await this.ensureIncident(alice.id);
+    await this.ensureLocalLife(alice, bob, claire, admin);
+    await this.enqueueGraphSeed();
+  }
+
+  private async enqueueGraphSeed() {
+    if (!this.graphSyncService) return;
+    const [users, services, events, reviews] = await Promise.all([
+      this.userModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.serviceModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.eventModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+      this.reviewModel
+        .find()
+        .select('_id')
+        .lean<Array<{ _id: unknown }>>()
+        .exec(),
+    ]);
+    const groups: Array<[GraphEntityType, Array<{ _id: unknown }>]> = [
+      [GraphEntityType.USER, users],
+      [GraphEntityType.SERVICE, services],
+      [GraphEntityType.EVENT, events],
+      [GraphEntityType.REVIEW, reviews],
+    ];
+    for (const [entityType, rows] of groups) {
+      for (const row of rows) {
+        await this.graphSyncService.enqueue(entityType, String(row._id));
+      }
+    }
+  }
+
+  private async ensureLocalLife(
+    alice: UserDocument,
+    bob: UserDocument,
+    claire: UserDocument,
+    admin: UserDocument,
+  ) {
+    const workshop = await this.ensureEvent(alice.id, {
+      title: 'Atelier réparation vélo',
+      description:
+        'Apportez votre vélo et apprenez les réparations essentielles avec les voisins.',
+      category: EventCategory.WORKSHOP,
+      startsAt: new Date('2026-09-20T12:00:00.000Z'),
+      endsAt: new Date('2026-09-20T16:00:00.000Z'),
+      locationLabel: 'Maison de quartier',
+      capacity: 20,
+      status: EventStatus.OPEN_REGISTRATION,
+    });
+    await this.ensureEventResponse(
+      workshop.id,
+      bob.id,
+      EventResponseStatus.INTERESTED,
+    );
+
+    const sport = await this.ensureEvent(alice.id, {
+      title: 'Tournoi de pétanque du quartier',
+      description: 'Une rencontre amicale ouverte à tous les niveaux.',
+      category: EventCategory.SPORT,
+      startsAt: new Date('2026-09-25T12:00:00.000Z'),
+      endsAt: new Date('2026-09-25T17:00:00.000Z'),
+      locationLabel: 'Terrain municipal du quartier',
+      capacity: 1,
+      status: EventStatus.FULL,
+    });
+    await this.ensureEventResponse(sport.id, bob.id, EventResponseStatus.GOING);
+    await this.ensureEventResponse(
+      sport.id,
+      claire.id,
+      EventResponseStatus.WAITLISTED,
+      1,
+    );
+    await this.eventModel
+      .updateOne(
+        {
+          _id: sport.id,
+          $or: [
+            { countersInitialized: false },
+            { countersInitialized: { $exists: false } },
+          ],
+        },
+        {
+          $set: {
+            participantCount: 1,
+            waitlistCount: 1,
+            waitlistSequence: 1,
+            countersInitialized: true,
+          },
+        },
+      )
+      .exec();
+
+    const cleanup = await this.ensureEvent(bob.id, {
+      title: 'Nettoyage du parc samedi',
+      description:
+        'Deux heures ensemble pour prendre soin des espaces verts du quartier.',
+      category: EventCategory.HELP,
+      startsAt: new Date('2026-09-28T08:00:00.000Z'),
+      endsAt: new Date('2026-09-28T10:30:00.000Z'),
+      locationLabel: 'Entrée principale du parc',
+      capacity: 30,
+      status: EventStatus.OPEN_REGISTRATION,
+    });
+    await this.ensureEventResponse(
+      cleanup.id,
+      alice.id,
+      EventResponseStatus.GOING,
+    );
+
+    await this.ensureEvent(alice.id, {
+      title: 'Rencontre des voisins de juillet',
+      description: 'Retour sur les initiatives locales et moment convivial.',
+      category: EventCategory.COMMUNITY_MEETING,
+      startsAt: new Date('2026-07-05T16:00:00.000Z'),
+      endsAt: new Date('2026-07-05T18:00:00.000Z'),
+      locationLabel: 'Salle associative',
+      capacity: null,
+      status: EventStatus.COMPLETED,
+    });
+    await this.ensureEvent(admin.id, {
+      title: 'Collecte solidaire reportée',
+      description: 'La collecte sera reprogrammée à une date ultérieure.',
+      category: EventCategory.FUNDRAISING,
+      startsAt: new Date('2026-09-05T09:00:00.000Z'),
+      endsAt: new Date('2026-09-05T12:00:00.000Z'),
+      locationLabel: 'Maison de quartier',
+      capacity: 50,
+      status: EventStatus.CANCELLED,
+    });
+
+    const compost = await this.ensureVote(admin.id, {
+      title: 'Installer un composteur partagé ?',
+      ballotType: VoteBallotType.YES_NO,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.AFTER_SUBMISSION,
+      status: VoteStatus.OPEN,
+      opensAt: new Date('2026-07-01T08:00:00.000Z'),
+      closesAt: new Date('2026-08-31T18:00:00.000Z'),
+      options: ['Oui', 'Non'],
+      allowAnswerChange: true,
+    });
+    await this.ensureVoteAnswer(compost, alice.id, [compost.options[0].id]);
+    await this.ensureVoteAnswer(compost, bob.id, [compost.options[0].id]);
+
+    const square = await this.ensureVote(admin.id, {
+      title: 'Quel aménagement prioritaire pour la place ?',
+      ballotType: VoteBallotType.SINGLE_CHOICE,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.ALWAYS,
+      status: VoteStatus.OPEN,
+      opensAt: new Date('2026-07-15T08:00:00.000Z'),
+      closesAt: new Date('2026-09-10T18:00:00.000Z'),
+      options: ['Bancs ombragés', 'Arceaux vélo', 'Jeux pour enfants'],
+      allowAnswerChange: false,
+    });
+    await this.ensureVoteAnswer(square, claire.id, [square.options[1].id]);
+
+    await this.ensureVote(admin.id, {
+      title: 'Animations souhaitées pour l’automne',
+      ballotType: VoteBallotType.MULTIPLE_CHOICE,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.AFTER_CLOSE,
+      status: VoteStatus.SCHEDULED,
+      opensAt: new Date('2026-09-01T08:00:00.000Z'),
+      closesAt: new Date('2026-09-20T18:00:00.000Z'),
+      options: [
+        'Atelier cuisine',
+        'Projection en plein air',
+        'Bourse aux livres',
+      ],
+      allowAnswerChange: true,
+      minSelections: 1,
+      maxSelections: 2,
+    });
+
+    const ranking = await this.ensureVote(admin.id, {
+      title: 'Priorités du budget participatif',
+      ballotType: VoteBallotType.RANKING,
+      privacy: VotePrivacy.PUBLIC,
+      resultsVisibility: VoteResultsVisibility.AFTER_CLOSE,
+      status: VoteStatus.CLOSED,
+      opensAt: new Date('2026-06-01T08:00:00.000Z'),
+      closesAt: new Date('2026-06-30T18:00:00.000Z'),
+      options: ['Végétalisation', 'Éclairage', 'Mobilier urbain'],
+      allowAnswerChange: false,
+    });
+    await this.ensureVoteAnswer(
+      ranking,
+      alice.id,
+      ranking.options.map((option) => option.id),
+      ranking.options.map((option, index) => ({
+        optionId: option.id,
+        rank: index + 1,
+      })),
+    );
+
+    const anonymous = await this.ensureVote(admin.id, {
+      title: 'Adapter les horaires de la maison de quartier ?',
+      ballotType: VoteBallotType.YES_NO,
+      privacy: VotePrivacy.ANONYMOUS,
+      resultsVisibility: VoteResultsVisibility.AFTER_CLOSE,
+      status: VoteStatus.OPEN,
+      opensAt: new Date('2026-07-10T08:00:00.000Z'),
+      closesAt: new Date('2026-09-15T18:00:00.000Z'),
+      options: ['Oui', 'Non'],
+      allowAnswerChange: false,
+    });
+    await this.ensureVoteAnswer(anonymous, bob.id, [anonymous.options[0].id]);
+  }
+
+  private async ensureEvent(
+    organizerId: string,
+    input: {
+      title: string;
+      description: string;
+      category: EventCategory;
+      startsAt: Date;
+      endsAt: Date;
+      locationLabel: string;
+      capacity: number | null;
+      status: EventStatus;
+    },
+  ) {
+    const existing = await this.eventModel
+      .findOne({ title: input.title, neighborhoodId: 'quartier-centre' })
+      .exec();
+    if (existing) return existing;
+    const published = input.status !== EventStatus.DRAFT;
+    return this.eventModel.create({
+      ...input,
+      neighborhoodId: 'quartier-centre',
+      organizerId,
+      registrationDeadline: new Date(input.startsAt.getTime() - 60 * 60 * 1000),
+      participantCount: 0,
+      waitlistCount: 0,
+      waitlistSequence: 0,
+      countersInitialized: false,
+      publishedAt: published ? new Date('2026-07-01T08:00:00.000Z') : null,
+      completedAt: input.status === EventStatus.COMPLETED ? input.endsAt : null,
+      cancelledAt:
+        input.status === EventStatus.CANCELLED
+          ? new Date('2026-07-20T10:00:00.000Z')
+          : null,
+      cancellationReason:
+        input.status === EventStatus.CANCELLED
+          ? 'Conditions logistiques insuffisantes.'
+          : null,
+      history: [],
+    });
+  }
+
+  private async ensureEventResponse(
+    eventId: string,
+    userId: string,
+    response: EventResponseStatus,
+    waitlistPosition: number | null = null,
+  ) {
+    const existing = await this.eventResponseModel
+      .findOne({ eventId, userId })
+      .exec();
+    if (existing) return existing;
+    return this.eventResponseModel.create({
+      eventId,
+      userId,
+      response,
+      waitlistPosition,
+      respondedAt: new Date('2026-07-22T10:00:00.000Z'),
+      revision: 1,
+    });
+  }
+
+  private async ensureVote(
+    createdById: string,
+    input: {
+      title: string;
+      ballotType: VoteBallotType;
+      privacy: VotePrivacy;
+      resultsVisibility: VoteResultsVisibility;
+      status: VoteStatus;
+      opensAt: Date;
+      closesAt: Date;
+      options: string[];
+      allowAnswerChange: boolean;
+      minSelections?: number;
+      maxSelections?: number;
+    },
+  ) {
+    const existing = await this.voteModel
+      .findOne({ title: input.title, neighborhoodId: 'quartier-centre' })
+      .exec();
+    if (existing) return existing;
+    const key = input.title
+      .toLocaleLowerCase('fr')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return this.voteModel.create({
+      ...input,
+      description: 'Consultation des habitants du Quartier Centre.',
+      neighborhoodId: 'quartier-centre',
+      createdById,
+      options: input.options.map((label, index) => ({
+        id: `${key}-${index + 1}`,
+        label,
+        description: null,
+        order: index,
+      })),
+      minSelections: input.minSelections ?? null,
+      maxSelections: input.maxSelections ?? null,
+      publishedAt:
+        input.status === VoteStatus.DRAFT
+          ? null
+          : new Date('2026-07-01T08:00:00.000Z'),
+      closedAt: input.status === VoteStatus.CLOSED ? input.closesAt : null,
+      history: [],
+    });
+  }
+
+  private async ensureVoteAnswer(
+    vote: VoteDocument,
+    userId: string,
+    selectedOptionIds: string[],
+    ranking: Array<{ optionId: string; rank: number }> = [],
+  ) {
+    const existing = await this.voteAnswerModel
+      .findOne({ voteId: vote.id, userId })
+      .exec();
+    if (existing) return existing;
+    return this.voteAnswerModel.create({
+      voteId: vote.id,
+      userId,
+      selectedOptionIds,
+      ranking,
+      submittedAt: new Date('2026-07-22T10:30:00.000Z'),
+      revision: 1,
+    });
   }
 
   private async ensureDocumentState(
@@ -299,6 +691,195 @@ export class DemoSeedService implements OnModuleInit {
     if (document?.status === ManagedDocumentStatus.FINALIZED) {
       await this.documentsService.archive(document.id, adminActor);
     }
+  }
+
+  private async ensureProfileDemos(
+    alice: UserDocument,
+    bob: UserDocument,
+    claire: UserDocument,
+  ) {
+    await Promise.all([
+      this.userModel
+        .updateOne(
+          { _id: alice.id },
+          {
+            $set: {
+              bio: 'Habitante du Quartier Centre, passionnée de bricolage et de vie locale.',
+              interests: ['Bricolage', 'Jardinage', 'Vie locale'],
+              profileVisibility: ProfileVisibility.NEIGHBORHOOD,
+              showNeighborhood: true,
+              showReviews: true,
+              showCompletedServices: true,
+              showReputation: true,
+            },
+          },
+        )
+        .exec(),
+      this.userModel
+        .updateOne(
+          { _id: bob.id },
+          {
+            $set: {
+              bio: 'Voisin disponible pour le bricolage et l’aide informatique.',
+              interests: ['Bricolage', 'Informatique', 'Animaux'],
+              profileVisibility: ProfileVisibility.NEIGHBORHOOD,
+              showNeighborhood: true,
+              showReviews: true,
+              showCompletedServices: true,
+              showReputation: true,
+            },
+          },
+        )
+        .exec(),
+      this.userModel
+        .updateOne(
+          { _id: claire.id },
+          {
+            $set: {
+              bio: 'Profil privé.',
+              interests: ['Cours'],
+              profileVisibility: ProfileVisibility.PRIVATE,
+              showNeighborhood: false,
+              showReviews: false,
+              showCompletedServices: false,
+              showReputation: false,
+            },
+          },
+        )
+        .exec(),
+    ]);
+  }
+
+  private async ensureReviewDemos(
+    resolved: DemoExecutionReference,
+    alice: UserDocument,
+    bob: UserDocument,
+    claire: UserDocument,
+  ) {
+    await this.ensureReview({
+      contractId: resolved.contractId,
+      serviceId: resolved.serviceId,
+      authorId: alice.id,
+      targetUserId: bob.id,
+      rating: 5,
+      comment:
+        'Bob a été ponctuel, soigneux et très clair dans ses explications.',
+      response: {
+        authorId: bob.id,
+        message: 'Merci Alice, ce fut un plaisir de vous aider.',
+        respondedAt: new Date('2026-07-21T18:00:00.000Z'),
+      },
+      status: ReviewStatus.PUBLISHED,
+    });
+    await this.ensureReview({
+      contractId: resolved.contractId,
+      serviceId: resolved.serviceId,
+      authorId: bob.id,
+      targetUserId: alice.id,
+      rating: 4,
+      comment: 'Organisation simple et accueil chaleureux.',
+      response: null,
+      status: ReviewStatus.HIDDEN,
+      moderationReason: 'Avis masqué pour la démonstration de modération.',
+    });
+
+    const service = await this.ensureService(claire.id, {
+      title: 'Initiation aux outils numériques',
+      description:
+        'Accompagnement terminé pour découvrir les démarches en ligne.',
+      type: ServiceType.REQUEST,
+      category: 'Informatique',
+      availability: 'Terminé',
+      isPaid: false,
+      pricePoints: null,
+      status: ServiceStatus.COMPLETED,
+    });
+    let contract = await this.contractModel
+      .findOne({ serviceId: service.id })
+      .exec();
+    if (!contract) {
+      contract = await this.contractModel.create({
+        serviceId: service.id,
+        applicationId: null,
+        requesterId: claire.id,
+        providerId: bob.id,
+        payerId: claire.id,
+        receiverId: bob.id,
+        pricePoints: 0,
+        status: ContractStatus.COMPLETED,
+        signedByIds: [claire.id, bob.id],
+        signedAt: new Date('2026-07-18T09:00:00.000Z'),
+        completedAt: new Date('2026-07-18T11:00:00.000Z'),
+      });
+      await this.serviceModel
+        .updateOne(
+          { _id: service.id },
+          {
+            $set: {
+              contractId: contract.id,
+              completedAt: new Date('2026-07-18T11:00:00.000Z'),
+              validatedAt: new Date('2026-07-18T11:00:00.000Z'),
+            },
+          },
+        )
+        .exec();
+    }
+    await this.ensureReview({
+      contractId: contract.id,
+      serviceId: service.id,
+      authorId: claire.id,
+      targetUserId: bob.id,
+      rating: 4,
+      comment: 'Une aide patiente et adaptée à mon niveau.',
+      response: null,
+      status: ReviewStatus.PUBLISHED,
+    });
+  }
+
+  private async ensureReview(input: {
+    contractId: string;
+    serviceId: string;
+    authorId: string;
+    targetUserId: string;
+    rating: number;
+    comment: string;
+    response: {
+      authorId: string;
+      message: string;
+      respondedAt: Date;
+    } | null;
+    status: ReviewStatus;
+    moderationReason?: string;
+  }) {
+    const existing = await this.reviewModel
+      .findOne({ contractId: input.contractId, authorId: input.authorId })
+      .exec();
+    if (existing) return existing;
+    const moderatedAt =
+      input.status === ReviewStatus.HIDDEN
+        ? new Date('2026-07-22T09:00:00.000Z')
+        : null;
+    const moderationHistory =
+      input.status === ReviewStatus.HIDDEN
+        ? [
+            {
+              action: 'hidden' as const,
+              moderatorId: 'seed-moderator',
+              reason:
+                input.moderationReason ??
+                'Avis masqué pour la démonstration de modération.',
+              createdAt: moderatedAt as Date,
+            },
+          ]
+        : [];
+    return this.reviewModel.create({
+      ...input,
+      moderationHistory,
+      moderatedById:
+        input.status === ReviewStatus.HIDDEN ? 'seed-moderator' : null,
+      moderatedAt,
+      moderationReason: input.moderationReason ?? null,
+    });
   }
 
   private seedActor(user: UserDocument, role: Role): AuthenticatedUser {

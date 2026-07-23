@@ -25,6 +25,11 @@ import {
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  DownloadDisposition,
+  DownloadFileQueryDto,
+} from '../storage/dto/download-file-query.dto';
+import { PresignProofUploadDto } from '../storage/dto/presign-proof-upload.dto';
 import { CreateServiceProofDto } from './dto/create-service-proof.dto';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
@@ -87,9 +92,9 @@ export class ServicesController {
   @ApiOperation({ summary: 'Créer une annonce de service' })
   create(
     @Body() createServiceDto: CreateServiceDto,
-    @CurrentUser() user: { sub: string },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.servicesService.create(createServiceDto, user.sub);
+    return this.servicesService.create(createServiceDto, user);
   }
 
   @Get()
@@ -146,6 +151,27 @@ export class ServicesController {
     return this.executionService.addProof(id, input, user);
   }
 
+  @Post(':id/proofs/presign-upload')
+  @ApiOperation({
+    summary: 'Préparer le dépôt privé d’un fichier de preuve',
+    description:
+      'Réservé au prestataire pendant l’exécution ou une correction. Le fichier doit ensuite être finalisé puis associé à une preuve.',
+  })
+  @ApiBadRequestResponse({ description: 'Type ou taille de fichier invalide.' })
+  @ApiForbiddenResponse({
+    description: "L'utilisateur n'est pas le prestataire.",
+  })
+  @ApiConflictResponse({
+    description: 'Contrat, litige ou statut incompatible.',
+  })
+  presignProofUpload(
+    @Param('id') id: string,
+    @Body() input: PresignProofUploadDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.executionService.presignProofUpload(id, input, user);
+  }
+
   @Get(':id/proofs')
   @ApiOperation({ summary: 'Lister les preuves de réalisation' })
   @ApiOkResponse({
@@ -167,6 +193,36 @@ export class ServicesController {
   @ApiForbiddenResponse({ description: "L'utilisateur n'est pas participant." })
   findProofs(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.executionService.findProofs(id, user);
+  }
+
+  @Get(':id/proofs/:proofId/download-url')
+  @ApiOperation({ summary: 'Créer une URL privée temporaire pour une preuve' })
+  createProofDownloadUrl(
+    @Param('id') id: string,
+    @Param('proofId') proofId: string,
+    @Query() query: DownloadFileQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.executionService.createProofDownloadUrl(
+      id,
+      proofId,
+      user,
+      query.disposition ?? DownloadDisposition.INLINE,
+    );
+  }
+
+  @Delete(':id/proofs/:proofId/attachment')
+  @ApiOperation({
+    summary: 'Supprimer logiquement sa pièce jointe de preuve',
+    description:
+      'Le texte et la trace de la preuve sont conservés. Seul l’auteur peut supprimer le fichier avant verrouillage du workflow.',
+  })
+  deleteProofAttachment(
+    @Param('id') id: string,
+    @Param('proofId') proofId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.executionService.deleteProofAttachment(id, proofId, user);
   }
 
   @Post(':id/mark-done')

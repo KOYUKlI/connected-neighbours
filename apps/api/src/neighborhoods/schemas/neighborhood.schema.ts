@@ -15,6 +15,26 @@ export type GeoJsonPolygon = {
   coordinates: GeoJsonPosition[][];
 };
 
+export type GeoJsonPoint = {
+  type: 'Point';
+  coordinates: GeoJsonPosition;
+};
+
+export enum NeighborhoodAuditType {
+  CREATED = 'created',
+  UPDATED = 'updated',
+  ARCHIVED = 'archived',
+  RESTORED = 'restored',
+  USER_ASSIGNED = 'user_assigned',
+}
+
+export type NeighborhoodAuditEntry = {
+  type: NeighborhoodAuditType;
+  actorId: string;
+  occurredAt: Date;
+  metadata: Record<string, unknown>;
+};
+
 @Schema({
   timestamps: true,
   versionKey: false,
@@ -35,8 +55,17 @@ export class Neighborhood {
   @Prop({ required: true, trim: true })
   postalCode: string;
 
-  @Prop({ required: true, type: Object })
-  boundary: GeoJsonPolygon;
+  @Prop({ type: [String], default: [] })
+  postalCodes: string[];
+
+  @Prop({ required: false, type: Object, default: null })
+  boundary: GeoJsonPolygon | null;
+
+  @Prop({ required: false, type: Object, default: null })
+  geometry: GeoJsonPolygon | null;
+
+  @Prop({ required: false, type: Object, default: null })
+  center: GeoJsonPoint | null;
 
   @Prop({ required: true, trim: true })
   createdById: string;
@@ -51,8 +80,16 @@ export class Neighborhood {
 
   @Prop({ required: true, default: true })
   isActive: boolean;
+
+  @Prop({ type: Date, default: null })
+  archivedAt: Date | null;
+
+  @Prop({ type: [Object], default: [] })
+  history: NeighborhoodAuditEntry[];
 }
 
 export const NeighborhoodSchema = SchemaFactory.createForClass(Neighborhood);
 
 NeighborhoodSchema.index({ status: 1, name: 1 });
+NeighborhoodSchema.index({ geometry: '2dsphere' }, { sparse: true });
+NeighborhoodSchema.index({ city: 1, postalCodes: 1, status: 1 });

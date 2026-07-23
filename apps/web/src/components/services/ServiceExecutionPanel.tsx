@@ -1,15 +1,19 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from "react";
 
-import type { ServiceItem, ServiceProof } from '../../api/services';
-import { formatDate, serviceStatusLabels } from '../../utils/format';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
-import { EmptyState } from '../ui/EmptyState';
-import { Icon } from '../ui/Icon';
-import { LoadingState } from '../ui/LoadingState';
-import { Modal } from '../ui/Modal';
-import { Textarea } from '../ui/Textarea';
+import type { ProofUploadPhase, SecureDownload } from "../../api/proofFiles";
+import type { ServiceItem, ServiceProof } from "../../api/services";
+import { formatDate, serviceStatusLabels } from "../../utils/format";
+import { ProofAttachmentCard } from "../proofs/ProofAttachmentCard";
+import { ProofFilePicker } from "../proofs/ProofFilePicker";
+import { ProofUploadProgress } from "../proofs/ProofUploadProgress";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
+import { EmptyState } from "../ui/EmptyState";
+import { Icon } from "../ui/Icon";
+import { LoadingState } from "../ui/LoadingState";
+import { Modal } from "../ui/Modal";
+import { Textarea } from "../ui/Textarea";
 
 type ExecutionPanelProps = {
   service: ServiceItem;
@@ -18,13 +22,22 @@ type ExecutionPanelProps = {
   pendingAction: string | null;
   currentUserId: string;
   onStart: () => Promise<boolean>;
-  onAddProof: (message: string) => Promise<boolean>;
+  onAddProof: (input: {
+    message: string;
+    file: File | null;
+    onPhase: (phase: ProofUploadPhase, progress?: number) => void;
+  }) => Promise<boolean>;
+  onDeleteProof: (proofId: string) => Promise<boolean>;
+  onGetProofUrl: (
+    proofId: string,
+    disposition: "inline" | "attachment",
+  ) => Promise<SecureDownload>;
   onMarkDone: () => Promise<boolean>;
   onValidate: () => Promise<boolean>;
   onRequestCorrection: (reason: string) => Promise<boolean>;
 };
 
-type Dialog = 'validate' | 'correction' | 'mark-done' | null;
+type Dialog = "validate" | "correction" | "mark-done" | null;
 
 export function ServiceExecutionPanel({
   service,
@@ -34,15 +47,20 @@ export function ServiceExecutionPanel({
   currentUserId,
   onStart,
   onAddProof,
+  onDeleteProof,
+  onGetProofUrl,
   onMarkDone,
   onValidate,
   onRequestCorrection,
 }: ExecutionPanelProps) {
-  const [proofMessage, setProofMessage] = useState('');
-  const [correctionReason, setCorrectionReason] = useState('');
+  const [proofMessage, setProofMessage] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [uploadPhase, setUploadPhase] = useState<ProofUploadPhase | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | undefined>();
+  const [correctionReason, setCorrectionReason] = useState("");
   const [dialog, setDialog] = useState<Dialog>(null);
   const permissions = service.permissions;
-  const busy = pendingAction !== null;
+  const busy = pendingAction !== null || uploadPhase !== null;
   const completionProofAvailable = proofs.some((proof) => {
     if (proof.authorId !== currentUserId) return false;
     if (!service.correctionRequestedAt) return true;
@@ -58,20 +76,20 @@ export function ServiceExecutionPanel({
       [
         service.contractSummary
           ? {
-              label: 'Contrat signé',
+              label: "Contrat signé",
               date: service.scheduledAt,
-              done: ['active', 'completed'].includes(
+              done: ["active", "completed"].includes(
                 service.contractSummary.status,
               ),
             }
           : null,
         {
-          label: 'Service planifié',
+          label: "Service planifié",
           date: service.scheduledAt,
           done: Boolean(service.scheduledAt),
         },
         {
-          label: 'Service démarré',
+          label: "Service démarré",
           date: service.startedAt,
           done: Boolean(service.startedAt),
         },
@@ -79,35 +97,35 @@ export function ServiceExecutionPanel({
           ? {
               label:
                 proofs.length > 1
-                  ? proofs.length + ' preuves ajoutées'
-                  : 'Preuve ajoutée',
+                  ? proofs.length + " preuves ajoutées"
+                  : "Preuve ajoutée",
               date: proofs.at(-1)?.createdAt,
               done: true,
             }
           : null,
         {
-          label: 'Réalisation déclarée',
+          label: "Réalisation déclarée",
           date: service.markedDoneAt,
           done: Boolean(service.markedDoneAt),
         },
         service.correctionRequestedAt
           ? {
-              label: 'Correction demandée',
+              label: "Correction demandée",
               date: service.correctionRequestedAt,
               done: true,
             }
           : null,
         {
-          label: 'Réalisation validée',
+          label: "Réalisation validée",
           date: service.validatedAt,
           done: Boolean(service.validatedAt),
         },
         {
-          label: 'Points transférés',
+          label: "Points transférés",
           date: service.completedAt,
           done:
-            service.status === 'completed' &&
-            service.contractSummary?.status === 'completed',
+            service.status === "completed" &&
+            service.contractSummary?.status === "completed",
         },
       ].filter(Boolean) as Array<{
         label: string;
@@ -120,15 +138,28 @@ export function ServiceExecutionPanel({
   async function submitProof(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = proofMessage.trim();
-    if (!message) return;
-    if (await onAddProof(message)) setProofMessage('');
+    if (!message && !proofFile) return;
+    const succeeded = await onAddProof({
+      message,
+      file: proofFile,
+      onPhase: (phase, progress) => {
+        setUploadPhase(phase);
+        setUploadProgress(progress);
+      },
+    });
+    setUploadPhase(null);
+    setUploadProgress(undefined);
+    if (succeeded) {
+      setProofMessage("");
+      setProofFile(null);
+    }
   }
 
   async function confirmDialog() {
     const succeeded =
-      dialog === 'validate'
+      dialog === "validate"
         ? await onValidate()
-        : dialog === 'mark-done'
+        : dialog === "mark-done"
           ? await onMarkDone()
           : false;
     if (succeeded) setDialog(null);
@@ -139,27 +170,27 @@ export function ServiceExecutionPanel({
     const reason = correctionReason.trim();
     if (reason.length < 10) return;
     if (await onRequestCorrection(reason)) {
-      setCorrectionReason('');
+      setCorrectionReason("");
       setDialog(null);
     }
   }
 
   const mobileAction = permissions?.canStart
-    ? { label: 'Démarrer le service', action: onStart, disabled: false }
+    ? { label: "Démarrer le service", action: onStart, disabled: false }
     : permissions?.canMarkDone
       ? {
-          label: 'Déclarer le service réalisé',
+          label: "Déclarer le service réalisé",
           action: () => {
-            setDialog('mark-done');
+            setDialog("mark-done");
             return Promise.resolve(true);
           },
           disabled: !completionProofAvailable,
         }
       : permissions?.canValidate
         ? {
-            label: 'Valider la réalisation',
+            label: "Valider la réalisation",
             action: () => {
-              setDialog('validate');
+              setDialog("validate");
               return Promise.resolve(true);
             },
             disabled: false,
@@ -168,9 +199,13 @@ export function ServiceExecutionPanel({
 
   return (
     <section
-      className={mobileAction && dialog === null ? 'grid gap-5 pb-20 md:pb-0' : 'grid gap-5'}
+      className={
+        mobileAction && dialog === null
+          ? "grid gap-5 pb-20 md:pb-0"
+          : "grid gap-5"
+      }
     >
-      {service.status === 'correction_requested' && service.correctionReason ? (
+      {service.status === "correction_requested" && service.correctionReason ? (
         <div
           className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
           role="status"
@@ -181,7 +216,9 @@ export function ServiceExecutionPanel({
             </span>
             <div>
               <h2 className="font-extrabold">Correction demandée</h2>
-              <p className="mt-1 text-sm leading-6">{service.correctionReason}</p>
+              <p className="mt-1 text-sm leading-6">
+                {service.correctionReason}
+              </p>
               <p className="mt-2 text-xs font-semibold text-amber-800">
                 Ajoutez une nouvelle preuve avant de déclarer à nouveau le
                 service réalisé.
@@ -191,7 +228,7 @@ export function ServiceExecutionPanel({
         </div>
       ) : null}
 
-      {service.status === 'awaiting_validation' ? (
+      {service.status === "awaiting_validation" ? (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
           <strong>En attente de validation</strong>
           <p className="mt-1 leading-6">
@@ -201,7 +238,7 @@ export function ServiceExecutionPanel({
         </div>
       ) : null}
 
-      {service.status === 'completed' ? (
+      {service.status === "completed" ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
           <strong>Service terminé</strong>
           <p className="mt-1 leading-6">
@@ -224,11 +261,11 @@ export function ServiceExecutionPanel({
             </div>
             <Badge
               tone={
-                service.status === 'completed'
-                  ? 'success'
-                  : service.status === 'correction_requested'
-                    ? 'warning'
-                    : 'info'
+                service.status === "completed"
+                  ? "success"
+                  : service.status === "correction_requested"
+                    ? "warning"
+                    : "info"
               }
             >
               {serviceStatusLabels[service.status]}
@@ -245,11 +282,13 @@ export function ServiceExecutionPanel({
                   <span
                     className={
                       step.done
-                        ? 'grid size-6 place-items-center rounded-full bg-emerald-700 text-white'
-                        : 'grid size-6 place-items-center rounded-full border-2 border-slate-300 bg-white'
+                        ? "grid size-6 place-items-center rounded-full bg-emerald-700 text-white"
+                        : "grid size-6 place-items-center rounded-full border-2 border-slate-300 bg-white"
                     }
                   >
-                    {step.done ? <Icon className="size-3.5" name="check" /> : null}
+                    {step.done ? (
+                      <Icon className="size-3.5" name="check" />
+                    ) : null}
                   </span>
                   {index < timeline.length - 1 ? (
                     <span className="min-h-8 w-px bg-slate-200" />
@@ -259,8 +298,8 @@ export function ServiceExecutionPanel({
                   <p
                     className={
                       step.done
-                        ? 'text-sm font-bold text-slate-950'
-                        : 'text-sm font-semibold text-slate-500'
+                        ? "text-sm font-bold text-slate-950"
+                        : "text-sm font-semibold text-slate-500"
                     }
                   >
                     {step.label}
@@ -268,8 +307,8 @@ export function ServiceExecutionPanel({
                   {step.date ? (
                     <p className="mt-1 text-xs text-slate-500">
                       {formatDate(step.date, {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
+                        dateStyle: "medium",
+                        timeStyle: "short",
                       })}
                     </p>
                   ) : null}
@@ -289,8 +328,14 @@ export function ServiceExecutionPanel({
                 Le contrat est signé. Démarrez le service au début de
                 l’intervention.
               </p>
-              <Button disabled={busy} onClick={() => void onStart()} variant="primary">
-                {pendingAction === 'start' ? 'Démarrage…' : 'Démarrer le service'}
+              <Button
+                disabled={busy}
+                onClick={() => void onStart()}
+                variant="primary"
+              >
+                {pendingAction === "start"
+                  ? "Démarrage…"
+                  : "Démarrer le service"}
               </Button>
             </>
           ) : null}
@@ -302,7 +347,7 @@ export function ServiceExecutionPanel({
               </p>
               <Button
                 disabled={busy || !completionProofAvailable}
-                onClick={() => setDialog('mark-done')}
+                onClick={() => setDialog("mark-done")}
                 variant="primary"
               >
                 Marquer comme réalisé
@@ -312,19 +357,19 @@ export function ServiceExecutionPanel({
           {permissions?.canValidate ? (
             <>
               <p className="text-sm leading-6 text-slate-600">
-                Vérifiez les preuves. La validation transfère définitivement
-                les points au prestataire.
+                Vérifiez les preuves. La validation transfère définitivement les
+                points au prestataire.
               </p>
               <Button
                 disabled={busy}
-                onClick={() => setDialog('validate')}
+                onClick={() => setDialog("validate")}
                 variant="primary"
               >
                 Valider la réalisation
               </Button>
               <Button
                 disabled={busy}
-                onClick={() => setDialog('correction')}
+                onClick={() => setDialog("correction")}
                 variant="secondary"
               >
                 Demander une correction
@@ -348,11 +393,13 @@ export function ServiceExecutionPanel({
               Preuves de réalisation
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Les notes sont disponibles dans ce lot. Les fichiers seront
-              ajoutés avec le stockage documentaire.
+              Ajoutez une note, une image, un PDF ou un enregistrement audio.
+              Les fichiers restent privés et sont vérifiés avant association.
             </p>
           </div>
-          <Badge>{proofs.length} preuve{proofs.length > 1 ? 's' : ''}</Badge>
+          <Badge>
+            {proofs.length} preuve{proofs.length > 1 ? "s" : ""}
+          </Badge>
         </div>
 
         {permissions?.canAddProof ? (
@@ -361,24 +408,33 @@ export function ServiceExecutionPanel({
             onSubmit={submitProof}
           >
             <label className="grid gap-2 text-sm font-bold text-slate-900">
-              Ajouter une note de réalisation
+              Description de la preuve
               <Textarea
                 maxLength={1000}
-                minLength={5}
                 onChange={(event) => setProofMessage(event.target.value)}
-                placeholder="Décrivez le travail réalisé ou la correction apportée…"
-                required
+                placeholder="Décrivez le travail réalisé ou la correction apportée… (facultatif avec un fichier)"
                 rows={3}
                 value={proofMessage}
               />
             </label>
+            <ProofFilePicker
+              disabled={busy}
+              file={proofFile}
+              onChange={setProofFile}
+            />
+            {uploadPhase ? (
+              <ProofUploadProgress
+                phase={uploadPhase}
+                progress={uploadProgress}
+              />
+            ) : null}
             <Button
               className="w-fit"
-              disabled={busy || proofMessage.trim().length < 5}
+              disabled={busy || (!proofFile && proofMessage.trim().length < 5)}
               type="submit"
               variant="secondary"
             >
-              {pendingAction === 'proof' ? 'Ajout…' : 'Ajouter la preuve'}
+              {pendingAction === "proof" ? "Ajout…" : "Ajouter la preuve"}
             </Button>
           </form>
         ) : null}
@@ -401,18 +457,36 @@ export function ServiceExecutionPanel({
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-bold text-slate-950">
-                      {proof.author?.displayName ?? 'Participant du service'}
+                      {proof.author?.displayName ?? "Participant du service"}
                     </p>
                     <time className="text-xs font-semibold text-slate-500">
                       {formatDate(proof.createdAt, {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
+                        dateStyle: "medium",
+                        timeStyle: "short",
                       })}
                     </time>
                   </div>
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
-                    {proof.message}
+                    {proof.message ?? "Fichier joint à la réalisation."}
                   </p>
+                  {proof.attachment ? (
+                    <ProofAttachmentCard
+                      attachment={proof.attachment}
+                      onDelete={
+                        proof.permissions.canDelete
+                          ? () => onDeleteProof(proof.id)
+                          : undefined
+                      }
+                      onGetUrl={(disposition) =>
+                        onGetProofUrl(proof.id, disposition)
+                      }
+                      permissions={proof.permissions}
+                    />
+                  ) : proof.fileReference ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Ancienne référence de fichier conservée pour l’historique.
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -436,7 +510,7 @@ export function ServiceExecutionPanel({
       <Modal
         description="Cette action confirme que la prestation peut passer à l’étape suivante."
         onClose={() => setDialog(null)}
-        open={dialog === 'mark-done'}
+        open={dialog === "mark-done"}
         title="Déclarer le service réalisé"
       >
         <p className="text-sm leading-6 text-slate-700">
@@ -458,7 +532,7 @@ export function ServiceExecutionPanel({
       <Modal
         description="Cette action est irréversible une fois le transfert effectué."
         onClose={() => setDialog(null)}
-        open={dialog === 'validate'}
+        open={dialog === "validate"}
         title="Valider la réalisation"
       >
         <div className="rounded-lg bg-amber-50 p-4 text-sm leading-6 text-amber-950">
@@ -480,7 +554,7 @@ export function ServiceExecutionPanel({
       <Modal
         description="Le prestataire devra ajouter une nouvelle preuve avant de redéclarer le service réalisé."
         onClose={() => setDialog(null)}
-        open={dialog === 'correction'}
+        open={dialog === "correction"}
         title="Demander une correction"
       >
         <form className="grid gap-4" onSubmit={submitCorrection}>

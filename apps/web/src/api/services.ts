@@ -1,4 +1,11 @@
-import { apiRequest } from './client';
+import { apiRequest } from "./client";
+import {
+  uploadProofFile,
+  type ProofAttachment,
+  type ProofFilePermissions,
+  type ProofUploadPhase,
+  type SecureDownload,
+} from "./proofFiles";
 
 export type PublicUserSummary = {
   id: string;
@@ -6,6 +13,8 @@ export type PublicUserSummary = {
   avatarUrl: string | null;
   neighborhoodId: string;
   reputationScore: number | null;
+  averageRating: number | null;
+  reviewCount: number;
   completedServicesCount: number;
 };
 
@@ -15,24 +24,24 @@ export type NeighborhoodSummary = {
   city?: string | null;
 };
 
-export type ServiceType = 'offer' | 'request';
+export type ServiceType = "offer" | "request";
 
 export type ServiceStatus =
-  | 'draft'
-  | 'published'
-  | 'application_received'
-  | 'candidate_selected'
-  | 'contract_pending'
-  | 'awaiting_signatures'
-  | 'contract_active'
-  | 'scheduled'
-  | 'accepted'
-  | 'in_progress'
-  | 'awaiting_validation'
-  | 'correction_requested'
-  | 'completed'
-  | 'cancelled'
-  | 'disputed';
+  | "draft"
+  | "published"
+  | "application_received"
+  | "candidate_selected"
+  | "contract_pending"
+  | "awaiting_signatures"
+  | "contract_active"
+  | "scheduled"
+  | "accepted"
+  | "in_progress"
+  | "awaiting_validation"
+  | "correction_requested"
+  | "completed"
+  | "cancelled"
+  | "disputed";
 
 export type ServiceViewer = {
   isOwner: boolean;
@@ -64,6 +73,7 @@ export type ServicePermissions = {
   canStartReview: boolean;
   canResolveDispute: boolean;
   canCloseDispute: boolean;
+  canReview: boolean;
 };
 
 export type ContractSummary = {
@@ -74,7 +84,7 @@ export type ContractSummary = {
   requiredSignaturesCount: number;
 };
 
-export type ServiceProofType = 'note' | 'image' | 'document' | 'audio';
+export type ServiceProofType = "note" | "image" | "document" | "audio";
 
 export type ServiceProof = {
   id: string;
@@ -83,6 +93,9 @@ export type ServiceProof = {
   type: ServiceProofType;
   message: string | null;
   fileReference: string | null;
+  fileId: string | null;
+  attachment: ProofAttachment | null;
+  permissions: ProofFilePermissions;
   createdAt?: string;
   author: PublicUserSummary | null;
 };
@@ -139,14 +152,20 @@ export type ServiceItem = {
   contractSummary?: ContractSummary | null;
   activeDispute?: {
     id: string;
-    status: 'open' | 'under_review';
+    status: "open" | "under_review";
     reservedPoints: number;
+  } | null;
+  review?: {
+    canReview: boolean;
+    hasReviewed: boolean;
+    reviewId: string | null;
+    otherPartyId: string | null;
   } | null;
 };
 
 export type InvolvedServiceItem = ServiceItem & {
   involvement: {
-    role: 'applicant' | 'requester' | 'provider';
+    role: "applicant" | "requester" | "provider";
     applicationStatus: string | null;
     contractStatus: string | null;
     nextAction: string | null;
@@ -166,83 +185,114 @@ export type CreateServiceInput = {
 };
 
 export function getServices() {
-  return apiRequest<ServiceItem[]>('/api/services');
+  return apiRequest<ServiceItem[]>("/api/services");
 }
 
 export function getService(id: string) {
-  return apiRequest<ServiceItem>('/api/services/' + id);
+  return apiRequest<ServiceItem>("/api/services/" + id);
 }
 
 export function getMyCreatedServices() {
-  return apiRequest<ServiceItem[]>('/api/services/me/created');
+  return apiRequest<ServiceItem[]>("/api/services/me/created");
 }
 
 export function getMyInvolvedServices() {
-  return apiRequest<InvolvedServiceItem[]>('/api/services/me/involved');
+  return apiRequest<InvolvedServiceItem[]>("/api/services/me/involved");
 }
 
 export function createService(input: CreateServiceInput) {
-  return apiRequest<ServiceItem>('/api/services', {
-    method: 'POST',
+  return apiRequest<ServiceItem>("/api/services", {
+    method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function publishService(id: string) {
-  return apiRequest<ServiceItem>('/api/services/' + id + '/publish', {
-    method: 'POST',
+  return apiRequest<ServiceItem>("/api/services/" + id + "/publish", {
+    method: "POST",
   });
 }
 
 export function cancelService(id: string) {
-  return apiRequest<ServiceItem>('/api/services/' + id + '/cancel', {
-    method: 'POST',
+  return apiRequest<ServiceItem>("/api/services/" + id + "/cancel", {
+    method: "POST",
   });
 }
 
 export function startService(id: string) {
-  return apiRequest<ExecutionMutationResult>('/api/services/' + id + '/start', {
-    method: 'POST',
+  return apiRequest<ExecutionMutationResult>("/api/services/" + id + "/start", {
+    method: "POST",
   });
 }
 
 export function getServiceProofs(id: string) {
-  return apiRequest<ServiceProof[]>('/api/services/' + id + '/proofs');
+  return apiRequest<ServiceProof[]>("/api/services/" + id + "/proofs");
 }
 
 export function addServiceProof(
   id: string,
   input: {
-    type: ServiceProofType;
     message?: string;
-    fileReference?: string;
+    fileId?: string;
   },
 ) {
-  return apiRequest<ServiceProof>('/api/services/' + id + '/proofs', {
-    method: 'POST',
+  return apiRequest<ServiceProof>("/api/services/" + id + "/proofs", {
+    method: "POST",
     body: JSON.stringify(input),
   });
 }
 
+export function uploadServiceProofFile(
+  id: string,
+  file: File,
+  onPhase: (phase: ProofUploadPhase, progress?: number) => void,
+) {
+  return uploadProofFile(
+    `/api/services/${id}/proofs/presign-upload`,
+    file,
+    onPhase,
+  );
+}
+
+export function getServiceProofDownloadUrl(
+  serviceId: string,
+  proofId: string,
+  disposition: "inline" | "attachment",
+) {
+  return apiRequest<SecureDownload>(
+    `/api/services/${serviceId}/proofs/${proofId}/download-url?disposition=${disposition}`,
+  );
+}
+
+export function deleteServiceProofAttachment(
+  serviceId: string,
+  proofId: string,
+) {
+  return apiRequest<ServiceProof>(
+    `/api/services/${serviceId}/proofs/${proofId}/attachment`,
+    { method: "DELETE" },
+  );
+}
+
 export function markServiceDone(id: string) {
   return apiRequest<ExecutionMutationResult>(
-    '/api/services/' + id + '/mark-done',
-    { method: 'POST' },
+    "/api/services/" + id + "/mark-done",
+    { method: "POST" },
   );
 }
 
 export function validateService(id: string) {
   return apiRequest<ExecutionMutationResult>(
-    '/api/services/' + id + '/validate',
-    { method: 'POST' },
+    "/api/services/" + id + "/validate",
+    { method: "POST" },
   );
 }
 
 export function requestServiceCorrection(id: string, reason: string) {
   return apiRequest<ExecutionMutationResult>(
-    '/api/services/' + id + '/request-correction',
+    "/api/services/" + id + "/request-correction",
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ reason }),
     },
   );

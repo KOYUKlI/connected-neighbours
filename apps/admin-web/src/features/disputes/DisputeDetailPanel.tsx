@@ -1,101 +1,104 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from "react";
 
 import {
   assignAdminDispute,
   closeAdminDispute,
   fetchAdminDispute,
+  fetchAdminDisputeEvidenceDownload,
+  fetchAdminServiceProofDownload,
   resolveAdminDispute,
   startAdminDisputeReview,
   type AdminDisputeDetail,
   type AdminDisputeResolutionType,
-} from '../../api/disputes'
-import { AdminBadge } from '../../components/ui/AdminList'
-import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
-import { EmptyState } from '../../components/ui/EmptyState'
-import { ErrorMessage } from '../../components/ui/ErrorMessage'
-import { LoadingState } from '../../components/ui/LoadingState'
-import { ApiError } from '../../api/client'
-import { DisputeResolutionModal } from './DisputeResolutionModal'
+} from "../../api/disputes";
+import { AdminBadge } from "../../components/ui/AdminList";
+import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorMessage } from "../../components/ui/ErrorMessage";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { ApiError } from "../../api/client";
+import { DisputeResolutionModal } from "./DisputeResolutionModal";
+import { AdminProofAttachmentCard } from "./AdminProofAttachmentCard";
 
 const statusLabels: Record<string, string> = {
-  open: 'Ouvert',
-  under_review: 'En cours de revue',
-  resolved: 'Résolu',
-  closed: 'Clôturé',
-}
+  open: "Ouvert",
+  under_review: "En cours de revue",
+  resolved: "Résolu",
+  closed: "Clôturé",
+};
 const reasonLabels: Record<string, string> = {
-  service_not_completed: 'Service non réalisé',
-  service_quality: 'Qualité de la prestation',
-  no_show: 'Absence au rendez-vous',
-  incorrect_description: 'Description inexacte',
-  unsafe_behavior: 'Comportement dangereux',
-  payment_disagreement: 'Désaccord sur le paiement',
-  other: 'Autre motif',
-}
+  service_not_completed: "Service non réalisé",
+  service_quality: "Qualité de la prestation",
+  no_show: "Absence au rendez-vous",
+  incorrect_description: "Description inexacte",
+  unsafe_behavior: "Comportement dangereux",
+  payment_disagreement: "Désaccord sur le paiement",
+  other: "Autre motif",
+};
 const historyLabels: Record<string, string> = {
-  opened: 'Litige ouvert',
-  evidence_added: 'Preuve ajoutée',
-  moderator_assigned: 'Modérateur assigné',
-  review_started: 'Revue commencée',
-  financial_operation_completed: 'Opération financière exécutée',
-  resolved: 'Décision rendue',
-  closed: 'Litige clôturé',
-}
+  opened: "Litige ouvert",
+  evidence_added: "Preuve ajoutée",
+  moderator_assigned: "Modérateur assigné",
+  review_started: "Revue commencée",
+  financial_operation_completed: "Opération financière exécutée",
+  resolved: "Décision rendue",
+  closed: "Litige clôturé",
+};
 
 export function DisputeDetailPanel({
   disputeId,
   onBack,
   onChanged,
 }: {
-  disputeId: string
-  onBack: () => void
-  onChanged: () => void
+  disputeId: string;
+  onBack: () => void;
+  onChanged: () => void;
 }) {
-  const [dispute, setDispute] = useState<AdminDisputeDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [pending, setPending] = useState<string | null>(null)
-  const [resolutionOpen, setResolutionOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [dispute, setDispute] = useState<AdminDisputeDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState<string | null>(null);
+  const [resolutionOpen, setResolutionOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setError(null)
+    setError(null);
     try {
-      setDispute(await fetchAdminDispute(disputeId))
+      setDispute(await fetchAdminDispute(disputeId));
     } catch (caught) {
-      setError(getErrorMessage(caught))
+      setError(getErrorMessage(caught));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [disputeId])
+  }, [disputeId]);
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void load();
+  }, [load]);
 
   async function runAction(
     key: string,
     action: () => Promise<AdminDisputeDetail>,
     message: string,
   ) {
-    setPending(key)
-    setError(null)
-    setSuccess(null)
+    setPending(key);
+    setError(null);
+    setSuccess(null);
     try {
-      setDispute(await action())
-      setSuccess(message)
-      onChanged()
-      return true
+      setDispute(await action());
+      setSuccess(message);
+      onChanged();
+      return true;
     } catch (caught) {
-      setError(getErrorMessage(caught))
-      return false
+      setError(getErrorMessage(caught));
+      return false;
     } finally {
-      setPending(null)
+      setPending(null);
     }
   }
 
-  if (loading) return <LoadingState message="Chargement du dossier…" />
+  if (loading) return <LoadingState message="Chargement du dossier…" />;
   if (!dispute) {
     return (
       <div className="grid gap-4">
@@ -104,7 +107,7 @@ export function DisputeDetailPanel({
           Retour aux litiges
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -126,9 +129,12 @@ export function DisputeDetailPanel({
               {dispute.reservedPoints} points gelés
             </span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold text-slate-950">{dispute.service.title}</h1>
+          <h1 className="mt-2 text-3xl font-bold text-slate-950">
+            {dispute.service.title}
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {reasonLabels[dispute.reason]} · ouvert le {formatDate(dispute.openedAt)}
+            {reasonLabels[dispute.reason]} · ouvert le{" "}
+            {formatDate(dispute.openedAt)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -137,14 +143,14 @@ export function DisputeDetailPanel({
               disabled={pending !== null}
               onClick={() =>
                 void runAction(
-                  'assign',
+                  "assign",
                   () => assignAdminDispute(dispute.id),
-                  'Le litige vous est assigné.',
+                  "Le litige vous est assigné.",
                 )
               }
               variant="secondary"
             >
-              {dispute.assignedModerator ? 'Réassigner à moi' : 'M’assigner'}
+              {dispute.assignedModerator ? "Réassigner à moi" : "M’assigner"}
             </Button>
           ) : null}
           {dispute.permissions.canStartReview ? (
@@ -152,9 +158,9 @@ export function DisputeDetailPanel({
               disabled={pending !== null}
               onClick={() =>
                 void runAction(
-                  'review',
+                  "review",
                   () => startAdminDisputeReview(dispute.id),
-                  'La revue a commencé.',
+                  "La revue a commencé.",
                 )
               }
               variant="primary"
@@ -176,9 +182,9 @@ export function DisputeDetailPanel({
               disabled={pending !== null}
               onClick={() =>
                 void runAction(
-                  'close',
+                  "close",
                   () => closeAdminDispute(dispute.id),
-                  'Le litige est clôturé.',
+                  "Le litige est clôturé.",
                 )
               }
               variant="primary"
@@ -215,19 +221,39 @@ export function DisputeDetailPanel({
                 {dispute.resolution.justification}
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Metric label="Prestataire" value={dispute.resolution.providerPoints + ' points'} />
-                <Metric label="Demandeur" value={dispute.resolution.requesterPoints + ' points'} />
+                <Metric
+                  label="Prestataire"
+                  value={dispute.resolution.providerPoints + " points"}
+                />
+                <Metric
+                  label="Demandeur"
+                  value={dispute.resolution.requesterPoints + " points"}
+                />
               </div>
             </Card>
           ) : null}
 
           <EvidenceSection
             empty="Aucune preuve spécifique au litige."
+            getUrl={(evidenceId, disposition) =>
+              fetchAdminDisputeEvidenceDownload(
+                dispute.id,
+                evidenceId,
+                disposition,
+              )
+            }
             items={dispute.evidence}
             title="Preuves du litige"
           />
           <EvidenceSection
             empty="Aucune preuve de réalisation."
+            getUrl={(proofId, disposition) =>
+              fetchAdminServiceProofDownload(
+                dispute.serviceId,
+                proofId,
+                disposition,
+              )
+            }
             items={dispute.serviceProofs}
             title="Preuves de réalisation"
           />
@@ -241,13 +267,21 @@ export function DisputeDetailPanel({
               <Info label="Prestataire" value={dispute.provider?.displayName} />
               <Info
                 label="Modérateur"
-                value={dispute.assignedModerator?.displayName ?? 'Non assigné'}
+                value={dispute.assignedModerator?.displayName ?? "Non assigné"}
               />
               <Info
                 label="Contrat"
-                value={dispute.contract.status + ' · ' + dispute.contract.pricePoints + ' points'}
+                value={
+                  dispute.contract.status +
+                  " · " +
+                  dispute.contract.pricePoints +
+                  " points"
+                }
               />
-              <Info label="Ancien statut du service" value={dispute.previousServiceStatus} />
+              <Info
+                label="Ancien statut du service"
+                value={dispute.previousServiceStatus}
+              />
             </dl>
           </Card>
 
@@ -255,12 +289,13 @@ export function DisputeDetailPanel({
             <h2 className="font-bold text-slate-950">Chronologie</h2>
             <ol className="mt-4 grid gap-4 border-l-2 border-blue-100 pl-4">
               {dispute.history.map((event, index) => (
-                <li key={event.type + '-' + index}>
+                <li key={event.type + "-" + index}>
                   <p className="text-sm font-bold text-slate-950">
                     {historyLabels[event.type] ?? event.type}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {formatDate(event.occurredAt)} · {event.actor?.displayName ?? 'Système'}
+                    {formatDate(event.occurredAt)} ·{" "}
+                    {event.actor?.displayName ?? "Système"}
                   </p>
                 </li>
               ))}
@@ -273,27 +308,32 @@ export function DisputeDetailPanel({
         onClose={() => setResolutionOpen(false)}
         onSubmit={(input) =>
           runAction(
-            'resolve',
+            "resolve",
             () => resolveAdminDispute(dispute.id, input),
-            'La décision financière a été exécutée.',
+            "La décision financière a été exécutée.",
           )
         }
         open={resolutionOpen}
-        pending={pending === 'resolve'}
+        pending={pending === "resolve"}
         reservedPoints={dispute.reservedPoints}
       />
     </section>
-  )
+  );
 }
 
 function EvidenceSection({
   empty,
+  getUrl,
   items,
   title,
 }: {
-  empty: string
-  items: AdminDisputeDetail['evidence']
-  title: string
+  empty: string;
+  getUrl: (
+    itemId: string,
+    disposition: "inline" | "attachment",
+  ) => ReturnType<typeof fetchAdminDisputeEvidenceDownload>;
+  items: AdminDisputeDetail["evidence"];
+  title: string;
 }) {
   return (
     <Card>
@@ -303,31 +343,42 @@ function EvidenceSection({
       </div>
       <div className="mt-4 grid gap-3">
         {items.map((item) => (
-          <article className="rounded-lg border border-slate-200 bg-slate-50 p-4" key={item.id}>
+          <article
+            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+            key={item.id}
+          >
             <div className="flex flex-wrap justify-between gap-2">
               <strong className="text-sm text-slate-950">
-                {item.author?.displayName ?? 'Participant'}
+                {item.author?.displayName ?? "Participant"}
               </strong>
-              <span className="text-xs text-slate-500">{formatDate(item.createdAt)}</span>
+              <span className="text-xs text-slate-500">
+                {formatDate(item.createdAt)}
+              </span>
             </div>
             <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
-              {item.message ?? item.fileReference ?? 'Document associé'}
+              {item.message ?? item.fileReference ?? "Document associé"}
             </p>
+            {item.attachment && item.permissions.canPreview ? (
+              <AdminProofAttachmentCard
+                attachment={item.attachment}
+                onGetUrl={(disposition) => getUrl(item.id, disposition)}
+              />
+            ) : null}
           </article>
         ))}
         {items.length === 0 ? <EmptyState message={empty} /> : null}
       </div>
     </Card>
-  )
+  );
 }
 
 function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
       <dt className="font-medium text-slate-500">{label}</dt>
-      <dd className="mt-1 font-semibold text-slate-950">{value ?? '—'}</dd>
+      <dd className="mt-1 font-semibold text-slate-950">{value ?? "—"}</dd>
     </div>
-  )
+  );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -336,32 +387,32 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <p className="mt-1 font-bold text-slate-950">{value}</p>
     </div>
-  )
+  );
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function formatResolution(type: AdminDisputeResolutionType) {
-  if (type === 'provider_payment') return 'Paiement intégral du prestataire'
-  if (type === 'requester_refund') return 'Remboursement intégral du demandeur'
-  return 'Partage des points'
+  if (type === "provider_payment") return "Paiement intégral du prestataire";
+  if (type === "requester_refund") return "Remboursement intégral du demandeur";
+  return "Partage des points";
 }
 
 function getStatusTone(status: string) {
-  if (status === 'resolved' || status === 'closed') return 'emerald' as const
-  if (status === 'under_review') return 'blue' as const
-  return 'amber' as const
+  if (status === "resolved" || status === "closed") return "emerald" as const;
+  if (status === "under_review") return "blue" as const;
+  return "amber" as const;
 }
 
 function getErrorMessage(error: unknown) {
-  if (error instanceof ApiError) return error.message
-  return 'Une erreur inattendue est survenue.'
+  if (error instanceof ApiError) return error.message;
+  return "Une erreur inattendue est survenue.";
 }

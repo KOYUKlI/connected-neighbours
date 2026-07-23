@@ -14,6 +14,11 @@ import {
 } from '../disputes/schemas/dispute-evidence.schema';
 import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
 import { Incident, IncidentSchema } from '../incidents/schemas/incident.schema';
+import {
+  EventResponse,
+  EventResponseSchema,
+} from '../events/schemas/event-response.schema';
+import { EventSchema, NeighborhoodEvent } from '../events/schemas/event.schema';
 import { DocumentsModule } from '../documents/documents.module';
 import { PointsModule } from '../points/points.module';
 import {
@@ -21,6 +26,12 @@ import {
   ServiceProofSchema,
 } from '../services/schemas/service-proof.schema';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
+import {
+  VoteAnswer,
+  VoteAnswerSchema,
+} from '../votes/schemas/vote-answer.schema';
+import { Vote, VoteSchema } from '../votes/schemas/vote.schema';
+import { Review, ReviewSchema } from '../reviews/schemas/review.schema';
 import { DemoSeedService } from './demo-seed.service';
 
 @Module({
@@ -37,6 +48,12 @@ import { DemoSeedService } from './demo-seed.service';
       { name: Dispute.name, schema: DisputeSchema },
       { name: DisputeEvidence.name, schema: DisputeEvidenceSchema },
       { name: Incident.name, schema: IncidentSchema },
+      { name: NeighborhoodEvent.name, schema: EventSchema },
+      { name: EventResponse.name, schema: EventResponseSchema },
+      { name: Vote.name, schema: VoteSchema },
+      { name: VoteAnswer.name, schema: VoteAnswerSchema },
+      { name: Review.name, schema: ReviewSchema },
+      { name: Review.name, schema: ReviewSchema },
     ]),
   ],
   providers: [DemoSeedService],

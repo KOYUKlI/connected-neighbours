@@ -68,6 +68,7 @@ describe('DisputesService', () => {
   let userModel: Record<string, jest.Mock>;
   let pointsService: Record<string, jest.Mock>;
   let publicUsersService: Record<string, jest.Mock>;
+  let storageService: Record<string, jest.Mock>;
   let disputesService: DisputesService;
 
   beforeEach(() => {
@@ -103,6 +104,7 @@ describe('DisputesService', () => {
       hasPointOperation: jest.fn().mockResolvedValue(true),
     };
     publicUsersService = {};
+    storageService = {};
 
     disputesService = new DisputesService(
       disputeModel as never,
@@ -113,6 +115,7 @@ describe('DisputesService', () => {
       userModel as never,
       pointsService as never,
       publicUsersService as never,
+      storageService as never,
     );
     Object.defineProperty(disputesService, 'presentDispute', {
       value: jest.fn().mockResolvedValue({ id: 'dispute-id' }),
@@ -264,6 +267,24 @@ describe('DisputesService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(pointsService.transferReservedPoints).not.toHaveBeenCalled();
+  });
+
+  it('locks new evidence after a dispute is resolved', () => {
+    const assertEvidenceMutable = (
+      disputesService as unknown as {
+        assertEvidenceMutable: (dispute: { status: DisputeStatus }) => void;
+      }
+    ).assertEvidenceMutable.bind(disputesService);
+
+    expect(() =>
+      assertEvidenceMutable({ status: DisputeStatus.RESOLVED }),
+    ).toThrow(ConflictException);
+    expect(() =>
+      assertEvidenceMutable({ status: DisputeStatus.CLOSED }),
+    ).toThrow(ConflictException);
+    expect(() =>
+      assertEvidenceMutable({ status: DisputeStatus.OPEN }),
+    ).not.toThrow();
   });
 
   it('rejects a second resolution without another financial operation', async () => {

@@ -15,12 +15,15 @@ import { DisputesModule } from './disputes/disputes.module';
 import { DemoSeedModule } from './demo-seed/demo-seed.module';
 import { DslModule } from './dsl/dsl.module';
 import { EventsModule } from './events/events.module';
+import { GraphModule } from './graph/graph.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { HomeModule } from './home/home.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { PointsModule } from './points/points.module';
 import { RgpdModule } from './rgpd/rgpd.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 import { ServicesModule } from './services/services.module';
 import { SsoModule } from './sso/sso.module';
 import { SyncModule } from './sync/sync.module';
@@ -45,9 +48,32 @@ import { VotesModule } from './votes/votes.module';
 
         MONGODB_URI: Joi.string().uri().required(),
 
-        NEO4J_URI: Joi.string().required(),
-        NEO4J_USERNAME: Joi.string().required(),
-        NEO4J_PASSWORD: Joi.string().required(),
+        NEO4J_ENABLED: Joi.boolean().default(false),
+        NEO4J_URI: Joi.string().optional().allow(''),
+        NEO4J_USERNAME: Joi.string().optional().allow(''),
+        NEO4J_PASSWORD: Joi.string().optional().allow(''),
+        NEO4J_DATABASE: Joi.string().default('neo4j'),
+        NEO4J_TIMEOUT_MS: Joi.number()
+          .integer()
+          .min(250)
+          .max(10000)
+          .default(2500),
+        NEO4J_RETRY_COOLDOWN_MS: Joi.number()
+          .integer()
+          .min(1000)
+          .max(300000)
+          .default(15000),
+        GRAPH_SYNC_WORKER_ENABLED: Joi.boolean().default(true),
+        GRAPH_SYNC_INTERVAL_MS: Joi.number()
+          .integer()
+          .min(1000)
+          .max(300000)
+          .default(15000),
+        GRAPH_SYNC_BATCH_SIZE: Joi.number()
+          .integer()
+          .min(1)
+          .max(100)
+          .default(20),
 
         MINIO_ENDPOINT: Joi.string().required(),
         MINIO_PORT: Joi.number().port().required(),
@@ -59,10 +85,25 @@ import { VotesModule } from './votes/votes.module';
         MINIO_SECRET_KEY: Joi.string().required(),
         MINIO_BUCKET: Joi.string().required(),
 
-        KEYCLOAK_BASE_URL: Joi.string().uri().required(),
-        KEYCLOAK_REALM: Joi.string().required(),
-        KEYCLOAK_CLIENT_ID: Joi.string().required(),
-        KEYCLOAK_CLIENT_SECRET: Joi.string().required(),
+        AUTH_LOCAL_ENABLED: Joi.boolean().default(true),
+        KEYCLOAK_ENABLED: Joi.boolean().default(false),
+        KEYCLOAK_INTERNAL_URL: Joi.string().uri().optional().allow(''),
+        KEYCLOAK_PUBLIC_URL: Joi.string().uri().optional().allow(''),
+        KEYCLOAK_REALM: Joi.string().default('connected-neighbours'),
+        KEYCLOAK_API_AUDIENCE: Joi.string().default('connected-neighbours-api'),
+        KEYCLOAK_WEB_CLIENT_ID: Joi.string().default('connected-neighbours-web'),
+        KEYCLOAK_ADMIN_CLIENT_ID: Joi.string().default(
+          'connected-neighbours-admin',
+        ),
+        KEYCLOAK_SERVICE_CLIENT_ID: Joi.string().default(
+          'connected-neighbours-service',
+        ),
+        KEYCLOAK_SERVICE_CLIENT_SECRET: Joi.string().optional().allow(''),
+        KEYCLOAK_REQUEST_TIMEOUT_MS: Joi.number()
+          .integer()
+          .min(250)
+          .max(10000)
+          .default(2500),
 
         JWT_SECRET: Joi.string().min(16).required(),
         JWT_EXPIRES_IN: Joi.string().default('1d'),
@@ -87,6 +128,7 @@ import { VotesModule } from './votes/votes.module';
       },
     }),
 
+    GraphModule,
     AdminModule,
     ServicesModule,
     ApplicationsModule,
@@ -105,6 +147,8 @@ import { VotesModule } from './votes/votes.module';
     DisputesModule,
     MessagingModule,
     RgpdModule,
+    ReviewsModule,
+    RecommendationsModule,
     SsoModule,
     UsersModule,
     DemoSeedModule,

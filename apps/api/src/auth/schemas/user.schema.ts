@@ -4,6 +4,40 @@ import { Role } from '../role.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
+export enum ProfileVisibility {
+  NEIGHBORHOOD = 'neighborhood',
+  PRIVATE = 'private',
+}
+
+export enum NeighborhoodAssignmentSource {
+  ADMIN = 'admin',
+  RESIDENT_CONFIRMATION = 'resident_confirmation',
+  SEED = 'seed',
+  SYSTEM = 'system',
+}
+
+export enum IdentityProvider {
+  LOCAL = 'local',
+  KEYCLOAK = 'keycloak',
+  LINKED = 'linked',
+}
+
+export enum IdentityMigrationStatus {
+  LOCAL_ONLY = 'local_only',
+  LINK_REQUIRED = 'link_required',
+  LINKED = 'linked',
+  KEYCLOAK_ONLY = 'keycloak_only',
+}
+
+export type NeighborhoodAssignmentHistoryEntry = {
+  previousNeighborhoodId: string | null;
+  neighborhoodId: string;
+  source: NeighborhoodAssignmentSource;
+  actorId: string;
+  reason: string | null;
+  occurredAt: Date;
+};
+
 @Schema({
   timestamps: true,
   versionKey: false,
@@ -18,11 +52,62 @@ export class User {
   @Prop({ required: true, type: String, enum: Role, default: Role.RESIDENT })
   role: Role;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ trim: true, default: '' })
   neighborhoodId: string;
 
-  @Prop({ required: true })
-  passwordHash: string;
+  @Prop({ type: String, trim: true, default: null, select: false })
+  pendingNeighborhoodId: string | null;
+
+  @Prop({ type: Date, default: null, select: false })
+  pendingNeighborhoodExpiresAt: Date | null;
+
+  @Prop({ type: Date, default: null })
+  neighborhoodAssignedAt: Date | null;
+
+  @Prop({
+    type: String,
+    enum: NeighborhoodAssignmentSource,
+    default: NeighborhoodAssignmentSource.SYSTEM,
+  })
+  neighborhoodAssignmentSource: NeighborhoodAssignmentSource;
+
+  @Prop({ type: String, default: null })
+  neighborhoodAssignmentActorId: string | null;
+
+  @Prop({ type: [Object], default: [] })
+  neighborhoodAssignmentHistory: NeighborhoodAssignmentHistoryEntry[];
+
+  @Prop({ type: String, default: null, select: false })
+  passwordHash: string | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  keycloakSubject: string | null;
+
+  @Prop({
+    type: String,
+    enum: IdentityProvider,
+    default: IdentityProvider.LOCAL,
+  })
+  identityProvider: IdentityProvider;
+
+  @Prop({ type: Boolean, default: false })
+  emailVerified: boolean;
+
+  @Prop({ type: Date, default: null })
+  identityLinkedAt: Date | null;
+
+  @Prop({
+    type: String,
+    enum: IdentityMigrationStatus,
+    default: IdentityMigrationStatus.LOCAL_ONLY,
+  })
+  identityMigrationStatus: IdentityMigrationStatus;
+
+  @Prop({ type: Boolean, default: true })
+  onboardingCompleted: boolean;
+
+  @Prop({ type: Date, default: null })
+  lastIdentitySyncAt: Date | null;
 
   @Prop({ required: true, default: true })
   isActive: boolean;
@@ -32,6 +117,45 @@ export class User {
 
   @Prop({ required: true, default: 0, min: 0 })
   reservedPoints: number;
+
+  @Prop({ type: String, trim: true, maxlength: 500, default: '' })
+  bio: string;
+
+  @Prop({ type: [String], default: [] })
+  interests: string[];
+
+  @Prop({ type: String, trim: true, default: null })
+  avatarFileId: string | null;
+
+  @Prop({
+    type: String,
+    enum: ProfileVisibility,
+    default: ProfileVisibility.NEIGHBORHOOD,
+  })
+  profileVisibility: ProfileVisibility;
+
+  @Prop({ type: Boolean, default: true })
+  showNeighborhood: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  showReviews: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  showCompletedServices: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  showReputation: boolean;
+
+  @Prop({ type: Date, default: null })
+  profileUpdatedAt: Date | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index(
+  { keycloakSubject: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { keycloakSubject: { $type: 'string' } },
+  },
+);

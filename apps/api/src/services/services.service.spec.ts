@@ -30,10 +30,12 @@ describe('ServicesService', () => {
   const disputeModel = { find: jest.fn() };
   const proofModel = { aggregate: jest.fn() };
   const publicUsersService = { findByIds: jest.fn() };
+  const reviewsService = { getPermissionsByContractIds: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
     proofModel.aggregate.mockReturnValue(execResult([]));
+    reviewsService.getPermissionsByContractIds.mockResolvedValue(new Map());
     neighborhoodModel.findOne.mockReturnValue(
       execResult({ slug: 'quartier-centre', status: 'active', isActive: true }),
     );
@@ -45,6 +47,7 @@ describe('ServicesService', () => {
       disputeModel as never,
       proofModel as never,
       publicUsersService as never,
+      reviewsService as never,
     );
   });
 
@@ -61,7 +64,7 @@ describe('ServicesService', () => {
     };
     serviceModel.create.mockResolvedValue({ id: SERVICE_ID });
 
-    await service.create(dto, 'alice');
+    await service.create(dto, actor('alice'));
 
     expect(serviceModel.create).toHaveBeenCalledWith({
       ...dto,
@@ -85,7 +88,7 @@ describe('ServicesService', () => {
           neighborhoodId: 'absent',
           isPaid: false,
         },
-        'alice',
+        actor('alice'),
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -194,5 +197,5 @@ function serviceDocument(status: ServiceStatus) {
 }
 
 function actor(sub: string, role = Role.RESIDENT) {
-  return { sub, role };
+  return { sub, role, neighborhoodId: 'quartier-centre' };
 }

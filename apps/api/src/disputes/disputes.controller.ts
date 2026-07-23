@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -12,6 +21,11 @@ import {
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  DownloadDisposition,
+  DownloadFileQueryDto,
+} from '../storage/dto/download-file-query.dto';
+import { PresignProofUploadDto } from '../storage/dto/presign-proof-upload.dto';
 import { CreateDisputeEvidenceDto } from './dto/create-dispute-evidence.dto';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { DisputesService } from './disputes.service';
@@ -92,5 +106,52 @@ export class DisputesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.disputesService.addEvidence(id, input, user);
+  }
+
+  @Post(':id/evidence/presign-upload')
+  @ApiOperation({
+    summary: 'Préparer le dépôt privé d’une preuve de litige',
+    description:
+      'Réservé aux parties tant que le litige est ouvert ou en revue. Le fichier doit être finalisé avant association.',
+  })
+  @ApiBadRequestResponse({ description: 'Type ou taille de fichier invalide.' })
+  @ApiForbiddenResponse({ description: "L'utilisateur n'est pas une partie." })
+  @ApiConflictResponse({ description: 'Le litige ne reçoit plus de preuve.' })
+  presignEvidenceUpload(
+    @Param('id') id: string,
+    @Body() input: PresignProofUploadDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.disputesService.presignEvidenceUpload(id, input, user);
+  }
+
+  @Get(':id/evidence/:evidenceId/download-url')
+  @ApiOperation({ summary: 'Créer une URL privée temporaire pour une preuve' })
+  createEvidenceDownloadUrl(
+    @Param('id') id: string,
+    @Param('evidenceId') evidenceId: string,
+    @Query() query: DownloadFileQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.disputesService.createEvidenceDownloadUrl(
+      id,
+      evidenceId,
+      user,
+      query.disposition ?? DownloadDisposition.INLINE,
+    );
+  }
+
+  @Delete(':id/evidence/:evidenceId/attachment')
+  @ApiOperation({
+    summary: 'Supprimer logiquement sa pièce jointe avant la revue',
+    description:
+      'Le texte et la trace d’audit restent conservés. Le fichier ne peut pas être réutilisé.',
+  })
+  deleteEvidenceAttachment(
+    @Param('id') id: string,
+    @Param('evidenceId') evidenceId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.disputesService.deleteEvidenceAttachment(id, evidenceId, user);
   }
 }

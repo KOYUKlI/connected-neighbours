@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { Contract, ContractSchema } from '../contracts/schemas/contract.schema';
 import { PointsModule } from '../points/points.module';
+import { StorageModule } from '../storage/storage.module';
 import {
   ServiceProof,
   ServiceProofSchema,
@@ -25,6 +26,7 @@ import { DisputesService } from './disputes.service';
 @Module({
   imports: [
     PointsModule,
+    StorageModule,
     UsersModule,
     MongooseModule.forFeature([
       { name: Dispute.name, schema: DisputeSchema },

@@ -5,6 +5,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { createHash } from 'crypto';
 import { Connection } from 'mongoose';
 import request from 'supertest';
 
@@ -44,6 +45,27 @@ const DEMO_USERS = [
     neighborhoodId: 'quartier-centre',
     password: 'moderator123',
   },
+  {
+    email: 'claire@connected-neighbours.local',
+    displayName: 'Claire Bernard',
+    role: Role.RESIDENT,
+    neighborhoodId: 'quartier-centre',
+    password: 'claire123',
+  },
+  {
+    email: 'nadia@connected-neighbours.local',
+    displayName: 'Nadia Petit',
+    role: Role.RESIDENT,
+    neighborhoodId: 'quartier-centre',
+    password: 'nadia123',
+  },
+  {
+    email: 'outside@connected-neighbours.local',
+    displayName: 'Camille Extérieur',
+    role: Role.RESIDENT,
+    neighborhoodId: 'quartier-exterieur',
+    password: 'outside123',
+  },
 ] as const;
 
 describe('Connected Neighbours API P0 (e2e)', () => {
@@ -55,9 +77,13 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   let aliceToken: string;
   let bobToken: string;
   let moderatorToken: string;
+  let claireToken: string;
+  let nadiaToken: string;
+  let outsideToken: string;
 
   let aliceId: string;
   let bobId: string;
+  let claireId: string;
   let e2eNeighborhoodId: string;
   let draftServiceId: string;
   let serviceId: string;
@@ -70,6 +96,8 @@ describe('Connected Neighbours API P0 (e2e)', () => {
   let disputeId: string;
   let incidentId: string;
   let alertId: string;
+  let localEventId: string;
+  let localVoteId: string;
 
   beforeAll(async () => {
     configureTestEnvironment();
@@ -123,44 +151,175 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     const alice = await login(DEMO_USERS[1].email, DEMO_USERS[1].password);
     const bob = await login(DEMO_USERS[2].email, DEMO_USERS[2].password);
     const moderator = await login(DEMO_USERS[3].email, DEMO_USERS[3].password);
+    const claire = await login(DEMO_USERS[4].email, DEMO_USERS[4].password);
+    const nadia = await login(DEMO_USERS[5].email, DEMO_USERS[5].password);
+    const outside = await login(DEMO_USERS[6].email, DEMO_USERS[6].password);
 
     adminToken = admin.accessToken;
     aliceToken = alice.accessToken;
     bobToken = bob.accessToken;
     moderatorToken = moderator.accessToken;
+    claireToken = claire.accessToken;
+    nadiaToken = nadia.accessToken;
+    outsideToken = outside.accessToken;
     aliceId = alice.user.id;
     bobId = bob.user.id;
+    claireId = claire.user.id;
 
     expect(admin.user.role).toBe(Role.ADMIN);
     expect(moderator.user.role).toBe(Role.MODERATOR);
     expect(alice.user.pointsBalance).toBeGreaterThanOrEqual(100);
     expect(bob.user.pointsBalance).toBeGreaterThanOrEqual(100);
+    expect(alice).toEqual(
+      expect.objectContaining({
+        accessToken: expect.any(String),
+        user: expect.objectContaining({
+          email: DEMO_USERS[1].email,
+          displayName: DEMO_USERS[1].displayName,
+          role: Role.RESIDENT,
+        }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.id).toBe(aliceId);
+        expect(body.role).toBe(Role.RESIDENT);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/auth/security')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.identityProvider).toBe('local');
+        expect(body.session.provider).toBe('local');
+        expect(body.session.mfaSatisfied).toBe(false);
+      });
+  });
+
+  it('preserves the JavaFX PKCE bridge and response contract', async () => {
+    const codeVerifier = 'javafx-e2e-code-verifier-with-sufficient-entropy';
+    const codeChallenge = createHash('sha256')
+      .update(codeVerifier)
+      .digest('base64url');
+
+    const authorization = await request(app.getHttpServer())
+      .post('/api/auth/sso/authorize')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        callbackUrl: 'http://127.0.0.1:53721/callback',
+        codeChallenge,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/sso/token')
+      .send({ code: authorization.body.code, codeVerifier })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            accessToken: expect.any(String),
+            user: expect.objectContaining({
+              email: DEMO_USERS[0].email,
+              displayName: DEMO_USERS[0].displayName,
+              role: 'admin',
+            }),
+          }),
+        );
+      });
+  });
+
+  it('keeps recommendations available through the MongoDB fallback', async () => {
+    const recommendations = await request(app.getHttpServer())
+      .get('/api/recommendations/neighbors?limit=5')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+
+    expect(recommendations.body.source).toBe('fallback');
+    expect(Array.isArray(recommendations.body.items)).toBe(true);
+    expect(
+      recommendations.body.items.every(
+        (item: Record<string, unknown>) => !('score' in item),
+      ),
+    ).toBe(true);
+
+    await request(app.getHttpServer())
+      .get('/api/admin/graph/status')
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.health.state).toBe('disabled');
+        expect(body.mode).toBe('disabled');
+      });
   });
 
   it('covers geographic neighborhoods', async () => {
     const invalidNeighborhood = neighborhoodPayload('e2e-quartier-invalide');
-    invalidNeighborhood.boundary.coordinates[0][4] = [2.36, 48.861];
+    invalidNeighborhood.geometry.coordinates[0][4] = [2.36, 48.861];
 
     await request(app.getHttpServer())
-      .post('/api/neighborhoods')
+      .post('/api/admin/neighborhoods')
       .set('Authorization', bearer(adminToken))
       .send(invalidNeighborhood)
       .expect(400);
 
     await request(app.getHttpServer())
-      .post('/api/neighborhoods')
+      .post('/api/admin/neighborhoods')
       .set('Authorization', bearer(aliceToken))
       .send(neighborhoodPayload('e2e-quartier'))
       .expect(403);
 
     const createdNeighborhood = await request(app.getHttpServer())
-      .post('/api/neighborhoods')
+      .post('/api/admin/neighborhoods')
       .set('Authorization', bearer(adminToken))
-      .send(neighborhoodPayload('e2e-quartier'))
-      .expect(201);
+      .send(neighborhoodPayload('e2e-quartier'));
+
+    if (createdNeighborhood.status !== 201) {
+      throw new Error(
+        `Création du quartier E2E refusée (${createdNeighborhood.status}): ${JSON.stringify(createdNeighborhood.body)}`,
+      );
+    }
 
     e2eNeighborhoodId = getId(createdNeighborhood.body);
     expect(createdNeighborhood.body.status).toBe('active');
+
+    await request(app.getHttpServer())
+      .post('/api/admin/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .send(neighborhoodPayload('e2e-quartier'))
+      .expect(409);
+
+    const overlap = neighborhoodPayload('e2e-quartier-overlap');
+    overlap.geometry.coordinates = overlap.geometry.coordinates.map((ring) =>
+      ring.map(([longitude, latitude]) => [
+        longitude + 0.0002,
+        latitude + 0.0002,
+      ]),
+    );
+    await request(app.getHttpServer())
+      .post('/api/admin/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .send(overlap)
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get('/api/admin/neighborhoods')
+      .set('Authorization', bearer(adminToken))
+      .query({ status: 'active', search: 'E2E', page: 1, limit: 10 })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-quartier' }),
+          ]),
+        );
+        expect(body.total).toBeGreaterThanOrEqual(1);
+      });
 
     await request(app.getHttpServer())
       .get('/api/neighborhoods')
@@ -175,7 +334,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
 
     const updatedNeighborhood = await request(app.getHttpServer())
-      .patch(`/api/neighborhoods/${e2eNeighborhoodId}`)
+      .patch(`/api/admin/neighborhoods/${e2eNeighborhoodId}`)
       .set('Authorization', bearer(adminToken))
       .send({ description: 'Quartier E2E mis a jour' })
       .expect(200);
@@ -187,7 +346,13 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
       .set('Authorization', bearer(aliceToken))
-      .send({ point: [2.3509, 48.8569] })
+      .send({ point: [120.0009, -19.9991] })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
+      .set('Authorization', bearer(adminToken))
+      .send({ point: [120.0009, -19.9991] })
       .expect(201)
       .expect(({ body }) => {
         expect(body.contains).toBe(true);
@@ -195,7 +360,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
 
     await request(app.getHttpServer())
       .post(`/api/neighborhoods/${e2eNeighborhoodId}/contains-point`)
-      .set('Authorization', bearer(aliceToken))
+      .set('Authorization', bearer(adminToken))
       .send({ point: [2.5, 48.8569] })
       .expect(201)
       .expect(({ body }) => {
@@ -203,24 +368,24 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .get('/api/neighborhoods/quartier-centre/members')
+      .get('/api/admin/neighborhoods/quartier-centre/members')
       .set('Authorization', bearer(adminToken))
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toEqual(
+        expect(body.items).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               email: 'alice@connected-neighbours.local',
             }),
           ]),
         );
-        for (const member of body as Array<Record<string, unknown>>) {
+        for (const member of body.items as Array<Record<string, unknown>>) {
           expect(member).not.toHaveProperty('passwordHash');
         }
       });
 
     await request(app.getHttpServer())
-      .get('/api/neighborhoods/quartier-centre/stats')
+      .get('/api/admin/neighborhoods/quartier-centre/stats')
       .set('Authorization', bearer(adminToken))
       .expect(200)
       .expect(({ body }) => {
@@ -237,13 +402,43 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .delete(`/api/neighborhoods/${e2eNeighborhoodId}`)
-      .set('Authorization', bearer(adminToken))
-      .expect(200)
+      .post('/api/neighborhoods/resolve')
+      .set('Authorization', bearer(aliceToken))
+      .send({ type: 'Point', coordinates: [120.00091, -19.99909] })
+      .expect(201)
       .expect(({ body }) => {
-        expect(body.archived).toBe(true);
-        expect(body.neighborhood.status).toBe('archived');
+        expect(body.status).toBe('found');
+        expect(body.neighborhood.slug).toBe('e2e-quartier');
+        expect(JSON.stringify(body)).not.toContain('120.00091');
       });
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/neighborhoods/${e2eNeighborhoodId}/archive`)
+      .set('Authorization', bearer(adminToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.status).toBe('archived');
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/neighborhoods/${e2eNeighborhoodId}/assign-user`)
+      .set('Authorization', bearer(adminToken))
+      .send({
+        userId: aliceId,
+        justification: 'Test de refus sur quartier archivé.',
+      })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get(`/api/neighborhoods/${e2eNeighborhoodId}`)
+      .set('Authorization', bearer(aliceToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .post(`/api/admin/neighborhoods/${e2eNeighborhoodId}/restore`)
+      .set('Authorization', bearer(adminToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('active'));
   });
 
   it('covers service publishing, service cancellation and point balance', async () => {
@@ -870,6 +1065,111 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(startedService.body.executionStatus).toBe('in_progress');
     expect(startedService.body.startedAt).toBeTruthy();
 
+    const proofPng = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+    ]);
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs/presign-upload')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'preuve.png',
+        mimeType: 'image/png',
+        sizeBytes: proofPng.length,
+      })
+      .expect(403);
+
+    const proofPresign = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs/presign-upload')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        filename: 'preuve.png',
+        mimeType: 'image/png',
+        sizeBytes: proofPng.length,
+      })
+      .expect(201);
+    const proofPresignBody = responseBody<{ fileId: string }>(proofPresign);
+    await storageService.putMemoryUploadForTest(
+      proofPresignBody.fileId,
+      proofPng,
+    );
+    await request(app.getHttpServer())
+      .post('/api/storage/files/' + proofPresignBody.fileId + '/complete')
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    const fileProof = await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        message: 'Photo de la fixation terminée.',
+        fileId: proofPresignBody.fileId,
+      })
+      .expect(201);
+    const fileProofBody = responseBody<{
+      id: string;
+      attachment: { deleted: boolean };
+    }>(fileProof);
+    expect(fileProofBody.attachment).toEqual(
+      expect.objectContaining({
+        fileKind: 'image',
+        mimeType: 'image/png',
+        sizeBytes: proofPng.length,
+        sha256: expect.any(String),
+      }),
+    );
+    expect(fileProofBody).not.toHaveProperty('objectKey');
+
+    await request(app.getHttpServer())
+      .post('/api/services/' + serviceId + '/proofs')
+      .set('Authorization', bearer(bobToken))
+      .send({ fileId: proofPresignBody.fileId })
+      .expect(409);
+    await request(app.getHttpServer())
+      .get(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(claireToken))
+      .expect(403);
+    const participantDownload = await request(app.getHttpServer())
+      .get(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(aliceToken))
+      .expect(200);
+    expect(responseBody<{ url: string }>(participantDownload).url).toBeTruthy();
+    const deletedProof = await request(app.getHttpServer())
+      .delete(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/attachment',
+      )
+      .set('Authorization', bearer(bobToken))
+      .expect(200);
+    expect(
+      responseBody<{ attachment: { deleted: boolean } }>(deletedProof)
+        .attachment.deleted,
+    ).toBe(true);
+    await request(app.getHttpServer())
+      .get(
+        '/api/services/' +
+          serviceId +
+          '/proofs/' +
+          fileProofBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(aliceToken))
+      .expect(404);
+
     const firstProof = await request(app.getHttpServer())
       .post('/api/services/' + serviceId + '/proofs')
       .set('Authorization', bearer(bobToken))
@@ -1003,7 +1303,218 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(bobAfterTransfer.pointsBalance).toBe(125);
   });
 
-  it('covers contract cancellation with reserved point release', async () => {
+  it('covers profiles, avatars, reviews, replies and moderation', async () => {
+    await request(app.getHttpServer())
+      .get('/api/services/' + serviceId)
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.review).toEqual(
+          expect.objectContaining({
+            canReview: true,
+            hasReviewed: false,
+            otherPartyId: bobId,
+          }),
+        );
+        expect(body.owner).toEqual(
+          expect.objectContaining({
+            displayName: 'Alice Martin',
+            reviewCount: expect.any(Number),
+          }),
+        );
+        expect(body.owner).not.toHaveProperty('email');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 6, comment: 'Note invalide.' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 5, comment: 'Cible injectée.', targetUserId: claireId })
+      .expect(400);
+
+    const aliceReview = await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 5, comment: 'Travail soigne et communication claire.' })
+      .expect(201);
+    expect(aliceReview.body).toEqual(
+      expect.objectContaining({
+        rating: 5,
+        status: 'published',
+        targetUser: expect.objectContaining({ id: bobId }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .send({ rating: 4, comment: 'Tentative de doublon.' })
+      .expect(409);
+    await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(claireToken))
+      .send({ rating: 5, comment: 'Avis tiers interdit.' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/users/' + bobId + '/reputation')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.averageRating).toBe(5);
+        expect(body.reviewCount).toBe(1);
+        expect(body.ratingDistribution['5']).toBe(1);
+        expect(body.reputationScore).toBe(83);
+      });
+
+    const bobReview = await request(app.getHttpServer())
+      .post('/api/contracts/' + contractId + '/reviews')
+      .set('Authorization', bearer(bobToken))
+      .send({ rating: 4, comment: 'Demande precise et validation rapide.' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/reviews/' + bobReview.body.id + '/reply')
+      .set('Authorization', bearer(bobToken))
+      .send({ message: 'Je tente de répondre à mon propre avis.' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/reviews/' + bobReview.body.id + '/reply')
+      .set('Authorization', bearer(aliceToken))
+      .send({ message: 'Merci pour votre confiance.' })
+      .expect(201)
+      .expect(({ body }) =>
+        expect(body.response.message).toBe('Merci pour votre confiance.'),
+      );
+    await request(app.getHttpServer())
+      .post('/api/reviews/' + bobReview.body.id + '/reply')
+      .set('Authorization', bearer(aliceToken))
+      .send({ message: 'Seconde réponse.' })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/reviews/' + aliceReview.body.id + '/hide')
+      .set('Authorization', bearer(adminToken))
+      .send({ reason: 'Masquage de contrôle E2E.' })
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('hidden'));
+    await request(app.getHttpServer())
+      .get('/api/users/' + bobId + '/reviews')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.total).toBe(0));
+    await request(app.getHttpServer())
+      .get('/api/reviews/' + aliceReview.body.id)
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe('hidden'));
+    await request(app.getHttpServer())
+      .get('/api/users/' + bobId + '/reputation')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.averageRating).toBeNull();
+        expect(body.reputationScore).toBeNull();
+      });
+    await request(app.getHttpServer())
+      .post('/api/admin/reviews/' + aliceReview.body.id + '/restore')
+      .set('Authorization', bearer(moderatorToken))
+      .send({ reason: 'Contenu conforme après vérification E2E.' })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.status).toBe('published');
+        expect(body.moderationHistory).toHaveLength(2);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/profile')
+      .set('Authorization', bearer(claireToken))
+      .send({ role: 'admin', pointsBalance: 500 })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch('/api/users/me/profile')
+      .set('Authorization', bearer(claireToken))
+      .send({ bio: 'Profil prive E2E', profileVisibility: 'private' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/users/' + claireId + '/public')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            id: claireId,
+            displayName: 'Claire Bernard',
+            isRestricted: true,
+          }),
+        );
+        expect(body).not.toHaveProperty('bio');
+        expect(body).not.toHaveProperty('neighborhoodId');
+        expect(body).not.toHaveProperty('reputation');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/presign')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'avatar.svg',
+        mimeType: 'image/svg+xml',
+        sizeBytes: 128,
+      })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/presign')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'avatar.png',
+        mimeType: 'image/png',
+        sizeBytes: 5 * 1024 * 1024 + 1,
+      })
+      .expect(400);
+
+    const png = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    const presign = await request(app.getHttpServer())
+      .post('/api/users/me/avatar/presign')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        filename: 'alice.png',
+        mimeType: 'image/png',
+        sizeBytes: png.length,
+      })
+      .expect(201);
+    await storageService.putMemoryUploadForTest(presign.body.fileId, png);
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/' + presign.body.fileId + '/complete')
+      .set('Authorization', bearer(bobToken))
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/users/me/avatar/' + presign.body.fileId + '/complete')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.avatarUrl).toContain(presign.body.fileId);
+        expect(body).not.toHaveProperty('avatarFileId');
+      });
+    await request(app.getHttpServer())
+      .get('/api/users/' + aliceId + '/public')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body.avatarUrl).toContain(presign.body.fileId),
+      );
+    await request(app.getHttpServer())
+      .delete('/api/users/me/avatar')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.avatarUrl).toBeNull());
+  });
+  +it('covers contract cancellation with reserved point release', async () => {
     const serviceResponse = await request(app.getHttpServer())
       .post('/api/services')
       .set('Authorization', bearer(aliceToken))
@@ -1250,6 +1761,343 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     );
   });
 
+  it('covers local events, atomic capacity, waitlist promotion and private participants', async () => {
+    const startsAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + 3 * 60 * 60 * 1000);
+    const registrationDeadline = new Date(startsAt.getTime() - 60 * 60 * 1000);
+    const created = await request(app.getHttpServer())
+      .post('/api/events')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Tournoi de pétanque',
+        description:
+          'Un événement E2E avec une capacité stricte et une liste d’attente.',
+        category: 'sport',
+        neighborhoodId: 'quartier-centre',
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        registrationDeadline: registrationDeadline.toISOString(),
+        locationLabel: 'Terrain municipal du quartier',
+        capacity: 2,
+      })
+      .expect(201);
+
+    localEventId = getId(created.body);
+    expect(created.body).toEqual(
+      expect.objectContaining({
+        title: 'E2E Tournoi de pétanque',
+        status: 'draft',
+        permissions: expect.objectContaining({
+          canEdit: true,
+          canPublish: true,
+        }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId)
+      .set('Authorization', bearer(bobToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .patch('/api/events/' + localEventId)
+      .set('Authorization', bearer(bobToken))
+      .send({ title: 'Tentative Bob' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/publish')
+      .set('Authorization', bearer(aliceToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('open_registration'));
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/respond')
+      .set('Authorization', bearer(bobToken))
+      .send({ interest: 'interested' })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('interested');
+        expect(body.event.counts.interested).toBe(1);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/join')
+      .set('Authorization', bearer(bobToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.response.response).toBe('going'));
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/join')
+      .set('Authorization', bearer(claireToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('going');
+        expect(body.event.counts.participants).toBe(2);
+        expect(body.event.counts.remainingPlaces).toBe(0);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/join')
+      .set('Authorization', bearer(nadiaToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('waitlisted');
+        expect(body.response.waitlistPosition).toBe(1);
+        expect(body.event.counts.waitlisted).toBe(1);
+        expect(body.event.isFull).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/leave')
+      .set('Authorization', bearer(bobToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.response.response).toBe('cancelled');
+        expect(body.event.counts.participants).toBe(2);
+        expect(body.event.counts.waitlisted).toBe(0);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId + '/participants')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(2);
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              response: 'going',
+              user: expect.objectContaining({ displayName: 'Claire Bernard' }),
+            }),
+            expect.objectContaining({
+              response: 'going',
+              user: expect.objectContaining({ displayName: 'Nadia Petit' }),
+            }),
+          ]),
+        );
+        for (const participant of body as Array<Record<string, unknown>>) {
+          expect(participant.user).not.toHaveProperty('email');
+        }
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId + '/participants')
+      .set('Authorization', bearer(outsideToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/events/' + localEventId)
+      .set('Authorization', bearer(outsideToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get('/api/events/recommended')
+      .set('Authorization', bearer(bobToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.recommendationSource).toBe('neighborhood_fallback');
+        expect(
+          body.items.every(
+            (item: { organizerId?: string }) => item.organizerId !== bobId,
+          ),
+        ).toBe(true);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/events')
+      .query({ neighborhoodId: 'quartier-centre' })
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(Array.isArray(body)).toBe(true));
+
+    await request(app.getHttpServer())
+      .get('/api/admin/events/' + localEventId)
+      .set('Authorization', bearer(moderatorToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.history).toEqual(expect.any(Array));
+        expect(body.organizer.displayName).toBe('Alice Martin');
+      });
+  });
+
+  it('covers configurable anonymous votes, answer policy and aggregated results', async () => {
+    const opensAt = new Date(Date.now() - 60_000);
+    const closesAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const created = await request(app.getHttpServer())
+      .post('/api/admin/votes')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        title: 'E2E Priorités du square',
+        description: 'Choisissez jusqu’à deux améliorations pour le square.',
+        neighborhoodId: 'quartier-centre',
+        ballotType: 'multiple_choice',
+        privacy: 'anonymous',
+        resultsVisibility: 'after_close',
+        options: [
+          { label: 'Composteur' },
+          { label: 'Arceaux vélo' },
+          { label: 'Bancs' },
+        ],
+        minSelections: 1,
+        maxSelections: 2,
+        allowAnswerChange: false,
+        opensAt: opensAt.toISOString(),
+        closesAt: closesAt.toISOString(),
+        status: 'draft',
+      })
+      .expect(201);
+
+    localVoteId = getId(created.body);
+    const optionIds = (created.body.options as Array<{ id: string }>).map(
+      (option) => option.id,
+    );
+    expect(optionIds).toHaveLength(3);
+    expect(created.body).not.toHaveProperty('question');
+
+    await request(app.getHttpServer())
+      .post('/api/votes')
+      .set('Authorization', bearer(aliceToken))
+      .send({
+        title: 'E2E Vote résident interdit',
+        neighborhoodId: 'quartier-centre',
+        options: ['Oui', 'Non'],
+        closesAt: closesAt.toISOString(),
+      })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/admin/votes/' + localVoteId + '/open')
+      .set('Authorization', bearer(moderatorToken))
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('open'));
+
+    const alicePayload = { selectedOptionIds: [optionIds[0], optionIds[1]] };
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(aliceToken))
+      .send(alicePayload)
+      .expect(201)
+      .expect(({ body }) => expect(body.unchanged).toBe(false));
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(aliceToken))
+      .send(alicePayload)
+      .expect(201)
+      .expect(({ body }) => expect(body.unchanged).toBe(true));
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(aliceToken))
+      .send({ selectedOptionIds: [optionIds[2]] })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(bobToken))
+      .send({ selectedOptionIds: [optionIds[0]] })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/api/votes/' + localVoteId + '/results')
+      .set('Authorization', bearer(aliceToken))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/api/votes/' + localVoteId)
+      .set('Authorization', bearer(outsideToken))
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(outsideToken))
+      .send({ selectedOptionIds: [optionIds[0]] })
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get('/api/home')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.upcomingEvents).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: localEventId }),
+          ]),
+        );
+        expect(body.openVotes).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: localVoteId }),
+          ]),
+        );
+        expect(body.myUpcomingEventsCount).toEqual(expect.any(Number));
+        expect(body.myPendingVotesCount).toEqual(expect.any(Number));
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/votes/' + localVoteId + '/close')
+      .set('Authorization', bearer(adminToken))
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe('closed'));
+
+    await request(app.getHttpServer())
+      .post('/api/votes/' + localVoteId + '/answers')
+      .set('Authorization', bearer(claireToken))
+      .send({ selectedOptionIds: [optionIds[2]] })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .get('/api/votes/' + localVoteId + '/results')
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.totalAnswers).toBe(2);
+        expect(body.privacy).toBe('anonymous');
+        expect(body.anonymity).toBe('application_level');
+        expect(body.results).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              option: expect.objectContaining({ id: optionIds[0] }),
+              count: 2,
+              percentage: 100,
+              percentageDenominator: 'respondents',
+            }),
+            expect.objectContaining({
+              option: expect.objectContaining({ id: optionIds[1] }),
+              count: 1,
+              percentage: 50,
+            }),
+          ]),
+        );
+        expect(JSON.stringify(body)).not.toContain(aliceId);
+        expect(JSON.stringify(body)).not.toContain(bobId);
+        expect(JSON.stringify(body)).not.toContain('userId');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/admin/votes/' + localVoteId)
+      .set('Authorization', bearer(moderatorToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.results.totalAnswers).toBe(2);
+        expect(JSON.stringify(body.results)).not.toContain('userId');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/votes')
+      .query({ neighborhoodId: 'quartier-centre' })
+      .set('Authorization', bearer(aliceToken))
+      .expect(200)
+      .expect(({ body }) => expect(Array.isArray(body)).toBe(true));
+
+    await request(app.getHttpServer())
+      .post('/api/events/' + localEventId + '/cancel')
+      .set('Authorization', bearer(aliceToken))
+      .send({ reason: 'Fin du scénario E2E Vie locale.' })
+      .expect(201)
+      .expect(({ body }) => expect(body.status).toBe('cancelled'));
+  });
+
   it('covers the Jison DSL read-only endpoints', async () => {
     const parsed = await request(app.getHttpServer())
       .post('/api/dsl/parse')
@@ -1278,6 +2126,41 @@ describe('Connected Neighbours API P0 (e2e)', () => {
     expect(executed.body.collection).toBe('services');
     expect(executed.body.filter).toEqual({ category: 'bricolage' });
     expect(executed.body.results.length).toBeGreaterThanOrEqual(1);
+
+    const localEvents = await request(app.getHttpServer())
+      .post('/api/dsl/execute')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        query: 'FIND events WHERE title = "E2E Tournoi de pétanque"',
+      })
+      .expect(201);
+    expect(localEvents.body.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'E2E Tournoi de pétanque',
+          endsAt: expect.any(String),
+        }),
+      ]),
+    );
+    expect(JSON.stringify(localEvents.body)).not.toContain('userId');
+
+    const localVotes = await request(app.getHttpServer())
+      .post('/api/dsl/execute')
+      .set('Authorization', bearer(adminToken))
+      .send({
+        query: 'FIND votes WHERE title = "E2E Priorités du square"',
+      })
+      .expect(201);
+    expect(localVotes.body.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'E2E Priorités du square',
+          ballotType: 'multiple_choice',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(localVotes.body)).not.toContain('selectedOptionIds');
+    expect(JSON.stringify(localVotes.body)).not.toContain('userId');
 
     await request(app.getHttpServer())
       .post('/api/dsl/parse')
@@ -1400,6 +2283,33 @@ describe('Connected Neighbours API P0 (e2e)', () => {
           expect.arrayContaining([expect.objectContaining({ id: alertId })]),
         );
         expect(body.syncOperations).toEqual(expect.any(Array));
+        expect(body.eventsCreated).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: localEventId }),
+          ]),
+        );
+        expect(body.eventResponses).toEqual(expect.any(Array));
+        expect(body.voteAnswers).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              voteId: localVoteId,
+              selectedOptionIds: expect.any(Array),
+            }),
+          ]),
+        );
+        expect(body.reviewsWritten).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ contractId, rating: 5 }),
+          ]),
+        );
+        expect(body.reviewsReceived).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ contractId, rating: 4 }),
+          ]),
+        );
+        expect(body.reputation).toEqual(
+          expect.objectContaining({ reviewCount: expect.any(Number) }),
+        );
       });
   });
 
@@ -1530,18 +2440,63 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .set('Authorization', bearer(aliceToken))
       .expect(409);
 
+    const disputePdf = Buffer.from('%PDF-dispute-proof', 'ascii');
+    const disputeEvidencePresign = await request(app.getHttpServer())
+      .post('/api/disputes/' + disputeId + '/evidence/presign-upload')
+      .set('Authorization', bearer(bobToken))
+      .send({
+        filename: 'constat.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: disputePdf.length,
+      })
+      .expect(201);
+    const disputeEvidencePresignBody = typedResponseBody<{ fileId: string }>(
+      disputeEvidencePresign,
+    );
+    await storageService.putMemoryUploadForTest(
+      disputeEvidencePresignBody.fileId,
+      disputePdf,
+    );
     await request(app.getHttpServer())
+      .post(
+        '/api/storage/files/' + disputeEvidencePresignBody.fileId + '/complete',
+      )
+      .set('Authorization', bearer(bobToken))
+      .expect(201);
+
+    const disputeEvidence = await request(app.getHttpServer())
       .post('/api/disputes/' + disputeId + '/evidence')
       .set('Authorization', bearer(bobToken))
       .send({
-        type: 'note',
         message: 'Une partie du travail a été réalisée et vérifiée.',
+        fileId: disputeEvidencePresignBody.fileId,
       })
-      .expect(201)
-      .expect(({ body }) => {
-        expect(body.author.displayName).toBe('Bob Dupont');
-        expect(body.author).not.toHaveProperty('email');
-      });
+      .expect(201);
+    const disputeEvidenceBody = typedResponseBody<{
+      id: string;
+      author: { displayName: string };
+      attachment: { fileKind: string; sha256: string };
+    }>(disputeEvidence);
+    expect(disputeEvidenceBody.author.displayName).toBe('Bob Dupont');
+    expect(disputeEvidenceBody.author).not.toHaveProperty('email');
+    expect(disputeEvidenceBody.attachment).toEqual(
+      expect.objectContaining({
+        fileKind: 'document',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest asymmetric matcher is typed as any.
+        sha256: expect.any(String),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get(
+        '/api/disputes/' +
+          disputeId +
+          '/evidence/' +
+          disputeEvidenceBody.id +
+          '/download-url',
+      )
+      .set('Authorization', bearer(claireToken))
+      .expect(403);
 
     await request(app.getHttpServer())
       .get('/api/disputes/me')
@@ -1574,6 +2529,17 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .set('Authorization', bearer(moderatorToken))
       .expect(201)
       .expect(({ body }) => expect(body.status).toBe('under_review'));
+
+    await request(app.getHttpServer())
+      .delete(
+        '/api/disputes/' +
+          disputeId +
+          '/evidence/' +
+          disputeEvidenceBody.id +
+          '/attachment',
+      )
+      .set('Authorization', bearer(bobToken))
+      .expect(409);
 
     await request(app.getHttpServer())
       .post('/api/admin/disputes/' + disputeId + '/resolve')
@@ -1874,6 +2840,14 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       .find({ serviceId: { $in: serviceIds } }, { projection: { _id: 1 } })
       .toArray();
     const contractIds = staleContracts.map((contract) => String(contract._id));
+    const staleUsers = await connection
+      .collection('users')
+      .find(
+        { email: { $in: DEMO_USERS.map((user) => user.email) } },
+        { projection: { _id: 1 } },
+      )
+      .toArray();
+    const userIds = staleUsers.map((user) => String(user._id));
 
     const staleDisputes = await connection
       .collection('disputes')
@@ -1885,8 +2859,33 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       )
       .toArray();
     const disputeIds = staleDisputes.map((dispute) => String(dispute._id));
+    const staleEvents = await connection
+      .collection('neighborhoodevents')
+      .find({ title: /^E2E/ }, { projection: { _id: 1 } })
+      .toArray();
+    const eventIds = staleEvents.map((event) => String(event._id));
+    const staleVotes = await connection
+      .collection('votes')
+      .find(
+        { $or: [{ title: /^E2E/ }, { question: /^E2E/ }] },
+        { projection: { _id: 1 } },
+      )
+      .toArray();
+    const voteIds = staleVotes.map((vote) => String(vote._id));
 
     const operations = [
+      connection.collection('eventresponses').deleteMany({
+        eventId: { $in: eventIds },
+      }),
+      connection.collection('neighborhoodevents').deleteMany({
+        _id: { $in: staleEvents.map((event) => event._id) },
+      }),
+      connection.collection('voteanswers').deleteMany({
+        voteId: { $in: voteIds },
+      }),
+      connection.collection('votes').deleteMany({
+        _id: { $in: staleVotes.map((vote) => vote._id) },
+      }),
       connection.collection('disputeevidences').deleteMany({
         $or: [{ disputeId: { $in: disputeIds } }, { message: /^E2E/ }],
       }),
@@ -1899,11 +2898,25 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection.collection('serviceproofs').deleteMany({
         serviceId: { $in: serviceIds },
       }),
+      connection.collection('reviews').deleteMany({
+        $or: [
+          { serviceId: { $in: serviceIds } },
+          { contractId: { $in: contractIds } },
+        ],
+      }),
       connection.collection('manageddocuments').deleteMany({
         serviceId: { $in: serviceIds },
       }),
       connection.collection('storagefiles').deleteMany({
-        contextId: { $in: contractIds },
+        $or: [
+          { contextId: { $in: contractIds } },
+          { contextType: 'service_proof', contextId: { $in: serviceIds } },
+          {
+            contextType: 'dispute_evidence',
+            contextId: { $in: disputeIds },
+          },
+          { contextType: 'user_avatar', contextId: { $in: userIds } },
+        ],
       }),
       connection.collection('contracts').deleteMany({
         serviceId: { $in: serviceIds },
@@ -1916,7 +2929,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       }),
       connection.collection('services').deleteMany({ title: /^E2E/ }),
       connection.collection('neighborhoods').deleteMany({
-        slug: { $in: ['e2e-quartier', 'e2e-quartier-invalide'] },
+        slug: /^e2e-quartier/,
       }),
       connection.collection('incidents').deleteMany({
         title: { $in: ['E2E Local velo force', 'E2E Incident JavaFX'] },
@@ -1930,6 +2943,7 @@ describe('Connected Neighbours API P0 (e2e)', () => {
       connection
         .collection('syncstates')
         .deleteMany({ clientId: 'e2e-javafx-client' }),
+      connection.collection('graphsyncjobs').deleteMany({}),
     ];
 
     if (includeUsers) {
@@ -1954,6 +2968,8 @@ function configureTestEnvironment() {
     process.env.MONGODB_URI ??
     'mongodb://127.0.0.1:27017/connected-neighbours-e2e?serverSelectionTimeoutMS=5000';
   process.env.NEO4J_URI = process.env.NEO4J_URI ?? 'bolt://localhost:7687';
+  process.env.NEO4J_ENABLED = 'false';
+  process.env.GRAPH_SYNC_WORKER_ENABLED = 'false';
   process.env.NEO4J_USERNAME = process.env.NEO4J_USERNAME ?? 'neo4j';
   process.env.NEO4J_PASSWORD = process.env.NEO4J_PASSWORD ?? 'password';
   process.env.MINIO_ENDPOINT = process.env.MINIO_ENDPOINT ?? 'localhost';
@@ -1962,13 +2978,20 @@ function configureTestEnvironment() {
   process.env.MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY ?? 'minioadmin';
   process.env.MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY ?? 'minioadmin';
   process.env.MINIO_BUCKET = process.env.MINIO_BUCKET ?? 'connected-neighbours';
-  process.env.KEYCLOAK_BASE_URL =
-    process.env.KEYCLOAK_BASE_URL ?? 'http://localhost:8080';
-  process.env.KEYCLOAK_REALM = process.env.KEYCLOAK_REALM ?? 'connected';
-  process.env.KEYCLOAK_CLIENT_ID =
-    process.env.KEYCLOAK_CLIENT_ID ?? 'connected-api';
-  process.env.KEYCLOAK_CLIENT_SECRET =
-    process.env.KEYCLOAK_CLIENT_SECRET ?? 'secret';
+  process.env.AUTH_LOCAL_ENABLED = 'true';
+  process.env.KEYCLOAK_ENABLED = 'false';
+  process.env.KEYCLOAK_INTERNAL_URL =
+    process.env.KEYCLOAK_INTERNAL_URL ?? 'http://localhost:8080';
+  process.env.KEYCLOAK_PUBLIC_URL =
+    process.env.KEYCLOAK_PUBLIC_URL ?? 'http://localhost:8080';
+  process.env.KEYCLOAK_REALM =
+    process.env.KEYCLOAK_REALM ?? 'connected-neighbours';
+  process.env.KEYCLOAK_API_AUDIENCE =
+    process.env.KEYCLOAK_API_AUDIENCE ?? 'connected-neighbours-api';
+  process.env.KEYCLOAK_WEB_CLIENT_ID =
+    process.env.KEYCLOAK_WEB_CLIENT_ID ?? 'connected-neighbours-web';
+  process.env.KEYCLOAK_ADMIN_CLIENT_ID =
+    process.env.KEYCLOAK_ADMIN_CLIENT_ID ?? 'connected-neighbours-admin';
   process.env.JWT_SECRET =
     process.env.JWT_SECRET ?? 'test-jwt-secret-with-enough-length';
   process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? '1h';
@@ -1995,24 +3018,30 @@ function getId(document: { id?: string; _id?: string }) {
   return String(id);
 }
 
+function typedResponseBody<T>(response: { body: unknown }) {
+  return response.body as T;
+}
+
 function neighborhoodPayload(slug: string) {
+  const geometry = {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [120.0008, -19.9992],
+        [120.0018, -19.9992],
+        [120.0018, -19.9982],
+        [120.0008, -19.9982],
+        [120.0008, -19.9992],
+      ],
+    ],
+  };
   return {
     name: 'Quartier E2E',
     slug,
     description: 'Quartier geographique utilise par les tests E2E.',
     city: 'Paris',
     postalCode: '75001',
-    boundary: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [2.3508, 48.8567],
-          [2.3518, 48.8567],
-          [2.3518, 48.8577],
-          [2.3508, 48.8577],
-          [2.3508, 48.8567],
-        ],
-      ],
-    },
+    geometry,
+    boundary: structuredClone(geometry),
   };
 }

@@ -40,6 +40,13 @@ describe('ServiceExecutionService', () => {
   const publicUsersService = {
     findByIds: jest.fn(),
   };
+  const storageService = {
+    presignProofUpload: jest.fn(),
+    linkVerifiedFile: jest.fn(),
+    releaseFileLink: jest.fn(),
+    createLinkedDownloadUrl: jest.fn(),
+    deleteLinkedFile: jest.fn(),
+  };
 
   let execution: ServiceExecutionService;
   let service: ReturnType<typeof serviceDocument>;
@@ -61,6 +68,7 @@ describe('ServiceExecutionService', () => {
       proofModel as never,
       pointsService as never,
       publicUsersService as never,
+      storageService as never,
     );
   });
 
@@ -129,6 +137,23 @@ describe('ServiceExecutionService', () => {
       }),
     );
     expect(result.type).toBe(ServiceProofType.NOTE);
+  });
+
+  it('allows only the selected provider to prepare a proof upload', async () => {
+    service.status = ServiceStatus.IN_PROGRESS;
+    storageService.presignProofUpload.mockResolvedValue({ fileId: 'file-id' });
+    const input = {
+      filename: 'preuve.png',
+      mimeType: 'image/png' as const,
+      sizeBytes: 128,
+    };
+
+    await expect(
+      execution.presignProofUpload(SERVICE_ID, input, actor(PROVIDER_ID)),
+    ).resolves.toEqual({ fileId: 'file-id' });
+    await expect(
+      execution.presignProofUpload(SERVICE_ID, input, actor(REQUESTER_ID)),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('validates proof content and protects proof visibility', async () => {

@@ -7,6 +7,7 @@ import {
 } from '../applications/schemas/service-application.schema';
 import { DocumentsModule } from '../documents/documents.module';
 import { PointsModule } from '../points/points.module';
+import { ReviewsModule } from '../reviews/reviews.module';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
 import { ServicesModule } from '../services/services.module';
 import { UsersModule } from '../users/users.module';
@@ -17,6 +18,7 @@ import { Contract, ContractSchema } from './schemas/contract.schema';
 @Module({
   imports: [
     PointsModule,
+    ReviewsModule,
     DocumentsModule,
     ServicesModule,
     UsersModule,

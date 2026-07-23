@@ -3,9 +3,13 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 
 import {
   Service,
@@ -46,6 +50,7 @@ export class ApplicationsService {
     @InjectModel(Service.name)
     private readonly serviceModel: Model<ServiceDocument>,
     private readonly publicUsersService: PublicUsersService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async create(
@@ -99,6 +104,7 @@ export class ApplicationsService {
           status: ServiceStatus.APPLICATION_RECEIVED,
         })
         .exec();
+      void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, serviceId);
     }
 
     return application;
@@ -229,6 +235,11 @@ export class ApplicationsService {
         { returnDocument: 'after', runValidators: true },
       )
       .exec();
+
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.SERVICE,
+      application.serviceId,
+    );
 
     return application;
   }

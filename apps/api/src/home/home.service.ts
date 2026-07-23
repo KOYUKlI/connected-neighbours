@@ -18,6 +18,7 @@ import {
   Incident,
   IncidentDocument,
 } from '../incidents/schemas/incident.schema';
+import { EventsService } from '../events/events.service';
 import {
   Neighborhood,
   NeighborhoodDocument,
@@ -29,6 +30,8 @@ import {
 } from '../services/schemas/service.schema';
 import { ServiceRow, ServicesService } from '../services/services.service';
 import { PublicUsersService } from '../users/public-users.service';
+import { VotesService } from '../votes/votes.service';
+import { RecommendationsService } from '../recommendations/recommendations.service';
 
 type UserRow = User & { _id: unknown };
 type NeighborhoodRow = Neighborhood & { _id: unknown };
@@ -54,6 +57,9 @@ export class HomeService {
     private readonly incidentModel: Model<IncidentDocument>,
     private readonly publicUsersService: PublicUsersService,
     private readonly servicesService: ServicesService,
+    private readonly eventsService: EventsService,
+    private readonly votesService: VotesService,
+    private readonly recommendationsService: RecommendationsService,
   ) {}
 
   async getHome(actor: AuthenticatedUser) {
@@ -149,6 +155,22 @@ export class HomeService {
       recentServiceRows,
       actor,
     );
+    const [
+      localEvents,
+      localVotes,
+      recommendedServices,
+      recommendedEvents,
+      recommendedNeighbors,
+    ] = await Promise.all([
+      this.eventsService.homeSummary(actor),
+      this.votesService.homeSummary(actor),
+      this.recommendationsService.services(actor, { limit: 3, excludeIds: [] }),
+      this.recommendationsService.events(actor, { limit: 2, excludeIds: [] }),
+      this.recommendationsService.neighbors(actor, {
+        limit: 3,
+        excludeIds: [],
+      }),
+    ]);
 
     return {
       profile: {
@@ -195,6 +217,9 @@ export class HomeService {
           })),
       ],
       recentServices,
+      recommendedServices: recommendedServices.items,
+      recommendedEvents: recommendedEvents.items,
+      recommendedNeighbors: recommendedNeighbors.items,
       recentIncidents: recentIncidents.map((incident) => ({
         id: String(incident._id),
         title: incident.title,
@@ -204,6 +229,8 @@ export class HomeService {
         neighborhoodId: incident.neighborhoodId,
         createdAt: incident.createdAt,
       })),
+      ...localEvents,
+      ...localVotes,
       counts: {
         createdServices: createdServicesCount,
         applications: applicationsCount,

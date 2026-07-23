@@ -1,9 +1,12 @@
-import { apiRequest } from './client';
-import type { IncidentItem } from './incidents';
-import type { PublicUserSummary, ServiceItem } from './services';
+import { apiRequest } from "./client";
+import type { IncidentItem } from "./incidents";
+import type { EventItem } from "./events";
+import type { PublicUserSummary, ServiceItem } from "./services";
+import type { VoteItem } from "./votes";
+import type { RecommendedItem } from "./recommendations";
 
 export type HomeTodoItem = {
-  type: 'compare_applications' | 'sign_contract' | 'follow_active_contract';
+  type: "compare_applications" | "sign_contract" | "follow_active_contract";
   serviceId: string;
   serviceTitle: string | null;
   count?: number;
@@ -26,12 +29,25 @@ export type HomeResponse = {
   };
   todoItems: HomeTodoItem[];
   recentServices: ServiceItem[];
+  recommendedServices: Array<RecommendedItem<ServiceItem>>;
+  recommendedEvents: Array<RecommendedItem<EventItem>>;
+  recommendedNeighbors: Array<RecommendedItem<PublicUserSummary>>;
   recentIncidents: Array<
     Pick<
       IncidentItem,
-      'id' | 'title' | 'type' | 'severity' | 'status' | 'neighborhoodId' | 'createdAt'
+      | "id"
+      | "title"
+      | "type"
+      | "severity"
+      | "status"
+      | "neighborhoodId"
+      | "createdAt"
     >
   >;
+  upcomingEvents: EventItem[];
+  openVotes: VoteItem[];
+  myUpcomingEventsCount: number;
+  myPendingVotesCount: number;
   counts: {
     createdServices: number;
     applications: number;
@@ -40,5 +56,5 @@ export type HomeResponse = {
 };
 
 export function getHome() {
-  return apiRequest<HomeResponse>('/api/home');
+  return apiRequest<HomeResponse>("/api/home");
 }

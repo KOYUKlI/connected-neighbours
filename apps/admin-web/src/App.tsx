@@ -1,24 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import type { LatLngExpression } from 'leaflet'
+import type { LatLngExpression, LeafletEvent } from 'leaflet'
 import {
-  CircleMarker,
   MapContainer,
+  Marker,
   Polygon,
   TileLayer,
   useMap,
   useMapEvents,
 } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 
-import {
-  ApiError,
-  getAuthToken,
-  getCurrentAdmin,
-  loginAdmin,
-  removeAuthToken,
-  setAuthToken,
-} from './api/client'
-import type { PublicUser } from './api/client'
+import { ApiError } from './api/client'
+import { useAdminAuth } from './auth/useAdminAuth'
 import {
   fetchContracts,
   fetchDashboard,
@@ -41,6 +35,7 @@ import {
   fetchNeighborhoods,
   fetchNeighborhoodMembers,
   fetchNeighborhoodStats,
+  restoreNeighborhood,
   updateNeighborhood,
 } from './api/neighborhoods'
 import type {
@@ -69,6 +64,11 @@ import { ContractsListPage } from './pages/ContractsListPage'
 import { DisputesPage } from './features/disputes/DisputesPage'
 import { DocumentsPage } from './features/documents/DocumentsPage'
 import { IncidentsPage } from './features/incidents/IncidentsPage'
+import { AdminEventsPage } from './features/local-life/AdminEventsPage'
+import { AdminVotesPage } from './features/local-life/AdminVotesPage'
+import { AdminReviewsPage } from './features/reviews/AdminReviewsPage'
+import { AdminGraphPage } from './features/graph/AdminGraphPage'
+import { AdminIdentitiesPage } from './features/identities/AdminIdentitiesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NeighborhoodCreatePage } from './pages/NeighborhoodCreatePage'
@@ -80,18 +80,25 @@ import { SyncPage } from './pages/SyncPage'
 import { UsersListPage } from './pages/UsersListPage'
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', description: 'Vue globale', icon: 'dashboard' },
-  { id: 'neighborhoods', label: 'Quartiers', description: 'Zones et habitants', icon: 'neighborhoods' },
-  { id: 'services', label: 'Services', description: 'Annonces voisines', icon: 'services' },
-  { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts' },
-  { id: 'documents', label: 'Documents', description: 'PDF et signatures', icon: 'documents' },
-  { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes' },
-  { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents' },
-  { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync' },
-  { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users' },
+  { id: 'dashboard', label: 'Dashboard', description: 'Vue globale', icon: 'dashboard', group: 'Vue d’ensemble' },
+  { id: 'neighborhoods', label: 'Quartiers', description: 'Zones et habitants', icon: 'neighborhoods', group: 'Communauté' },
+  { id: 'users', label: 'Utilisateurs', description: 'Rôles et soldes', icon: 'users', group: 'Communauté' },
+  { id: 'reviews', label: 'Avis', description: 'Réputation et modération', icon: 'reviews', group: 'Communauté' },
+  { id: 'services', label: 'Services', description: 'Annonces voisines', icon: 'services', group: 'Activité' },
+  { id: 'contracts', label: 'Contrats', description: 'Signatures et points', icon: 'contracts', group: 'Activité' },
+  { id: 'documents', label: 'Documents', description: 'PDF et signatures', icon: 'documents', group: 'Activité' },
+  { id: 'disputes', label: 'Litiges', description: 'Preuves et décisions', icon: 'disputes', group: 'Activité' },
+  { id: 'events', label: 'Événements', description: 'Vie du quartier', icon: 'events', group: 'Vie locale' },
+  { id: 'votes', label: 'Votes', description: 'Consultations locales', icon: 'votes', group: 'Vie locale' },
+  { id: 'incidents', label: 'Incidents', description: 'Signalements', icon: 'incidents', group: 'Opérations' },
+  { id: 'alerts', label: 'Alertes', description: 'Suivi par incident', icon: 'alerts', group: 'Opérations' },
+  { id: 'sync', label: 'Synchronisation', description: 'Clients JavaFX', icon: 'sync', group: 'Opérations' },
+  { id: 'graph', label: 'Recommandations', description: 'Santé et projections', icon: 'graph', group: 'Système' },
+  { id: 'identities', label: 'Identités', description: 'SSO et sessions', icon: 'identities', group: 'Système' },
 ] as const
 
 type SectionId = (typeof navigationItems)[number]['id']
+const moderatorSections = new Set<SectionId>(['disputes', 'events', 'votes', 'reviews'])
 
 const demoEmail = 'admin@connected-neighbours.local'
 const numberFormatter = new Intl.NumberFormat('fr-FR')
@@ -129,13 +136,20 @@ const formGridClass =
 const mutedClass = 'text-slate-500';
 
 function App() {
-  const [token, setToken] = useState(() => getAuthToken())
-  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null)
+  const {
+    authMode,
+    clearSession,
+    currentUser,
+    isReady,
+    login,
+    loginError,
+    loginWithKeycloak,
+    logout,
+  } = useAdminAuth()
   const [activeSection, setActiveSection] = useState<SectionId>('dashboard')
   const [refreshKey, setRefreshKey] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [loginError, setLoginError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null)
   const [neighborhoods, setNeighborhoods] = useState<NeighborhoodItem[]>([])
   const [services, setServices] = useState<AdminServiceRow[]>([])
@@ -144,45 +158,13 @@ function App() {
   const [syncStates, setSyncStates] = useState<AdminSyncStateRow[]>([])
   const [users, setUsers] = useState<AdminUserRow[]>([])
   const isBackgroundRefreshRef = useRef(false)
-
-  const clearSession = useCallback((message?: string) => {
-    removeAuthToken()
-    setToken(null)
-    setCurrentUser(null)
-    setActiveSection('dashboard')
-    setLoginError(message ?? null)
-  }, [])
+  const resolvedSection =
+    currentUser?.role === 'moderator' && !moderatorSections.has(activeSection)
+      ? 'disputes'
+      : activeSection
 
   useEffect(() => {
-    if (!token || currentUser) {
-      return
-    }
-
-    let ignore = false
-    async function restoreSession() {
-      try {
-        const user = await getCurrentAdmin()
-        if (!['admin', 'moderator'].includes(user.role)) {
-          clearSession('Ce compte ne dispose pas d’un rôle de modération.')
-          return
-        }
-        if (!ignore) {
-          setCurrentUser(user)
-          setActiveSection(user.role === 'moderator' ? 'disputes' : 'dashboard')
-        }
-      } catch (error) {
-        if (!ignore) clearSession(getErrorMessage(error))
-      }
-    }
-
-    void restoreSession()
-    return () => {
-      ignore = true
-    }
-  }, [clearSession, currentUser, token])
-
-  useEffect(() => {
-    if (!token || !currentUser) {
+    if (!currentUser) {
       return
     }
 
@@ -197,7 +179,7 @@ function App() {
       }
 
       try {
-        switch (activeSection) {
+        switch (resolvedSection) {
           case 'dashboard': {
             const [nextDashboard, nextServices, nextIncidents, nextSyncStates] =
               await Promise.all([
@@ -253,7 +235,19 @@ function App() {
           case 'disputes': {
             break
           }
+          case 'events': {
+            break
+          }
+          case 'votes': {
+            break
+          }
+          case 'reviews': {
+            break
+          }
           case 'incidents': {
+            break
+          }
+          case 'alerts': {
             break
           }
           case 'sync': {
@@ -261,6 +255,12 @@ function App() {
             if (!ignore) {
               setSyncStates(nextSyncStates)
             }
+            break
+          }
+          case 'graph': {
+            break
+          }
+          case 'identities': {
             break
           }
           case 'users': {
@@ -299,10 +299,10 @@ function App() {
     return () => {
       ignore = true
     }
-  }, [activeSection, clearSession, currentUser, refreshKey, token])
+  }, [clearSession, currentUser, refreshKey, resolvedSection])
 
   useEffect(() => {
-    if (!token) {
+    if (!currentUser) {
       return
     }
 
@@ -312,43 +312,45 @@ function App() {
     }, 60000)
 
     return () => window.clearInterval(interval)
-  }, [token])
+  }, [currentUser])
 
   async function handleLogin(email: string, password: string) {
-    setLoginError(null)
-
-    try {
-      const response = await loginAdmin(email, password)
-
-      if (!['admin', 'moderator'].includes(response.user.role)) {
-        setLoginError('Ce compte ne dispose pas d’un rôle de modération.')
-        return
-      }
-
-      setAuthToken(response.accessToken)
-      setCurrentUser(response.user)
-      setToken(response.accessToken)
-      setActiveSection(response.user.role === 'moderator' ? 'disputes' : 'dashboard')
-      setRefreshKey((value) => value + 1)
-    } catch (error) {
-      setLoginError(getErrorMessage(error))
-    }
+    const user = await login(email, password)
+    if (!user) return
+    setActiveSection(user.role === 'moderator' ? 'disputes' : 'dashboard')
+    setRefreshKey((value) => value + 1)
   }
 
-  if (!token) {
+  if (!isReady) {
     return (
-      <LoginPage>
-        <LoginScreen error={loginError} onSubmit={handleLogin} />
-      </LoginPage>
+      <div className="grid min-h-screen place-items-center bg-slate-100 text-sm text-slate-600">
+        Vérification de la session administrateur…
+      </div>
     )
   }
 
+  if (!currentUser) {
+    return (
+      <LoginPage>
+        <LoginScreen
+          authMode={authMode}
+          error={loginError}
+          onKeycloakLogin={loginWithKeycloak}
+          onSubmit={handleLogin}
+        />
+      </LoginPage>
+    )
+  }
   return (
     <AdminShell
       sidebar={
         <AdminSidebar
-          activeItem={activeSection}
-          items={currentUser?.role === 'moderator' ? navigationItems.filter((item) => item.id === 'disputes') : navigationItems}
+          activeItem={resolvedSection}
+          items={
+            currentUser?.role === 'moderator'
+              ? navigationItems.filter((item) => moderatorSections.has(item.id))
+              : navigationItems
+          }
           onNavigate={setActiveSection}
         />
       }
@@ -358,11 +360,11 @@ function App() {
             <Breadcrumb
               items={[
                 { label: 'Administration' },
-                { label: getSectionLabel(activeSection) },
+                { label: getSectionLabel(resolvedSection) },
               ]}
             />
           }
-          onLogout={() => clearSession()}
+          onLogout={() => void logout()}
           roleLabel={currentUser?.role === 'moderator' ? 'Modérateur' : 'Administrateur'}
           userEmail={currentUser?.email ?? demoEmail}
           userName={currentUser?.displayName ?? 'Session admin'}
@@ -382,7 +384,7 @@ function App() {
 
       <section className="min-w-0">
         {renderSection({
-          activeSection,
+          activeSection: resolvedSection,
           dashboard,
           neighborhoods,
           services,
@@ -398,24 +400,34 @@ function App() {
 }
 
 type LoginScreenProps = {
+  authMode: 'local' | 'keycloak'
   error: string | null
+  onKeycloakLogin: () => Promise<void>
   onSubmit: (email: string, password: string) => Promise<void>
 }
 
-function LoginScreen({ error, onSubmit }: LoginScreenProps) {
-  const [email, setEmail] = useState(demoEmail)
+function LoginScreen({
+  authMode,
+  error,
+  onKeycloakLogin,
+  onSubmit,
+}: LoginScreenProps) {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submit(action: () => Promise<void>) {
     setIsSubmitting(true)
-
     try {
-      await onSubmit(email, password)
+      await action()
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await submit(() => onSubmit(email, password))
   }
 
   return (
@@ -438,50 +450,58 @@ function LoginScreen({ error, onSubmit }: LoginScreenProps) {
             Connexion administrateur
           </h1>
           <p className="mt-2 text-slate-500">
-            Compte demo : {demoEmail} / admin123
+            Un rôle de modération actif et une double authentification sont requis en mode SSO.
           </p>
         </div>
 
-        <form className={formGridClass} onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              autoComplete="email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-100 px-4 py-3 font-bold text-red-700">
+            {error}
+          </div>
+        ) : null}
 
-          <label>
-            Mot de passe
-            <input
-              autoComplete="current-password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-100 px-4 py-3 font-bold text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <button className={buttonClasses.primary} type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Connexion...' : 'Se connecter'}
+        {authMode === 'keycloak' ? (
+          <button
+            className={buttonClasses.primary}
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void submit(onKeycloakLogin)}
+          >
+            {isSubmitting ? 'Redirection…' : 'Se connecter avec Keycloak'}
           </button>
-        </form>
+        ) : (
+          <form className={formGridClass} onSubmit={handleSubmit}>
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Mot de passe
+              <input
+                autoComplete="current-password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            <button className={buttonClasses.primary} type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Connexion…' : 'Se connecter'}
+            </button>
+          </form>
+        )}
       </section>
     </main>
   )
 }
-
 type RenderSectionProps = {
   activeSection: SectionId
   dashboard: AdminDashboard | null
@@ -534,10 +554,22 @@ function renderSection(props: RenderSectionProps) {
       return <DocumentsPage />
     case 'disputes':
       return <DisputesPage />
+    case 'events':
+      return <AdminEventsPage />
+    case 'votes':
+      return <AdminVotesPage />
+    case 'reviews':
+      return <AdminReviewsPage />
     case 'incidents':
+      return <IncidentsPage />
+    case 'alerts':
       return <IncidentsPage />
     case 'sync':
       return <SyncPage syncStates={props.syncStates} />
+    case 'graph':
+      return <AdminGraphPage />
+    case 'identities':
+      return <AdminIdentitiesPage />
     case 'users':
       return <UsersListPage neighborhoods={props.neighborhoods} users={props.users} />
   }
@@ -866,6 +898,26 @@ function NeighborhoodsView({
     }
   }
 
+  async function handleRestore(neighborhood: NeighborhoodItem) {
+    const neighborhoodId = getNeighborhoodId(neighborhood)
+    const confirmed = window.confirm(`Réactiver le quartier "${neighborhood.name}" ?`)
+
+    if (!confirmed) return
+
+    setIsArchiving(true)
+    setArchivingId(neighborhoodId)
+    setDetailError(null)
+    try {
+      await restoreNeighborhood(neighborhoodId)
+      onReload()
+    } catch (error) {
+      setDetailError(getErrorMessage(error))
+    } finally {
+      setIsArchiving(false)
+      setArchivingId(null)
+    }
+  }
+
   function startNewNeighborhood() {
     setEditingNeighborhood(null)
     setPageMode('create')
@@ -924,6 +976,7 @@ function NeighborhoodsView({
         />
         <Card>
           <NeighborhoodForm
+            existingNeighborhoods={neighborhoods}
             formId="neighborhood-create-form"
             key={`create-${formVersion}`}
             neighborhood={null}
@@ -959,6 +1012,7 @@ function NeighborhoodsView({
         />
         <Card>
           <NeighborhoodForm
+            existingNeighborhoods={neighborhoods}
             formId="neighborhood-edit-form"
             key={getNeighborhoodId(editingNeighborhood ?? selectedNeighborhood)}
             neighborhood={editingNeighborhood ?? selectedNeighborhood}
@@ -988,14 +1042,11 @@ function NeighborhoodsView({
               <button className={buttonClasses.secondary} onClick={() => startEditNeighborhood(selectedNeighborhood)} type="button">
                 Modifier
               </button>
-              <button
-                className={buttonClasses.danger}
-                disabled={isArchiving || neighborhoodStatus(selectedNeighborhood) === 'archived'}
-                onClick={() => void handleArchive(selectedNeighborhood)}
-                type="button"
-              >
-                Archiver
-              </button>
+              {neighborhoodStatus(selectedNeighborhood) === 'archived' ? (
+                <button className={buttonClasses.secondary} disabled={isArchiving} onClick={() => void handleRestore(selectedNeighborhood)} type="button">Réactiver</button>
+              ) : (
+                <button className={buttonClasses.danger} disabled={isArchiving} onClick={() => void handleArchive(selectedNeighborhood)} type="button">Archiver</button>
+              )}
             </>
           }
         />
@@ -1063,6 +1114,10 @@ function NeighborhoodsView({
                 focusKey={selectedRing.length}
                 heightClassName="h-[560px] min-h-[420px]"
                 onChange={() => undefined}
+                otherPolygons={neighborhoods
+                  .filter((item) => getNeighborhoodId(item) !== effectiveSelectedId)
+                  .map((item) => item.geometry ?? item.boundary)
+                  .filter((polygon): polygon is GeoJsonPolygon => Boolean(polygon))}
                 readOnly
                 ring={selectedRing}
               />
@@ -1105,17 +1160,19 @@ function NeighborhoodsView({
 
         {activeTab === 'history' ? (
           <Card className="grid gap-3">
-            <SectionHeader title="Historique" description="Traces disponibles dans les données actuelles." />
-            <dl className="grid grid-cols-2 gap-3 max-[760px]:grid-cols-1 [&_dd]:m-0 [&_div]:rounded-lg [&_div]:bg-slate-50 [&_div]:p-3 [&_dt]:text-xs [&_dt]:font-extrabold [&_dt]:uppercase [&_dt]:text-slate-500">
-              <div>
-                <dt>Création</dt>
-                <dd>{formatDate(selectedNeighborhood.createdAt)}</dd>
+            <SectionHeader title="Historique" description="Créations, modifications, archivages et affectations tracés par l’API." />
+            {selectedNeighborhood.history?.length ? (
+              <div className="grid gap-2">
+                {[...selectedNeighborhood.history].reverse().map((entry, index) => (
+                  <div className="flex items-start justify-between gap-4 rounded-lg bg-slate-50 p-3" key={`${entry.type}-${entry.occurredAt}-${index}`}>
+                    <div><strong className="text-sm text-slate-900">{formatNeighborhoodHistoryType(entry.type)}</strong><p className="mt-1 text-xs text-slate-500">Acteur : {formatShortId(entry.actorId)}</p></div>
+                    <time className="whitespace-nowrap text-xs text-slate-500">{formatDate(entry.occurredAt)}</time>
+                  </div>
+                ))}
               </div>
-              <div>
-                <dt>Dernière modification</dt>
-                <dd>{formatDate(selectedNeighborhood.updatedAt)}</dd>
-              </div>
-            </dl>
+            ) : (
+              <p className="text-sm text-slate-500">Créé le {formatDate(selectedNeighborhood.createdAt)} · dernière modification {formatDate(selectedNeighborhood.updatedAt)}</p>
+            )}
           </Card>
         ) : null}
       </NeighborhoodDetailPage>
@@ -1142,6 +1199,10 @@ function NeighborhoodsView({
           startEditNeighborhood(neighborhood)
         }
       }}
+      onRestore={(id) => {
+        const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
+        if (neighborhood) void handleRestore(neighborhood)
+      }}
       onView={(id) => {
         const neighborhood = neighborhoods.find((item) => getNeighborhoodId(item) === id)
 
@@ -1155,11 +1216,13 @@ function NeighborhoodsView({
 }
 
 function NeighborhoodForm({
+  existingNeighborhoods,
   formId,
   neighborhood,
   onCancelEdit,
   onSaved,
 }: {
+  existingNeighborhoods: NeighborhoodItem[]
   formId?: string
   neighborhood: NeighborhoodItem | null
   onCancelEdit: () => void
@@ -1188,6 +1251,17 @@ function NeighborhoodForm({
   )
   const [mapFocusKey, setMapFocusKey] = useState(0)
   const lastPlaceSearchAtRef = useRef(0)
+  const postalCodes = postalCode
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  const otherPolygons = existingNeighborhoods
+    .filter((item) => !neighborhood || getNeighborhoodId(item) !== getNeighborhoodId(neighborhood))
+    .map((item) => item.geometry ?? item.boundary)
+    .filter((polygon): polygon is GeoJsonPolygon => Boolean(polygon))
+  const potentialOverlap = otherPolygons.some((polygon) =>
+    boundingBoxesOverlap(ring, openRingFromPolygon(polygon)),
+  )
 
   const isEditing = !!neighborhood
   const canSubmit =
@@ -1222,7 +1296,9 @@ function NeighborhoodForm({
       slug: slug.trim().toLowerCase(),
       description: description.trim(),
       city: city.trim(),
-      postalCode: postalCode.trim(),
+      postalCode: postalCodes[0] ?? '',
+      postalCodes,
+      geometry: toGeoJsonPolygon(ring),
       boundary: toGeoJsonPolygon(ring),
     }
 
@@ -1277,7 +1353,7 @@ function NeighborhoodForm({
     }
   }
 
-  function usePlaceResult(place: PlaceSearchResult) {
+  function applyPlaceResult(place: PlaceSearchResult) {
     const placeName = getPlaceName(place)
     const placeCity = extractCity(place.address)
     const placePostcode = extractPostcode(place.address)
@@ -1405,7 +1481,7 @@ function NeighborhoodForm({
                   </div>
                   <button
                     className={buttonClasses.compactSecondary}
-                    onClick={() => usePlaceResult(place)}
+                    onClick={() => applyPlaceResult(place)}
                     type="button"
                   >
                     Utiliser ce résultat
@@ -1465,9 +1541,10 @@ function NeighborhoodForm({
               />
             </label>
             <label>
-              Code postal
+              Codes postaux
               <input
                 onChange={(event) => setPostalCode(event.target.value)}
+                placeholder="75001, 75002"
                 required
                 value={postalCode}
               />
@@ -1490,6 +1567,12 @@ function NeighborhoodForm({
           <div className="flex flex-wrap items-center justify-between gap-2 text-slate-500">
             <span className="text-sm font-semibold">{ring.length} point(s) placé(s)</span>
             <div className="flex flex-wrap gap-2">
+              <button className={buttonClasses.compact} disabled={ring.length === 0} onClick={() => setRing((current) => current.slice(0, -1))} type="button">
+                Annuler le dernier point
+              </button>
+              <button className={buttonClasses.compact} disabled={ring.length === 0} onClick={() => { setMapCenter(getMapCenterFromRing(ring)); setMapFocusKey((value) => value + 1) }} type="button">
+                Recentrer
+              </button>
               {suggestedRing ? (
                 <button className={buttonClasses.compactSecondary} onClick={useSuggestedArea} type="button">
                   Utiliser la zone détectée
@@ -1506,14 +1589,35 @@ function NeighborhoodForm({
             </div>
           </div>
 
+          {potentialOverlap ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+              La zone semble croiser un quartier existant. L’API vérifiera précisément le chevauchement avant enregistrement.
+            </p>
+          ) : null}
+
           <NeighborhoodMapEditor
             center={mapCenter}
             focusKey={mapFocusKey}
             heightClassName="h-[520px] min-h-[380px]"
             ring={ring}
+            otherPolygons={otherPolygons}
             suggestedRing={suggestedRing}
             onChange={setRing}
           />
+          {ring.length > 0 ? (
+            <div aria-label="Sommets du polygone" className="flex flex-wrap gap-2">
+              {ring.map((point, index) => (
+                <button
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:border-red-200 hover:text-red-700"
+                  key={`${point[0]}-${point[1]}-${index}`}
+                  onClick={() => setRing((current) => current.filter((_, pointIndex) => pointIndex !== index))}
+                  type="button"
+                >
+                  Point {index + 1} <span aria-hidden="true">×</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </section>
       </div>
 
@@ -1549,6 +1653,7 @@ function NeighborhoodMapEditor({
   ring,
   suggestedRing = null,
   onChange,
+  otherPolygons = [],
 }: {
   center?: LatLngExpression
   focusKey?: number
@@ -1557,6 +1662,7 @@ function NeighborhoodMapEditor({
   ring: CoordinatePair[]
   suggestedRing?: CoordinatePair[] | null
   onChange: (ring: CoordinatePair[]) => void
+  otherPolygons?: GeoJsonPolygon[]
 }) {
   const positions = toLeafletPositions(closeRing(ring))
   const suggestedPositions = toLeafletPositions(closeRing(suggestedRing ?? []))
@@ -1577,6 +1683,13 @@ function NeighborhoodMapEditor({
         {readOnly ? null : (
           <MapClickHandler onPoint={(point) => onChange([...ring, point])} />
         )}
+        {otherPolygons.map((polygon, index) => (
+          <Polygon
+            key={`other-${index}`}
+            pathOptions={{ color: '#64748b', dashArray: '5 5', fillOpacity: 0.05, weight: 1.5 }}
+            positions={toLeafletPositions(polygon.coordinates[0] ?? [])}
+          />
+        ))}
         {positions.length >= 3 ? (
           <Polygon pathOptions={{ color: '#047857', weight: 3 }} positions={positions} />
         ) : null}
@@ -1591,14 +1704,20 @@ function NeighborhoodMapEditor({
             positions={suggestedPositions}
           />
         ) : null}
-        {ring.map((point, index) => (
-          <CircleMarker
-            center={[point[1], point[0]]}
+        {!readOnly ? ring.map((point, index) => (
+          <Marker
+            draggable
+            eventHandlers={{
+              dragend(event: LeafletEvent) {
+                const marker = event.target as unknown as { getLatLng: () => { lat: number; lng: number } }
+                const position = marker.getLatLng()
+                onChange(ring.map((current, pointIndex) => pointIndex === index ? [Number(position.lng.toFixed(6)), Number(position.lat.toFixed(6))] : current))
+              },
+            }}
             key={`${point[0]}-${point[1]}-${index}`}
-            pathOptions={{ color: '#047857', fillColor: '#10b981', fillOpacity: 0.9 }}
-            radius={6}
+            position={[point[1], point[0]]}
           />
-        ))}
+        )) : null}
       </MapContainer>
     </div>
   )
@@ -1835,6 +1954,17 @@ function getSectionLabel(section: SectionId) {
   return navigationItems.find((item) => item.id === section)?.label ?? 'Dashboard'
 }
 
+function formatNeighborhoodHistoryType(type: NonNullable<NeighborhoodItem['history']>[number]['type']) {
+  const labels = {
+    archived: 'Quartier archivé',
+    created: 'Quartier créé',
+    restored: 'Quartier réactivé',
+    updated: 'Informations modifiées',
+    user_assigned: 'Habitant affecté',
+  }
+  return labels[type]
+}
+
 function getNeighborhoodId(neighborhood: NeighborhoodItem) {
   return neighborhood.id ?? neighborhood._id ?? neighborhood.slug
 }
@@ -1858,6 +1988,32 @@ function openRingFromPolygon(polygon?: GeoJsonPolygon) {
   }
 
   return ring
+}
+
+function boundingBoxesOverlap(left: CoordinatePair[], right: CoordinatePair[]) {
+  if (left.length < 3 || right.length < 3) return false
+  const bounds = (ring: CoordinatePair[]) => ring.reduce(
+    (result, [longitude, latitude]) => ({
+      maxLatitude: Math.max(result.maxLatitude, latitude),
+      maxLongitude: Math.max(result.maxLongitude, longitude),
+      minLatitude: Math.min(result.minLatitude, latitude),
+      minLongitude: Math.min(result.minLongitude, longitude),
+    }),
+    {
+      maxLatitude: -Infinity,
+      maxLongitude: -Infinity,
+      minLatitude: Infinity,
+      minLongitude: Infinity,
+    },
+  )
+  const leftBounds = bounds(left)
+  const rightBounds = bounds(right)
+  return !(
+    leftBounds.maxLongitude <= rightBounds.minLongitude ||
+    leftBounds.minLongitude >= rightBounds.maxLongitude ||
+    leftBounds.maxLatitude <= rightBounds.minLatitude ||
+    leftBounds.minLatitude >= rightBounds.maxLatitude
+  )
 }
 
 function closeRing(ring: CoordinatePair[]) {

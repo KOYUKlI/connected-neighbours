@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { createHash } from 'crypto';
 
 import { Role } from '../auth/role.enum';
@@ -6,6 +10,7 @@ import { DownloadDisposition } from './dto/download-file-query.dto';
 import {
   StorageContextType,
   StorageFileStatus,
+  StorageLinkedEntityType,
 } from './schemas/storage-file.schema';
 import { StorageService } from './storage.service';
 
@@ -13,12 +18,28 @@ describe('StorageService', () => {
   const files = new Map<string, ReturnType<typeof storageFile>>();
   const fileModel = {
     create: jest.fn((input: Record<string, unknown>) => {
-      const file = storageFile({ id: `file-${files.size + 1}`, ...input });
+      const file = storageFile({
+        id: (files.size + 1).toString(16).padStart(24, '0'),
+        ...input,
+      });
       files.set(file.id, file);
       return Promise.resolve(file);
     }),
     findById: jest.fn((id: string) => ({
       exec: () => Promise.resolve(files.get(id) ?? null),
+    })),
+    findOneAndUpdate: jest.fn(
+      (filter: { _id: string }, update: { $set: Record<string, unknown> }) => ({
+        exec: () => {
+          const file = files.get(filter._id);
+          if (!file || file.linkedEntityId) return Promise.resolve(null);
+          Object.assign(file, update.$set);
+          return Promise.resolve(file);
+        },
+      }),
+    ),
+    updateOne: jest.fn(() => ({
+      exec: () => Promise.resolve({ acknowledged: true }),
     })),
   };
   const contractModel = {
@@ -117,6 +138,162 @@ describe('StorageService', () => {
     expect(file.status).toBe(StorageFileStatus.REJECTED);
   });
 
+  it.each([
+    [
+      'image/jpeg',
+      Buffer.from([0xff, 0xd8, 0xff, ...new Array<number>(16).fill(0)]),
+    ],
+    [
+      'image/png',
+      Buffer.from([
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+        ...new Array<number>(12).fill(0),
+      ]),
+    ],
+    ['image/webp', Buffer.from('RIFF0000WEBPavatar-data', 'ascii')],
+  ])('accepts a verified %s avatar', async (mimeType, bytes) => {
+    const presigned = await service.presignAvatarUpload(
+      {
+        filename: 'avatar',
+        mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp',
+        sizeBytes: bytes.length,
+      },
+      actor('alice'),
+    );
+    await service.putMemoryUploadForTest(presigned.fileId, bytes);
+    const result = await service.completeUpload(
+      presigned.fileId,
+      actor('alice'),
+    );
+    expect(result.status).toBe(StorageFileStatus.VERIFIED);
+    expect(result.mimeType).toBe(mimeType);
+  });
+
+  it('rejects a fake image and marks it rejected', async () => {
+    const bytes = Buffer.from('this-is-not-a-real-png');
+    const presigned = await service.presignAvatarUpload(
+      {
+        filename: 'avatar.png',
+        mimeType: 'image/png',
+        sizeBytes: bytes.length,
+      },
+      actor('alice'),
+    );
+    await service.putMemoryUploadForTest(presigned.fileId, bytes);
+    await expect(
+      service.completeUpload(presigned.fileId, actor('alice')),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it.each([
+    ['image/jpeg', Buffer.from([0xff, 0xd8, 0xff, 0x00])],
+    [
+      'image/png',
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    ],
+    ['image/webp', Buffer.from('RIFF0000WEBP', 'ascii')],
+    ['application/pdf', Buffer.from('%PDF-1.7', 'ascii')],
+    ['audio/mpeg', Buffer.from('ID3proof', 'ascii')],
+    ['audio/ogg', Buffer.from('OggSproof', 'ascii')],
+    ['audio/wav', Buffer.from('RIFF0000WAVE', 'ascii')],
+    ['audio/webm', Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x00])],
+  ])(
+    'verifies the binary signature of %s proof files',
+    async (mimeType, bytes) => {
+      const presigned = await service.presignProofUpload(
+        {
+          filename: 'preuve.bin',
+          mimeType: mimeType as never,
+          sizeBytes: bytes.length,
+        },
+        actor('alice'),
+        StorageContextType.SERVICE_PROOF,
+        '507f1f77bcf86cd799439011',
+      );
+      await service.putMemoryUploadForTest(presigned.fileId, bytes);
+      await expect(
+        service.completeUpload(presigned.fileId, actor('alice')),
+      ).resolves.toEqual(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest asymmetric matcher is typed as any.
+        expect.objectContaining({ sha256: expect.any(String) }),
+      );
+    },
+  );
+
+  it('rejects a fake proof and prevents reusing a linked verified file', async () => {
+    const fake = Buffer.from('not-a-png', 'ascii');
+    const rejected = await service.presignProofUpload(
+      { filename: 'preuve.png', mimeType: 'image/png', sizeBytes: fake.length },
+      actor('alice'),
+      StorageContextType.SERVICE_PROOF,
+      '507f1f77bcf86cd799439011',
+    );
+    await service.putMemoryUploadForTest(rejected.fileId, fake);
+    await expect(
+      service.completeUpload(rejected.fileId, actor('alice')),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    const bytes = Buffer.from('%PDF-proof', 'ascii');
+    const accepted = await service.presignProofUpload(
+      {
+        filename: 'preuve.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: bytes.length,
+      },
+      actor('alice'),
+      StorageContextType.SERVICE_PROOF,
+      '507f1f77bcf86cd799439011',
+    );
+    await service.putMemoryUploadForTest(accepted.fileId, bytes);
+    await service.completeUpload(accepted.fileId, actor('alice'));
+    await service.linkVerifiedFile({
+      fileId: accepted.fileId,
+      ownerId: 'alice',
+      contextType: StorageContextType.SERVICE_PROOF,
+      contextId: '507f1f77bcf86cd799439011',
+      linkedEntityType: StorageLinkedEntityType.SERVICE_PROOF,
+      linkedEntityId: '507f1f77bcf86cd799439099',
+    });
+    await expect(
+      service.linkVerifiedFile({
+        fileId: accepted.fileId,
+        ownerId: 'alice',
+        contextType: StorageContextType.SERVICE_PROOF,
+        contextId: '507f1f77bcf86cd799439011',
+        linkedEntityType: StorageLinkedEntityType.SERVICE_PROOF,
+        linkedEntityId: '507f1f77bcf86cd799439098',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects an avatar whose announced size differs from the uploaded bytes', async () => {
+    const bytes = Buffer.from([
+      0xff,
+      0xd8,
+      0xff,
+      ...new Array<number>(16).fill(0),
+    ]);
+    const presigned = await service.presignAvatarUpload(
+      {
+        filename: 'avatar.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: bytes.length + 1,
+      },
+      actor('alice'),
+    );
+    await service.putMemoryUploadForTest(presigned.fileId, bytes);
+    await expect(
+      service.completeUpload(presigned.fileId, actor('alice')),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('refuses a temporary download URL to a contract outsider', async () => {
     const file = storageFile({
       id: '507f1f77bcf86cd799439014',
@@ -162,6 +339,9 @@ function storageFile(overrides: Record<string, unknown> = {}) {
     status: StorageFileStatus.PENDING,
     completedAt: null as Date | null,
     deletedAt: null as Date | null,
+    linkedEntityType: null as string | null,
+    linkedEntityId: null as string | null,
+    linkedAt: null as Date | null,
     save: jest.fn(function save(this: unknown) {
       return Promise.resolve(this);
     }),

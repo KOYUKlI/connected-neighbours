@@ -4,11 +4,14 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import { DocumentsService } from '../documents/documents.service';
 import { PointsService } from '../points/points.service';
 import {
@@ -29,6 +32,7 @@ import {
   ContractStatus,
 } from './schemas/contract.schema';
 import { PublicUsersService } from '../users/public-users.service';
+import { ReviewsService } from '../reviews/reviews.service';
 
 type ContractRow = Contract & {
   _id: unknown;
@@ -57,6 +61,8 @@ export class ContractsService {
     private readonly publicUsersService: PublicUsersService,
     private readonly executionService: ServiceExecutionService,
     private readonly documentsService: DocumentsService,
+    private readonly reviewsService: ReviewsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async createFromApplication(
@@ -125,6 +131,7 @@ export class ContractsService {
     if (!updatedService) {
       throw new NotFoundException(`Service ${service.id} introuvable`);
     }
+    this.queueServiceProjection(service.id);
 
     return {
       service: updatedService,
@@ -199,32 +206,36 @@ export class ContractsService {
     };
   }
 
-  async findAllForUser(userId: string) {
+  async findAllForUser(actor: AuthenticatedUser) {
     const contracts = await this.contractModel
       .find({
-        $or: [{ requesterId: userId }, { providerId: userId }],
+        $or: [{ requesterId: actor.sub }, { providerId: actor.sub }],
       })
       .sort({ createdAt: -1 })
       .lean<ContractRow[]>()
       .exec();
-    return this.presentContracts(contracts);
+    return this.presentContracts(contracts, actor);
   }
 
-  async findOne(id: string, userId: string) {
+  async findOne(id: string, actor: AuthenticatedUser) {
     const contract = await this.findContract(id);
 
-    this.assertContractParty(contract, userId);
-    const [presented] = await this.presentContracts([
-      contract.toObject() as ContractRow,
-    ]);
+    this.assertContractParty(contract, actor.sub);
+    const [presented] = await this.presentContracts(
+      [contract.toObject() as ContractRow],
+      actor,
+    );
     return presented;
   }
 
-  private async presentContracts(contracts: ContractRow[]) {
+  private async presentContracts(
+    contracts: ContractRow[],
+    actor: AuthenticatedUser,
+  ) {
     if (contracts.length === 0) return [];
 
     const serviceIds = [...new Set(contracts.map((item) => item.serviceId))];
-    const [services, publicUsers] = await Promise.all([
+    const [services, publicUsers, reviewPermissions] = await Promise.all([
       this.serviceModel
         .find({ _id: { $in: serviceIds } })
         .select('_id title type category status neighborhoodId')
@@ -234,6 +245,10 @@ export class ContractsService {
         ...contracts.map((item) => item.requesterId),
         ...contracts.map((item) => item.providerId),
       ]),
+      this.reviewsService.getPermissionsByContractIds(
+        contracts.map((contract) => String(contract._id)),
+        actor,
+      ),
     ]);
     const serviceById = new Map(
       services.map((service) => [String(service._id), service]),
@@ -271,6 +286,12 @@ export class ContractsService {
               neighborhoodId: service.neighborhoodId,
             }
           : null,
+        review: reviewPermissions.get(String(contract._id)) ?? {
+          canReview: false,
+          hasReviewed: false,
+          reviewId: null,
+          otherPartyId: null,
+        },
       };
     });
   }
@@ -357,7 +378,13 @@ export class ContractsService {
       throw new NotFoundException(`Service ${serviceId} introuvable`);
     }
 
+    this.queueServiceProjection(serviceId);
+
     return service;
+  }
+
+  private queueServiceProjection(serviceId: string) {
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, serviceId);
   }
 
   private async findApplication(applicationId: string) {

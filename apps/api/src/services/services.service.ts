@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -25,12 +26,18 @@ import {
   DisputeDocument,
   DisputeStatus,
 } from '../disputes/schemas/dispute.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType, GraphSyncOperation } from '../graph/graph.types';
 import {
   Neighborhood,
   NeighborhoodDocument,
   NeighborhoodStatus,
 } from '../neighborhoods/schemas/neighborhood.schema';
 import { PublicUsersService } from '../users/public-users.service';
+import {
+  ContractReviewPermission,
+  ReviewsService,
+} from '../reviews/reviews.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -60,7 +67,7 @@ const CANCELLABLE_SERVICE_STATUSES = new Set<ServiceStatus>([
   ServiceStatus.APPLICATION_RECEIVED,
 ]);
 
-type ServiceActor = Pick<AuthenticatedUser, 'sub' | 'role'>;
+type ServiceActor = Pick<AuthenticatedUser, 'sub' | 'role' | 'neighborhoodId'>;
 export type ServiceRow = Service & {
   _id: unknown;
   createdAt?: Date;
@@ -83,6 +90,7 @@ type EnrichmentContext = {
   viewerApplications: Map<string, ViewerApplicationRow>;
   viewerContracts: Map<string, ContractRow>;
   activeDisputes: Map<string, DisputeRow>;
+  reviewPermissions: Map<string, ContractReviewPermission>;
 };
 type ServiceFilter = Record<string, unknown>;
 
@@ -102,10 +110,31 @@ export class ServicesService {
     @InjectModel(ServiceProof.name)
     private readonly proofModel: Model<ServiceProofDocument>,
     private readonly publicUsersService: PublicUsersService,
+    private readonly reviewsService: ReviewsService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
-  async create(createServiceDto: CreateServiceDto, ownerId: string) {
-    await this.assertNeighborhoodCanBeUsed(createServiceDto.neighborhoodId);
+  async create(createServiceDto: CreateServiceDto, actor: ServiceActor) {
+    const requestedNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+      createServiceDto.neighborhoodId,
+    );
+    let neighborhoodId = requestedNeighborhoodId;
+    if (actor.role === Role.RESIDENT) {
+      if (!actor.neighborhoodId) {
+        throw new ConflictException(
+          'Vous devez être rattaché à un quartier avant de publier un service.',
+        );
+      }
+      const actorNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+        actor.neighborhoodId,
+      );
+      if (requestedNeighborhoodId !== actorNeighborhoodId) {
+        throw new ForbiddenException(
+          'Vous pouvez publier un service uniquement dans votre quartier.',
+        );
+      }
+      neighborhoodId = actorNeighborhoodId;
+    }
     if (
       createServiceDto.status &&
       ![ServiceStatus.DRAFT, ServiceStatus.PUBLISHED].includes(
@@ -117,14 +146,17 @@ export class ServicesService {
       );
     }
 
-    return this.serviceModel.create({
+    const created = await this.serviceModel.create({
       ...createServiceDto,
-      ownerId,
+      neighborhoodId,
+      ownerId: actor.sub,
       status: createServiceDto.status ?? ServiceStatus.PUBLISHED,
       pricePoints: createServiceDto.isPaid
         ? (createServiceDto.pricePoints ?? 0)
         : null,
     });
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, created.id);
+    return created;
   }
 
   async findAll(query: ListServicesQueryDto, actor: AuthenticatedUser) {
@@ -231,7 +263,7 @@ export class ServicesService {
     actor: AuthenticatedUser,
   ): Promise<ServiceResponse[]> {
     if (rows.length === 0) return [];
-    const context = await this.loadEnrichmentContext(rows, actor.sub);
+    const context = await this.loadEnrichmentContext(rows, actor);
     return rows.map((row) => this.presentService(row, actor, context));
   }
 
@@ -254,7 +286,20 @@ export class ServicesService {
 
     const payload = { ...updateServiceDto };
     if (payload.neighborhoodId) {
-      await this.assertNeighborhoodCanBeUsed(payload.neighborhoodId);
+      const requestedNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+        payload.neighborhoodId,
+      );
+      if (actor.role === Role.RESIDENT) {
+        const actorNeighborhoodId = await this.assertNeighborhoodCanBeUsed(
+          actor.neighborhoodId,
+        );
+        if (requestedNeighborhoodId !== actorNeighborhoodId) {
+          throw new ForbiddenException(
+            'Vous pouvez gérer un service uniquement dans votre quartier.',
+          );
+        }
+      }
+      payload.neighborhoodId = requestedNeighborhoodId;
     }
     if (payload.isPaid === false) payload.pricePoints = null;
     if (
@@ -274,6 +319,7 @@ export class ServicesService {
       })
       .exec();
     if (!updated) throw new NotFoundException('Service introuvable.');
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, updated.id);
     return updated;
   }
 
@@ -320,6 +366,11 @@ export class ServicesService {
 
     const deleted = await this.serviceModel.findByIdAndDelete(id).exec();
     if (!deleted) throw new NotFoundException('Service introuvable.');
+    void this.graphSyncService?.enqueue(
+      GraphEntityType.SERVICE,
+      id,
+      GraphSyncOperation.DELETE,
+    );
     return { deleted: true, id };
   }
 
@@ -327,13 +378,19 @@ export class ServicesService {
     query: ListServicesQueryDto,
     actor: AuthenticatedUser,
   ): ServiceFilter {
+    const publicVisibility =
+      actor.role === Role.RESIDENT
+        ? actor.neighborhoodId
+          ? {
+              status: { $in: PUBLIC_SERVICE_STATUSES },
+              neighborhoodId: actor.neighborhoodId,
+            }
+          : null
+        : { status: { $in: PUBLIC_SERVICE_STATUSES } };
     const clauses: ServiceFilter[] = [
-      {
-        $or: [
-          { ownerId: actor.sub },
-          { status: { $in: PUBLIC_SERVICE_STATUSES } },
-        ],
-      },
+      publicVisibility
+        ? { $or: [{ ownerId: actor.sub }, publicVisibility] }
+        : { ownerId: actor.sub },
     ];
     if (query.type) clauses.push({ type: query.type });
     if (query.category) clauses.push({ category: query.category });
@@ -358,7 +415,7 @@ export class ServicesService {
 
   private async loadEnrichmentContext(
     rows: ServiceRow[],
-    viewerId: string,
+    actor: AuthenticatedUser,
   ): Promise<EnrichmentContext> {
     const serviceIds = rows.map((row) => String(row._id));
     const ownerIds = rows.map((row) => row.ownerId);
@@ -405,14 +462,14 @@ export class ServicesService {
         ])
         .exec(),
       this.applicationModel
-        .find({ serviceId: { $in: serviceIds }, applicantId: viewerId })
+        .find({ serviceId: { $in: serviceIds }, applicantId: actor.sub })
         .sort({ createdAt: -1 })
         .lean<ViewerApplicationRow[]>()
         .exec(),
       this.contractModel
         .find({
           serviceId: { $in: serviceIds },
-          $or: [{ requesterId: viewerId }, { providerId: viewerId }],
+          $or: [{ requesterId: actor.sub }, { providerId: actor.sub }],
         })
         .lean<ContractRow[]>()
         .exec(),
@@ -443,6 +500,12 @@ export class ServicesService {
       }
     }
 
+    const reviewPermissions =
+      await this.reviewsService.getPermissionsByContractIds(
+        contracts.map((contract) => String(contract._id)),
+        actor,
+      );
+
     return {
       owners,
       neighborhoods: neighborhoodMap,
@@ -459,6 +522,7 @@ export class ServicesService {
       activeDisputes: new Map(
         disputes.map((dispute) => [dispute.serviceId, dispute]),
       ),
+      reviewPermissions,
     };
   }
 
@@ -478,6 +542,9 @@ export class ServicesService {
     const contractIsActive = contract?.status === ContractStatus.ACTIVE;
     const canModerate = [Role.MODERATOR, Role.ADMIN].includes(actor.role);
     const hasActiveDispute = Boolean(dispute);
+    const reviewPermission = contract
+      ? context.reviewPermissions.get(String(contract._id))
+      : undefined;
     const canOpenDispute =
       isParticipant &&
       contractIsActive &&
@@ -598,7 +665,9 @@ export class ServicesService {
         canStartReview: canModerate && hasActiveDispute,
         canResolveDispute: canModerate && hasActiveDispute,
         canCloseDispute: false,
+        canReview: reviewPermission?.canReview ?? false,
       },
+      review: reviewPermission ?? null,
       activeDispute:
         isParticipant && dispute
           ? {
@@ -710,6 +779,7 @@ export class ServicesService {
       )
       .exec();
     if (!updated) throw new NotFoundException('Service introuvable.');
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, updated.id);
     return updated;
   }
 
@@ -736,6 +806,7 @@ export class ServicesService {
         'Un quartier archive ne peut plus etre utilise.',
       );
     }
+    return neighborhood.slug || neighborhood.id;
   }
 
   private neighborhoodIdentifierFilter(neighborhoodId: string) {

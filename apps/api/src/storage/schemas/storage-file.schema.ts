@@ -17,6 +17,12 @@ export enum StorageContextType {
   DOCUMENT_FINAL = 'document_final',
   SERVICE_PROOF = 'service_proof',
   DISPUTE_EVIDENCE = 'dispute_evidence',
+  USER_AVATAR = 'user_avatar',
+}
+
+export enum StorageLinkedEntityType {
+  SERVICE_PROOF = 'service_proof',
+  DISPUTE_EVIDENCE = 'dispute_evidence',
 }
 
 @Schema({ timestamps: true, versionKey: false })
@@ -64,7 +70,24 @@ export class StorageFile {
 
   @Prop({ type: Date, default: null })
   deletedAt: Date | null;
+
+  @Prop({ type: String, enum: StorageLinkedEntityType, default: null })
+  linkedEntityType: StorageLinkedEntityType | null;
+
+  @Prop({ type: String, trim: true, default: null })
+  linkedEntityId: string | null;
+
+  @Prop({ type: Date, default: null })
+  linkedAt: Date | null;
 }
 
 export const StorageFileSchema = SchemaFactory.createForClass(StorageFile);
 StorageFileSchema.index({ contextType: 1, contextId: 1, createdAt: -1 });
+StorageFileSchema.index(
+  { linkedEntityType: 1, linkedEntityId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { linkedEntityId: { $type: 'string' } },
+    name: 'unique_file_per_linked_entity',
+  },
+);

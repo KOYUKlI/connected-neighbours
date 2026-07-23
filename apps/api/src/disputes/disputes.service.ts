@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -11,6 +12,8 @@ import { Model, Types } from 'mongoose';
 import type { AuthenticatedUser } from '../auth/authenticated-user.type';
 import { Role } from '../auth/role.enum';
 import { User, UserDocument } from '../auth/schemas/user.schema';
+import { GraphSyncService } from '../graph/graph-sync.service';
+import { GraphEntityType } from '../graph/graph.types';
 import {
   Contract,
   ContractDocument,
@@ -28,6 +31,13 @@ import {
   ServiceStatus,
 } from '../services/schemas/service.schema';
 import { PublicUsersService } from '../users/public-users.service';
+import { DownloadDisposition } from '../storage/dto/download-file-query.dto';
+import { PresignProofUploadDto } from '../storage/dto/presign-proof-upload.dto';
+import {
+  StorageContextType,
+  StorageLinkedEntityType,
+} from '../storage/schemas/storage-file.schema';
+import { StorageService } from '../storage/storage.service';
 import { AssignDisputeDto } from './dto/assign-dispute.dto';
 import { CreateDisputeEvidenceDto } from './dto/create-dispute-evidence.dto';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
@@ -90,6 +100,8 @@ export class DisputesService {
     private readonly userModel: Model<UserDocument>,
     private readonly pointsService: PointsService,
     private readonly publicUsersService: PublicUsersService,
+    private readonly storageService: StorageService,
+    @Optional() private readonly graphSyncService?: GraphSyncService,
   ) {}
 
   async openForService(
@@ -231,6 +243,7 @@ export class DisputesService {
           }),
         ],
       });
+      this.queueServiceProjection(service.id);
       return this.presentDispute(dispute, actor);
     } catch (error) {
       await this.restoreOpeningClaims(
@@ -274,6 +287,23 @@ export class DisputesService {
     return this.presentDispute(dispute, actor, contract);
   }
 
+  async presignEvidenceUpload(
+    id: string,
+    input: PresignProofUploadDto,
+    actor: AuthenticatedUser,
+  ) {
+    const dispute = await this.findDispute(id);
+    const contract = await this.findContract(dispute.contractId);
+    this.assertParticipant(contract, actor.sub);
+    this.assertEvidenceMutable(dispute);
+    return this.storageService.presignProofUpload(
+      input,
+      actor,
+      StorageContextType.DISPUTE_EVIDENCE,
+      dispute.id,
+    );
+  }
+
   async addEvidence(
     id: string,
     input: CreateDisputeEvidenceDto,
@@ -283,32 +313,64 @@ export class DisputesService {
     const contract = await this.findContract(dispute.contractId);
     const canModerate = MODERATION_ROLES.has(actor.role);
     if (!canModerate) this.assertParticipant(contract, actor.sub);
-    if (dispute.status === DisputeStatus.CLOSED) {
-      throw new ConflictException(
-        'Ce litige est clôturé et ne peut plus recevoir de preuve.',
-      );
-    }
+    this.assertEvidenceMutable(dispute);
 
     const message = input.message?.trim() || null;
-    const fileReference = input.fileReference?.trim() || null;
-    if (input.type === DisputeEvidenceType.NOTE && !message) {
+    if (!message && !input.fileId) {
       throw new BadRequestException(
-        'Une description est requise pour la preuve.',
+        'Ajoutez une description ou un fichier à la preuve.',
       );
     }
-    if (input.type !== DisputeEvidenceType.NOTE && !fileReference) {
-      throw new BadRequestException(
-        'Une référence de fichier existante est requise pour ce type de preuve.',
+    if (input.fileId && canModerate) {
+      throw new ForbiddenException(
+        'Les fichiers de preuve sont réservés aux parties du contrat.',
       );
     }
 
-    const evidence = await this.evidenceModel.create({
-      disputeId: dispute.id,
-      authorId: actor.sub,
-      type: input.type,
-      message,
-      fileReference,
-    });
+    const evidenceId = new Types.ObjectId().toHexString();
+    let attachment: Awaited<
+      ReturnType<StorageService['linkVerifiedFile']>
+    > | null = null;
+    if (input.fileId) {
+      attachment = await this.storageService.linkVerifiedFile({
+        fileId: input.fileId,
+        ownerId: actor.sub,
+        contextType: StorageContextType.DISPUTE_EVIDENCE,
+        contextId: dispute.id,
+        linkedEntityType: StorageLinkedEntityType.DISPUTE_EVIDENCE,
+        linkedEntityId: evidenceId,
+      });
+    }
+
+    let evidence: DisputeEvidenceDocument;
+    try {
+      evidence = await this.evidenceModel.create({
+        _id: evidenceId,
+        disputeId: dispute.id,
+        authorId: actor.sub,
+        type: attachment
+          ? this.toDisputeEvidenceType(attachment.fileKind)
+          : DisputeEvidenceType.NOTE,
+        message,
+        fileReference: null,
+        fileId: attachment?.fileId ?? null,
+        fileKind: attachment?.fileKind ?? null,
+        originalFilename: attachment?.originalFilename ?? null,
+        mimeType: attachment?.mimeType ?? null,
+        sizeBytes: attachment?.sizeBytes ?? null,
+        sha256: attachment?.sha256 ?? null,
+        attachmentDeletedAt: null,
+      });
+    } catch (error) {
+      if (attachment) {
+        await this.storageService.releaseFileLink(
+          attachment.fileId,
+          StorageLinkedEntityType.DISPUTE_EVIDENCE,
+          evidenceId,
+        );
+      }
+      throw error;
+    }
     const occurredAt = new Date();
     await this.disputeModel
       .updateOne(
@@ -319,15 +381,24 @@ export class DisputesService {
               DisputeAuditEventType.EVIDENCE_ADDED,
               actor.sub,
               occurredAt,
-              { evidenceId: evidence.id, evidenceType: input.type },
+              {
+                evidenceId: evidence.id,
+                evidenceType: evidence.type,
+                hasFile: Boolean(attachment),
+                fileKind: attachment?.fileKind ?? null,
+                fileSizeBytes: attachment?.sizeBytes ?? null,
+              },
             ),
           },
         },
       )
       .exec();
-    const [presented] = await this.presentEvidence([
-      evidence.toObject() as DisputeEvidenceRow,
-    ]);
+    const [presented] = await this.presentEvidence(
+      [evidence.toObject() as DisputeEvidenceRow],
+      undefined,
+      actor,
+      dispute,
+    );
     return presented;
   }
 
@@ -340,7 +411,68 @@ export class DisputesService {
       .sort({ createdAt: 1, _id: 1 })
       .lean<DisputeEvidenceRow[]>()
       .exec();
-    return this.presentEvidence(evidence);
+    return this.presentEvidence(evidence, undefined, actor, dispute);
+  }
+
+  async createEvidenceDownloadUrl(
+    id: string,
+    evidenceId: string,
+    actor: AuthenticatedUser,
+    disposition: DownloadDisposition,
+  ) {
+    const dispute = await this.findDispute(id);
+    const contract = await this.findContract(dispute.contractId);
+    this.assertCanView(contract, actor);
+    const evidence = await this.findEvidenceItem(dispute.id, evidenceId);
+    if (!evidence.fileId || evidence.attachmentDeletedAt) {
+      throw new NotFoundException('Cette preuve ne contient plus de fichier.');
+    }
+    return this.storageService.createLinkedDownloadUrl(
+      evidence.fileId,
+      StorageLinkedEntityType.DISPUTE_EVIDENCE,
+      evidence.id,
+      disposition,
+    );
+  }
+
+  async deleteEvidenceAttachment(
+    id: string,
+    evidenceId: string,
+    actor: AuthenticatedUser,
+  ) {
+    const dispute = await this.findDispute(id);
+    const contract = await this.findContract(dispute.contractId);
+    this.assertParticipant(contract, actor.sub);
+    if (dispute.status !== DisputeStatus.OPEN) {
+      throw new ConflictException(
+        'Une pièce jointe ne peut plus être supprimée après le début de la revue.',
+      );
+    }
+    const evidence = await this.findEvidenceItem(dispute.id, evidenceId);
+    if (evidence.authorId !== actor.sub) {
+      throw new ForbiddenException(
+        'Seul l’auteur peut supprimer cette pièce jointe.',
+      );
+    }
+    if (!evidence.fileId) {
+      throw new NotFoundException('Cette preuve ne contient pas de fichier.');
+    }
+    const result = await this.storageService.deleteLinkedFile(
+      evidence.fileId,
+      StorageLinkedEntityType.DISPUTE_EVIDENCE,
+      evidence.id,
+    );
+    if (!evidence.attachmentDeletedAt) {
+      evidence.attachmentDeletedAt = result.deletedAt ?? new Date();
+      await evidence.save();
+    }
+    const [presented] = await this.presentEvidence(
+      [evidence.toObject() as DisputeEvidenceRow],
+      undefined,
+      actor,
+      dispute,
+    );
+    return presented;
   }
   async findAdmin(query: ListAdminDisputesQueryDto, actor: AuthenticatedUser) {
     this.assertModerator(actor);
@@ -750,6 +882,11 @@ export class DisputesService {
         );
       }
     }
+    this.queueServiceProjection(service.id);
+  }
+
+  private queueServiceProjection(serviceId: string) {
+    void this.graphSyncService?.enqueue(GraphEntityType.SERVICE, serviceId);
   }
 
   private async assertFinancialResolutionComplete(
@@ -946,13 +1083,32 @@ export class DisputesService {
       assignedModerator: dispute.assignedModeratorId
         ? (profiles.get(dispute.assignedModeratorId) ?? null)
         : null,
-      evidence: await this.presentEvidence(evidence, profiles),
+      evidence: await this.presentEvidence(evidence, profiles, actor, dispute),
       serviceProofs: serviceProofs.map((proof) => ({
         id: String(proof._id),
         serviceId: proof.serviceId,
+        authorId: proof.authorId,
         type: proof.type,
         message: proof.message,
         fileReference: proof.fileReference,
+        fileId: proof.fileId,
+        attachment: proof.fileId
+          ? {
+              fileId: proof.fileId,
+              fileKind: proof.fileKind,
+              originalFilename: proof.originalFilename,
+              mimeType: proof.mimeType,
+              sizeBytes: proof.sizeBytes,
+              sha256: proof.sha256,
+              deleted: Boolean(proof.attachmentDeletedAt),
+              deletedAt: proof.attachmentDeletedAt,
+            }
+          : null,
+        permissions: {
+          canPreview: Boolean(proof.fileId && !proof.attachmentDeletedAt),
+          canDownload: Boolean(proof.fileId && !proof.attachmentDeletedAt),
+          canDelete: false,
+        },
         createdAt: proof.createdAt,
         author: profiles.get(proof.authorId) ?? null,
       })),
@@ -967,7 +1123,7 @@ export class DisputesService {
         canViewDispute: isParticipant || canModerate,
         canAddDisputeEvidence:
           (isParticipant || canModerate) &&
-          dispute.status !== DisputeStatus.CLOSED,
+          ACTIVE_DISPUTE_STATUSES.includes(dispute.status),
         canAssignDispute: canModerate && isActive,
         canStartReview:
           canModerate &&
@@ -986,21 +1142,75 @@ export class DisputesService {
   private async presentEvidence(
     evidence: DisputeEvidenceRow[],
     existingProfiles?: Awaited<ReturnType<PublicUsersService['findByIds']>>,
+    actor?: AuthenticatedUser,
+    dispute?: Pick<Dispute, 'status'>,
   ) {
     const profiles =
       existingProfiles ??
       (await this.publicUsersService.findByIds(
         evidence.map((item) => item.authorId),
       ));
-    return evidence.map((item) => ({
-      id: String(item._id),
-      disputeId: item.disputeId,
-      type: item.type,
-      message: item.message,
-      fileReference: item.fileReference,
-      createdAt: item.createdAt,
-      author: profiles.get(item.authorId) ?? null,
-    }));
+    return evidence.map((item) => {
+      const deleted = Boolean(item.attachmentDeletedAt);
+      return {
+        id: String(item._id),
+        disputeId: item.disputeId,
+        authorId: item.authorId,
+        type: item.type,
+        message: item.message,
+        fileReference: item.fileReference,
+        fileId: item.fileId,
+        attachment: item.fileId
+          ? {
+              fileId: item.fileId,
+              fileKind: item.fileKind,
+              originalFilename: item.originalFilename,
+              mimeType: item.mimeType,
+              sizeBytes: item.sizeBytes,
+              sha256: item.sha256,
+              deleted,
+              deletedAt: item.attachmentDeletedAt,
+            }
+          : null,
+        permissions: {
+          canPreview: Boolean(item.fileId && !deleted),
+          canDownload: Boolean(item.fileId && !deleted),
+          canDelete:
+            Boolean(actor) &&
+            item.authorId === actor?.sub &&
+            Boolean(item.fileId) &&
+            !deleted &&
+            dispute?.status === DisputeStatus.OPEN,
+        },
+        createdAt: item.createdAt,
+        author: profiles.get(item.authorId) ?? null,
+      };
+    });
+  }
+
+  private assertEvidenceMutable(dispute: Pick<Dispute, 'status'>) {
+    if (!ACTIVE_DISPUTE_STATUSES.includes(dispute.status)) {
+      throw new ConflictException(
+        'Ce litige ne peut plus recevoir de nouvelle preuve.',
+      );
+    }
+  }
+
+  private async findEvidenceItem(disputeId: string, evidenceId: string) {
+    if (!Types.ObjectId.isValid(evidenceId)) {
+      throw new NotFoundException('Preuve introuvable.');
+    }
+    const evidence = await this.evidenceModel
+      .findOne({ _id: evidenceId, disputeId })
+      .exec();
+    if (!evidence) throw new NotFoundException('Preuve introuvable.');
+    return evidence;
+  }
+
+  private toDisputeEvidenceType(fileKind: 'image' | 'document' | 'audio') {
+    if (fileKind === 'image') return DisputeEvidenceType.IMAGE;
+    if (fileKind === 'audio') return DisputeEvidenceType.AUDIO;
+    return DisputeEvidenceType.DOCUMENT;
   }
 
   private getNextAction(

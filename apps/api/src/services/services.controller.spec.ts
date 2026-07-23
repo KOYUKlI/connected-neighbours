@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Role } from '../auth/role.enum';
 import { ServiceExecutionService } from './service-execution.service';
 import { ServicesController } from './services.controller';
 import { ServicesService } from './services.service';
@@ -28,7 +30,10 @@ describe('ServicesController', () => {
           useValue: {},
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ServicesController>(ServicesController);
     servicesService = module.get(ServicesService);
@@ -53,9 +58,14 @@ describe('ServicesController', () => {
 
     servicesService.create.mockResolvedValue(created as never);
 
-    await expect(controller.create(dto, { sub: 'user_123' })).resolves.toEqual(
-      created,
-    );
-    expect(servicesService.create).toHaveBeenCalledWith(dto, 'user_123');
+    const user = {
+      sub: 'user_123',
+      email: 'user@example.test',
+      displayName: 'Utilisateur',
+      neighborhoodId: 'quartier-centre',
+      role: Role.RESIDENT,
+    };
+    await expect(controller.create(dto, user)).resolves.toEqual(created);
+    expect(servicesService.create).toHaveBeenCalledWith(dto, user);
   });
 });
