@@ -305,13 +305,16 @@ La version actuelle crée des comptes de démonstration si le seed de développe
 
 | Rôle | Email | Mot de passe | Usage |
 |---|---|---|---|
-| Administrateur | `admin@connected-neighbours.local` | `admin123` | Accès back-office |
+| Administrateur | `admin@connected-neighbours.local` | `AdminDemo2026!` (`SEED_DEMO_ADMIN_PASSWORD`) | Accès back-office |
 | Administrateur | `admin2@connected-neighbours.local` | `admin2123` | Accès back-office |
 | Administrateur | `admin3@connected-neighbours.local` | `admin3123` | Accès back-office |
-| Habitante | `alice@connected-neighbours.local` | `alice123` | Création de service |
-| Habitant | `bob@connected-neighbours.local` | `bob123` | Candidature à un service |
+| Modérateur | `moderator@connected-neighbours.local` | `ModeratorDemo2026!` (`SEED_DEMO_MODERATOR_PASSWORD`) | Modération |
+| Habitante | `alice@connected-neighbours.local` | `ResidentDemo2026!` (`SEED_DEMO_RESIDENT_PASSWORD`) | Création de service |
+| Habitant | `bob@connected-neighbours.local` | `ResidentDemo2026!` (`SEED_DEMO_RESIDENT_PASSWORD`) | Candidature à un service |
+| Habitante | `claire@connected-neighbours.local` | `ResidentDemo2026!` (`SEED_DEMO_RESIDENT_PASSWORD`) | Habitante démo |
 | Habitant | `david@connected-neighbours.local` | `david123` | Compte habitant supplémentaire |
-| Habitante | `emma@connected-neighbours.local` | `emma123` | Compte habitant supplémentaire |
+
+> Depuis la refonte du seed par Koyuki, alice/bob/claire partagent le même mot de passe résident (variable d'environnement `SEED_DEMO_RESIDENT_PASSWORD`), de même pour l'admin et le modérateur — ce n'est plus un mot de passe distinct par personne comme avant. `admin2`, `admin3` et `david` restent sur l'ancien mécanisme (mot de passe individuel en dur dans `demo-seed.service.ts`) car le nouveau système `DEMO_IDENTITIES` n'est pas activé en production.
 
 Des anciens comptes de démonstration peuvent encore exister dans une base locale déjà utilisée. Pour une démonstration propre, utiliser de préférence les comptes ci-dessus.
 
@@ -329,8 +332,8 @@ Des anciens comptes de démonstration peuvent encore exister dans une base local
 Comptes utiles :
 
 ```txt
-alice@connected-neighbours.local / alice123
-bob@connected-neighbours.local / bob123
+alice@connected-neighbours.local / ResidentDemo2026!
+bob@connected-neighbours.local / ResidentDemo2026!
 ```
 
 ## 8.2 Navigation disponible
@@ -506,7 +509,7 @@ http://localhost:5174
 Se connecter avec :
 
 ```txt
-admin@connected-neighbours.local / admin123
+admin@connected-neighbours.local / AdminDemo2026!
 ```
 
 ## 9.2 Pages disponibles

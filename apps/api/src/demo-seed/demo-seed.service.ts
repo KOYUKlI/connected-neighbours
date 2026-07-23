@@ -279,13 +279,6 @@ export class DemoSeedService implements OnModuleInit {
         neighborhoodId: 'quartier-centre',
         password: 'david123',
       }),
-      this.usersService.ensureDevUser({
-        email: 'emma@connected-neighbours.local',
-        displayName: 'Emma Rousseau',
-        role: Role.RESIDENT,
-        neighborhoodId: 'quartier-centre',
-        password: 'emma123',
-      }),
     ]);
 
     await this.userModel
