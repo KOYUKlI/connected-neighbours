@@ -146,6 +146,7 @@ function getNavigationIcon(id: string) {
     case 'sync': return <path d="M20 7h-6a5 5 0 0 0-4.6 3M4 17h6a5 5 0 0 0 4.6-3M17 4l3 3-3 3M7 20l-3-3 3-3" />;
     case 'graph': return <><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="m8.2 10.8 7.6-3.6m-7.6 6 7.6 3.6" /></>;
     case 'identities': return <><circle cx="12" cy="8" r="3" /><path d="M6 21v-2a6 6 0 0 1 12 0v2M17 8h4m-2-2v4" /></>;
+    case 'install': return <><rect x="4" y="3" width="16" height="14" rx="2" /><path d="M8 21h8M12 17v4m-4-9 4 4 4-4" /></>;
     case 'users': return <path d="M16 11a4 4 0 1 0-8 0m8 0a4 4 0 1 1-8 0m-4 9a8 8 0 0 1 16 0M18 9a3 3 0 0 1 3 3m-18 0a3 3 0 0 1 3-3" />;
     default: return <path d="M5 5h14v14H5z" />;
   }
