@@ -77,10 +77,35 @@
   ],
   "authenticationFlows": [
     {
+      "id": "be2856e6-113c-4da2-9878-da4858b09f04",
       "alias": "connected-neighbours-admin-browser",
       "description": "Browser SSO followed by mandatory TOTP for the administration client.",
       "providerId": "basic-flow",
       "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "connected-neighbours-admin-authentication",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "783f351d-19a7-4e71-ad7e-81a98173362e",
+      "alias": "connected-neighbours-admin-authentication",
+      "description": "Resolve the administration user from SSO or credentials before TOTP.",
+      "providerId": "basic-flow",
+      "topLevel": false,
       "builtIn": false,
       "authenticationExecutions": [
         {
@@ -95,13 +120,6 @@
           "authenticatorFlow": false,
           "requirement": "ALTERNATIVE",
           "priority": 20,
-          "userSetupAllowed": false
-        },
-        {
-          "authenticator": "auth-otp-form",
-          "authenticatorFlow": false,
-          "requirement": "REQUIRED",
-          "priority": 30,
           "userSetupAllowed": false
         }
       ]
@@ -135,6 +153,7 @@
       "defaultClientScopes": [
         "web-origins",
         "acr",
+        "basic",
         "profile",
         "roles",
         "email"
@@ -179,7 +198,7 @@
       ],
       "baseUrl": "http://localhost:5174",
       "authenticationFlowBindingOverrides": {
-        "browser": "connected-neighbours-admin-browser"
+        "browser": "be2856e6-113c-4da2-9878-da4858b09f04"
       },
       "attributes": {
         "pkce.code.challenge.method": "S256",
@@ -189,6 +208,7 @@
       "defaultClientScopes": [
         "web-origins",
         "acr",
+        "basic",
         "profile",
         "roles",
         "email"
@@ -257,6 +277,18 @@
       ]
     }
   ],
+  "clientScopeMappings": {
+    "realm-management": [
+      {
+        "client": "connected-neighbours-service",
+        "roles": [
+          "query-users",
+          "view-users",
+          "manage-users"
+        ]
+      }
+    ]
+  },
   "users": [
     {
       "username": "service-account-connected-neighbours-service",
