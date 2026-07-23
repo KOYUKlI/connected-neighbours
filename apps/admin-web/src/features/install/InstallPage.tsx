@@ -1,5 +1,11 @@
 import { useState } from 'react';
 
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Tabs } from '../../components/ui/Tabs';
+
 type Os = 'linux' | 'windows';
 
 const OS_TABS: {
@@ -28,39 +34,20 @@ const OS_TABS: {
 function CopyableCommand({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  async function handleCopy() {
     await navigator.clipboard.writeText(command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }
 
   return (
-    <div className="install-command">
-      <pre>
-        <code>{command}</code>
-      </pre>
-      <button className="secondary-button" type="button" onClick={handleCopy}>
-        {copied ? 'Copie !' : 'Copier'}
-      </button>
-    </div>
-  );
-}
-
-function OsTabs({ activeOs, onChange }: { activeOs: Os; onChange: (os: Os) => void }) {
-  return (
-    <div className="install-tabs" role="tablist">
-      {OS_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={activeOs === tab.id}
-          className={`install-tab${activeOs === tab.id ? ' install-tab-active' : ''}`}
-          onClick={() => onChange(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <code className="min-w-0 flex-1 overflow-x-auto whitespace-pre text-sm text-slate-950">
+        {command}
+      </code>
+      <Button onClick={() => void handleCopy()} size="sm" variant="secondary">
+        {copied ? 'Copié !' : 'Copier'}
+      </Button>
     </div>
   );
 }
@@ -72,49 +59,64 @@ export function InstallPage() {
   const jarFileName = activeTab.jarPath.split('/').pop();
 
   return (
-    <div className="install-page">
-      <div className="install-card">
-        <h2>Application desktop admin</h2>
-        <p>
-          Client JavaFX pour la gestion des incidents et alertes en local, avec
-          synchronisation vers ce back-office.
-        </p>
+    <div className="grid gap-4">
+      <PageHeader
+        description="Client JavaFX pour la gestion des incidents et alertes en local, avec synchronisation vers ce back-office."
+        eyebrow="Administration / Application desktop"
+        title="Télécharger l’application desktop"
+      />
 
-        <OsTabs activeOs={activeOs} onChange={setActiveOs} />
+      <Card className="grid gap-4">
+        <Tabs
+          items={OS_TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+          onChange={setActiveOs}
+          value={activeOs}
+        />
 
-        <div className="install-downloads">
-          <a className="primary-button" download href={activeTab.jarPath}>
-            Telecharger {jarFileName}
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-blue-700"
+            download
+            href={activeTab.jarPath}
+          >
+            Télécharger {jarFileName}
           </a>
-          {activeOs === 'windows' && (
-            <button className="secondary-button" type="button" disabled>
-              Telecharger admin-desktop.exe - bientot disponible
-            </button>
-          )}
+          {activeOs === 'windows' ? (
+            <Button disabled variant="ghost">
+              Installeur .exe — bientôt disponible
+            </Button>
+          ) : null}
         </div>
-      </div>
+      </Card>
 
-      <div className="install-card">
-        <h3>Prerequis</h3>
-        <p>Java 21 ou superieur doit etre installe sur le poste.</p>
-
+      <Card className="grid gap-3">
+        <SectionHeader
+          description="Java 21 ou supérieur doit être installé sur le poste."
+          title="Prérequis"
+        />
         <CopyableCommand command={activeTab.javaInstallCommand} />
-      </div>
+      </Card>
 
-      <div className="install-card">
-        <h3>Installation</h3>
-
-        <ol className="install-steps">
-          <li>Telechargez <code>{jarFileName}</code> ci-dessus.</li>
+      <Card className="grid gap-3">
+        <SectionHeader
+          description="Lancez le client une fois le fichier téléchargé."
+          title="Installation"
+        />
+        <ol className="grid list-decimal gap-2 pl-5 text-sm text-slate-600">
+          <li>
+            Téléchargez{' '}
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-950">
+              {jarFileName}
+            </code>{' '}
+            ci-dessus.
+          </li>
           <li>Ouvrez un terminal et lancez la commande ci-dessous :</li>
         </ol>
-
         <CopyableCommand command={activeTab.launchCommand} />
-
-        <ol className="install-steps" start={3}>
+        <ol className="grid list-decimal gap-2 pl-5 text-sm text-slate-600" start={3}>
           <li>Connectez-vous avec vos identifiants administrateur habituels.</li>
         </ol>
-      </div>
+      </Card>
     </div>
   );
 }
