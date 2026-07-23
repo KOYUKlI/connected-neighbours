@@ -7,6 +7,7 @@ import {
   IdentityMigrationStatus,
   IdentityProvider,
   NeighborhoodAssignmentSource,
+  ProfileVisibility,
   User,
   UserDocument,
 } from '../auth/schemas/user.schema';
@@ -249,7 +250,7 @@ export class DemoSeedOrchestrator {
       identity.mode === 'linked' && !existing?.keycloakSubject
         ? IdentityMigrationStatus.LOCAL_ONLY
         : migrationStatusFor(identity);
-    const isPublic = identity.profileVisibility !== 'private';
+    const isPublic = identity.profileVisibility !== ProfileVisibility.PRIVATE;
     const patch = {
       displayName: identity.displayName,
       role: identity.role,

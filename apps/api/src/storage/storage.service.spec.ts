@@ -29,9 +29,31 @@ describe('StorageService', () => {
       exec: () => Promise.resolve(files.get(id) ?? null),
     })),
     findOneAndUpdate: jest.fn(
-      (filter: { _id: string }, update: { $set: Record<string, unknown> }) => ({
+      (
+        filter: { _id?: string; objectKey?: string },
+        update: {
+          $set: Record<string, unknown>;
+          $setOnInsert?: Record<string, unknown>;
+        },
+      ) => ({
         exec: () => {
-          const file = files.get(filter._id);
+          if (filter.objectKey) {
+            let file = [...files.values()].find(
+              (item) => item.objectKey === filter.objectKey,
+            );
+            if (!file) {
+              file = storageFile({
+                id: (files.size + 1).toString(16).padStart(24, '0'),
+                ...update.$setOnInsert,
+                ...update.$set,
+              });
+              files.set(file.id, file);
+            } else {
+              Object.assign(file, update.$set);
+            }
+            return Promise.resolve(file);
+          }
+          const file = filter._id ? files.get(filter._id) : undefined;
           if (!file || file.linkedEntityId) return Promise.resolve(null);
           Object.assign(file, update.$set);
           return Promise.resolve(file);
@@ -174,6 +196,42 @@ describe('StorageService', () => {
     );
     expect(result.status).toBe(StorageFileStatus.VERIFIED);
     expect(result.mimeType).toBe(mimeType);
+  });
+
+  it('upserts the same internal demo object without creating a duplicate', async () => {
+    const bytes = Buffer.from([
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a,
+      ...new Array<number>(12).fill(0),
+    ]);
+    const first = await service.putVerifiedSeedBuffer({
+      seedKey: 'avatar-alice',
+      buffer: bytes,
+      filename: 'alice.png',
+      mimeType: 'image/png',
+      ownerId: 'alice',
+      contextType: StorageContextType.USER_AVATAR,
+      contextId: 'alice',
+    });
+    const second = await service.putVerifiedSeedBuffer({
+      seedKey: 'avatar-alice',
+      buffer: bytes,
+      filename: 'alice.png',
+      mimeType: 'image/png',
+      ownerId: 'alice',
+      contextType: StorageContextType.USER_AVATAR,
+      contextId: 'alice',
+    });
+
+    expect(first?.id).toBe(second?.id);
+    expect(files.size).toBe(1);
+    expect(first?.objectKey).toBe('demo/user_avatar/avatar-alice.png');
   });
 
   it('rejects a fake image and marks it rejected', async () => {

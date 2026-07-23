@@ -215,10 +215,10 @@ export class DemoKeycloakService {
     const users = await this.requestJson<KeycloakUser[]>(
       `/users?email=${encodeURIComponent(identity.email)}&exact=true`,
     );
-    const matches = users.filter(
-      (user) =>
-        String(user.email ?? '').toLowerCase() === identity.email.toLowerCase(),
-    );
+    const matches = users.filter((user) => {
+      const email = typeof user.email === 'string' ? user.email : '';
+      return email.toLowerCase() === identity.email.toLowerCase();
+    });
     if (matches.length > 1) {
       throw new ConflictException(
         `Plusieurs identités Keycloak correspondent à ${identity.seedKey}.`,

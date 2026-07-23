@@ -795,7 +795,8 @@ export class DemoSeedService implements OnModuleInit {
         providerEmail: 'lucas@connected-neighbours.local',
         input: {
           title: 'Accorder une guitare avant un concert',
-          description: 'Lucas a réglé l’instrument et vérifié sa tenue d’accord.',
+          description:
+            'Lucas a réglé l’instrument et vérifié sa tenue d’accord.',
           type: ServiceType.REQUEST,
           category: 'Musique',
           availability: 'Terminé ce matin',
@@ -811,7 +812,8 @@ export class DemoSeedService implements OnModuleInit {
         providerEmail: 'lina.keycloak@connected-neighbours.local',
         input: {
           title: 'Préparer des fiches de révision',
-          description: 'Création de fiches synthétiques pour une évaluation scolaire.',
+          description:
+            'Création de fiches synthétiques pour une évaluation scolaire.',
           type: ServiceType.REQUEST,
           category: 'Cours',
           availability: 'Correction demandée',

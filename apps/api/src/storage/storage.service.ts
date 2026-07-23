@@ -488,14 +488,14 @@ export class StorageService implements OnModuleInit {
         buffer,
         buffer.length,
         input.mimeType,
-        input.mimeType as ProofMimeType,
+        input.mimeType,
         buffer.length,
       );
     }
 
     const extension = isAvatar
       ? AVATAR_EXTENSION[input.mimeType as AvatarMimeType]
-      : PROOF_EXTENSION[input.mimeType as ProofMimeType];
+      : PROOF_EXTENSION[input.mimeType];
     const safeSeedKey = input.seedKey.replace(/[^a-zA-Z0-9._-]+/g, '-');
     const objectKey = `demo/${input.contextType}/${safeSeedKey}.${extension}`;
     if (this.useMemory) {
