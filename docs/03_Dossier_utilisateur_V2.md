@@ -305,7 +305,7 @@ La version actuelle crée des comptes de démonstration si le seed de développe
 
 | Rôle | Email | Mot de passe site (local) | Mot de passe Keycloak |
 |---|---|---|---|
-| Administrateur | `admin@connected-neighbours.local` | `AdminDemo2026!` | `AdminDemo2026!` |
+| Administrateur | `admin@connected-neighbours.local` | `admin123` | `AdminDemo2026!` |
 | Administrateur | `admin2@connected-neighbours.local` | `admin2123` | `Admin2Demo2026!` |
 | Administrateur | `admin3@connected-neighbours.local` | `admin3123` | `Admin3Demo2026!` |
 | Modérateur | `moderator@connected-neighbours.local` | `ModeratorDemo2026!` | `ModeratorDemo2026!` |
