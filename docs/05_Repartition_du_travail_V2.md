@@ -230,9 +230,9 @@ Noah Prisset
 Comptes principaux de test :
 
 ```txt
-admin@connected-neighbours.local / admin123
-alice@connected-neighbours.local / alice123
-bob@connected-neighbours.local / bob123
+admin@connected-neighbours.local / <VALEUR_LOCALE_DE_SEED_DEMO_ADMIN_PASSWORD>
+alice@connected-neighbours.local / <VALEUR_LOCALE_DE_SEED_DEMO_RESIDENT_PASSWORD>
+bob@connected-neighbours.local / <VALEUR_LOCALE_DE_SEED_DEMO_RESIDENT_PASSWORD>
 ```
 
 ### État actuel
