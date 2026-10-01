@@ -1,5 +1,7 @@
 # 03 — Dossier utilisateur final — Connected Neighbours
 
+Note de sécurité : ce document est conservé pour son historique. Aucun serveur ni déploiement du projet n'est actuellement actif. Les mots de passe et secrets des exemples sont à définir localement ; les placeholders ne sont pas des valeurs à utiliser telles quelles.
+
 ## 1. Objectif du document
 
 Ce document explique comment installer, lancer et utiliser l’application **Connected Neighbours**.
@@ -151,17 +153,17 @@ MONGODB_URI=mongodb://localhost:27017/connected-neighbours
 
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=password
+NEO4J_PASSWORD=<A_DEFINIR_LOCALEMENT_NEO4J_PASSWORD>
 
 MINIO_ENDPOINT=http://localhost:9000
 MINIO_ACCESS_KEY=minio
-MINIO_SECRET_KEY=minio-password
+MINIO_SECRET_KEY=<A_DEFINIR_LOCALEMENT_MINIO_SECRET_KEY>
 MINIO_BUCKET=connected-neighbours
 
 KEYCLOAK_URL=http://localhost:8080
 KEYCLOAK_REALM=connected-neighbours
 
-JWT_SECRET=dev-secret
+JWT_SECRET=<A_DEFINIR_LOCALEMENT_JWT_SECRET>
 CORS_ORIGIN=http://localhost:5173
 ```
 
@@ -362,11 +364,11 @@ Les comptes de test permettent de démontrer les différents rôles de l’appli
 
 | Rôle | Email | Mot de passe | Usage |
 |---|---|---|---|
-| Habitant 1 | `alice@test.local` | `Password123!` | Créer une demande de service |
-| Habitant 2 | `bob@test.local` | `Password123!` | Candidater à un service |
-| Modérateur | `moderator@test.local` | `Password123!` | Traiter signalements/litiges |
-| Administrateur | `admin@test.local` | `Password123!` | Gérer la plateforme |
-| Admin JavaFX | `desktop-admin@test.local` | `Password123!` | Tester JavaFX |
+| Habitant 1 | `alice@test.local` | `<MOT_DE_PASSE_LOCAL_A_DEFINIR>` | Créer une demande de service |
+| Habitant 2 | `bob@test.local` | `<MOT_DE_PASSE_LOCAL_A_DEFINIR>` | Candidater à un service |
+| Modérateur | `moderator@test.local` | `<MOT_DE_PASSE_LOCAL_A_DEFINIR>` | Traiter signalements/litiges |
+| Administrateur | `admin@test.local` | `<MOT_DE_PASSE_LOCAL_A_DEFINIR>` | Gérer la plateforme |
+| Admin JavaFX | `desktop-admin@test.local` | `<MOT_DE_PASSE_LOCAL_A_DEFINIR>` | Tester JavaFX |
 
 Ces comptes peuvent être adaptés selon les jeux de données fournis.
 

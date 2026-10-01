@@ -61,17 +61,14 @@ const demoAccounts = [
   {
     label: 'Alice',
     email: 'alice@connected-neighbours.local',
-    password: 'alice123',
   },
   {
     label: 'Bob',
     email: 'bob@connected-neighbours.local',
-    password: 'bob123',
   },
   {
     label: 'Admin',
     email: 'admin@connected-neighbours.local',
-    password: 'admin123',
   },
 ];
 
@@ -491,7 +488,7 @@ function LoginScreen({
   onSubmit: (email: string, password: string) => Promise<boolean>;
 }) {
   const [email, setEmail] = useState(demoAccounts[0].email);
-  const [password, setPassword] = useState(demoAccounts[0].password);
+  const [password, setPassword] = useState('');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -513,8 +510,8 @@ function LoginScreen({
           <p className="eyebrow">Bienvenue</p>
           <h1 id="login-title">Connexion</h1>
           <p className="login-copy">
-            Connectez-vous avec Alice ou Bob pour découvrir votre espace de
-            voisinage.
+            Choisissez un compte pour préremplir son adresse email, puis saisissez
+            le mot de passe défini dans votre environnement local.
           </p>
         </div>
 
@@ -524,7 +521,7 @@ function LoginScreen({
               key={account.email}
               onClick={() => {
                 setEmail(account.email);
-                setPassword(account.password);
+                setPassword('');
               }}
               type="button"
             >

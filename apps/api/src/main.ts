@@ -14,7 +14,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const port = Number(process.env.PORT ?? 3000);
   const host = process.env.HOST ?? '0.0.0.0';
-  const cookieSecret = process.env.COOKIE_SECRET ?? 'change-me-in-env';
+  const cookieSecret = process.env.COOKIE_SECRET;
+  if (!cookieSecret || cookieSecret.trim().length === 0) {
+    throw new Error('Variable COOKIE_SECRET requise pour le bootstrap.');
+  }
 
   const rawCorsOrigins =
     process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://localhost:5174';

@@ -1,5 +1,7 @@
 # 03 — Dossier utilisateur V2 — Connected Neighbours
 
+Note de sécurité : ce document est conservé pour son historique. Aucun serveur ni déploiement du projet n'est actuellement actif. Les mots de passe et secrets des exemples sont à définir localement ; les placeholders ne sont pas des valeurs à utiliser telles quelles.
+
 ## 1. Objectif du document
 
 Ce document explique comment lancer, tester et présenter la version actuelle de **Connected Neighbours**.
@@ -225,27 +227,27 @@ PORT=3000
 HOST=0.0.0.0
 
 CORS_ORIGIN=http://localhost:5173,http://localhost:5174
-COOKIE_SECRET=connected-neighbours-cookie-secret-dev
+COOKIE_SECRET=<A_DEFINIR_LOCALEMENT_COOKIE_SECRET>
 
 MONGODB_URI=mongodb://localhost:27017/connected-neighbours
 
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=password
+NEO4J_PASSWORD=<A_DEFINIR_LOCALEMENT_NEO4J_PASSWORD>
 
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
 MINIO_USE_SSL=false
 MINIO_ACCESS_KEY=minio
-MINIO_SECRET_KEY=minio-password
+MINIO_SECRET_KEY=<A_DEFINIR_LOCALEMENT_MINIO_SECRET_KEY>
 MINIO_BUCKET=connected-neighbours
 
 KEYCLOAK_BASE_URL=http://localhost:8080
 KEYCLOAK_REALM=connected-neighbours
 KEYCLOAK_CLIENT_ID=connected-neighbours-api
-KEYCLOAK_CLIENT_SECRET=dev-secret
+KEYCLOAK_CLIENT_SECRET=<A_DEFINIR_LOCALEMENT_KEYCLOAK_CLIENT_SECRET>
 
-JWT_SECRET=connected-neighbours-jwt-secret-dev
+JWT_SECRET=<A_DEFINIR_LOCALEMENT_JWT_SECRET>
 JWT_EXPIRES_IN=1d
 DEV_AUTH_SEED=true
 ```
@@ -305,21 +307,23 @@ La version actuelle crée des comptes de démonstration si le seed de développe
 
 | Rôle | Email | Mot de passe site (local) | Mot de passe Keycloak |
 |---|---|---|---|
-| Administrateur | `admin@connected-neighbours.local` | `admin123` | `AdminDemo2026!` |
-| Administrateur | `admin2@connected-neighbours.local` | `admin2123` | `Admin2Demo2026!` |
-| Administrateur | `admin3@connected-neighbours.local` | `admin3123` | `Admin3Demo2026!` |
-| Modérateur | `moderator@connected-neighbours.local` | `ModeratorDemo2026!` | `ModeratorDemo2026!` |
-| Habitante | `alice@connected-neighbours.local` | `ResidentDemo2026!` | `AliceDemo2026!` |
-| Habitant | `bob@connected-neighbours.local` | `ResidentDemo2026!` | `BobDemo2026!` |
-| Habitante | `claire@connected-neighbours.local` | `ResidentDemo2026!` | — (pas de compte Keycloak) |
-| Habitant | `david@connected-neighbours.local` | `david123` | `DavidDemo2026!` |
-| Habitante | `emma@connected-neighbours.local` | — (pas de compte site) | `EmmaDemo2026!` |
+| Administrateur | `admin@connected-neighbours.local` | `SEED_DEMO_ADMIN_PASSWORD` | `SEED_DEMO_ADMIN_PASSWORD` |
+| Administrateur | `admin2@connected-neighbours.local` | `DEMO_ADMIN2_PASSWORD` | `<MOT_DE_PASSE_KEYCLOAK_LOCAL_A_DEFINIR>` |
+| Administrateur | `admin3@connected-neighbours.local` | `DEMO_ADMIN3_PASSWORD` | `DEMO_ADMIN3_PASSWORD` |
+| Modérateur | `moderator@connected-neighbours.local` | `SEED_DEMO_MODERATOR_PASSWORD` | `SEED_DEMO_MODERATOR_PASSWORD` |
+| Habitante | `alice@connected-neighbours.local` | `SEED_DEMO_RESIDENT_PASSWORD` | `SEED_DEMO_RESIDENT_PASSWORD` |
+| Habitant | `bob@connected-neighbours.local` | `SEED_DEMO_RESIDENT_PASSWORD` | `SEED_DEMO_RESIDENT_PASSWORD` |
+| Habitante | `claire@connected-neighbours.local` | `SEED_DEMO_RESIDENT_PASSWORD` | — (pas de compte Keycloak) |
+| Habitant | `david@connected-neighbours.local` | `DEMO_DAVID_PASSWORD` | `DEMO_DAVID_PASSWORD` |
+| Habitante | `emma@connected-neighbours.local` | — (pas de compte site) | `DEMO_EMMA_PASSWORD` |
 
 Notes :
-- Depuis la refonte du seed par Koyuki, alice/bob/claire partagent le même mot de passe résident côté site (`SEED_DEMO_RESIDENT_PASSWORD`), de même pour l'admin et le modérateur — ce n'est plus un mot de passe distinct par personne comme avant. `admin2`, `admin3` et `david` restent sur l'ancien mécanisme (mot de passe individuel en dur dans `demo-seed.service.ts`).
+- Depuis la refonte du seed par Koyuki, alice/bob/claire partagent le même mot de passe résident côté site (`SEED_DEMO_RESIDENT_PASSWORD`). Après le nettoyage de `demo-seed.service.ts`, les autres mots de passe proviennent aussi des variables locales : `SEED_DEMO_ADMIN_PASSWORD` pour admin, `SEED_DEMO_MODERATOR_PASSWORD` pour moderator, `DEMO_ADMIN2_PASSWORD` pour admin2, `DEMO_ADMIN3_PASSWORD` pour admin3 et `DEMO_DAVID_PASSWORD` pour david. Les six variables doivent être renseignées avant la création des comptes ; aucun mot de passe fixe de secours n'est utilisé.
+- Les variables `DEMO_ADMIN3_PASSWORD` et `DEMO_DAVID_PASSWORD` sont également utilisées par `infra/keycloak/create-demo-users.sh`. Pour ce script local, leurs valeurs doivent être générées avec 32 octets aléatoires en hexadécimal (64 caractères). Les autres comptes du script utilisent `DEMO_EMMA_PASSWORD`, `DEMO_MODERATOR_PASSWORD` et `DEMO_BOB_PASSWORD`. Ce script et le seed piloté par `demo-seed.manifest.ts` sont deux parcours distincts ; le manifeste conserve ses variables `SEED_DEMO_*`.
 - `emma` n'existe que côté Keycloak en prod ; à la première connexion Keycloak un compte site est créé automatiquement pour elle (rôle habitant par défaut).
 - Pour les comptes qui existent à la fois côté site et côté Keycloak avec le même email (admin, admin2, admin3, bob, david), la première connexion via Keycloak peut demander une étape de liaison de compte au lieu de connecter directement — c'est normal.
-- Sources : mots de passe site dans `apps/api/src/demo-seed/demo-seed.service.ts` et `.env.production` (`SEED_DEMO_*_PASSWORD`) ; mots de passe Keycloak appliqués via `infra/keycloak/create-demo-users.sh`.
+- Sources présentes dans le dépôt : `apps/api/src/demo-seed/demo-seed.service.ts`, `apps/api/src/auth/users.service.ts` et `.env.example` pour les variables du seed API ; `infra/keycloak/create-demo-users.sh` pour la configuration locale des comptes Keycloak. Les fichiers d'environnement contenant les valeurs sont locaux et non suivis dans Git.
+- Le seed API lit les mots de passe depuis les variables d'environnement. Dans `apps/web/src/dashboard/DashboardApp.tsx`, aucun mot de passe de démonstration n'est embarqué : choisir Alice, Bob ou Admin préremplit uniquement l'adresse email et vide le champ mot de passe. Saisir ensuite le mot de passe défini localement pour le compte choisi.
 
 Des anciens comptes de démonstration peuvent encore exister dans une base locale déjà utilisée. Pour une démonstration propre, utiliser de préférence les comptes ci-dessus.
 
@@ -337,8 +341,8 @@ Des anciens comptes de démonstration peuvent encore exister dans une base local
 Comptes utiles :
 
 ```txt
-alice@connected-neighbours.local / ResidentDemo2026!
-bob@connected-neighbours.local / ResidentDemo2026!
+alice@connected-neighbours.local / <VALEUR_LOCALE_DE_SEED_DEMO_RESIDENT_PASSWORD>
+bob@connected-neighbours.local / <VALEUR_LOCALE_DE_SEED_DEMO_RESIDENT_PASSWORD>
 ```
 
 ## 8.2 Navigation disponible
@@ -514,7 +518,7 @@ http://localhost:5174
 Se connecter avec :
 
 ```txt
-admin@connected-neighbours.local / AdminDemo2026!
+admin@connected-neighbours.local / <VALEUR_LOCALE_DE_SEED_DEMO_ADMIN_PASSWORD>
 ```
 
 ## 9.2 Pages disponibles

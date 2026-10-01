@@ -34,12 +34,26 @@ export class UsersService implements OnModuleInit {
       return;
     }
 
+    const requirePassword = (variable: string): string => {
+      const value = process.env[variable];
+      if (!value || value.trim().length === 0) {
+        throw new Error(
+          `Variable ${variable} requise avant la création des comptes de démonstration locaux.`,
+        );
+      }
+      return value;
+    };
+
+    // Valider les deux variables avant le premier appel à ensureDevUser.
+    const residentPassword = requirePassword('SEED_DEMO_RESIDENT_PASSWORD');
+    const adminPassword = requirePassword('SEED_DEMO_ADMIN_PASSWORD');
+
     await this.ensureDevUser({
       email: 'alice@connected-neighbours.local',
       displayName: 'Alice Martin',
       role: Role.RESIDENT,
       neighborhoodId: 'quartier-centre',
-      password: 'alice123',
+      password: residentPassword,
     });
 
     await this.ensureDevUser({
@@ -47,7 +61,7 @@ export class UsersService implements OnModuleInit {
       displayName: 'Bob Dupont',
       role: Role.RESIDENT,
       neighborhoodId: 'quartier-centre',
-      password: 'bob123',
+      password: residentPassword,
     });
 
     await this.ensureDevUser({
@@ -55,7 +69,7 @@ export class UsersService implements OnModuleInit {
       displayName: 'Admin Demo',
       role: Role.ADMIN,
       neighborhoodId: 'quartier-centre',
-      password: 'admin123',
+      password: adminPassword,
     });
   }
 

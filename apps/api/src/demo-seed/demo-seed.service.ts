@@ -213,12 +213,23 @@ export class DemoSeedService implements OnModuleInit {
   }
 
   async seedBusinessData() {
-    const residentPassword =
-      process.env.SEED_DEMO_RESIDENT_PASSWORD ?? 'local-development-only';
-    const moderatorPassword =
-      process.env.SEED_DEMO_MODERATOR_PASSWORD ?? residentPassword;
-    const adminPassword =
-      process.env.SEED_DEMO_ADMIN_PASSWORD ?? residentPassword;
+    const requirePassword = (variable: string): string => {
+      const value = process.env[variable];
+      if (!value || value.trim().length === 0) {
+        throw new Error(
+          `Variable ${variable} requise avant la création des comptes de démonstration locaux.`,
+        );
+      }
+      return value;
+    };
+
+    // Valider les six variables avant le premier appel à ensureDevUser.
+    const residentPassword = requirePassword('SEED_DEMO_RESIDENT_PASSWORD');
+    const moderatorPassword = requirePassword('SEED_DEMO_MODERATOR_PASSWORD');
+    const adminPassword = requirePassword('SEED_DEMO_ADMIN_PASSWORD');
+    const admin2Password = requirePassword('DEMO_ADMIN2_PASSWORD');
+    const admin3Password = requirePassword('DEMO_ADMIN3_PASSWORD');
+    const davidPassword = requirePassword('DEMO_DAVID_PASSWORD');
     const [alice, bob, claire, moderator, admin] = await Promise.all([
       this.usersService.ensureDevUser({
         email: 'alice@connected-neighbours.local',
@@ -263,21 +274,21 @@ export class DemoSeedService implements OnModuleInit {
         displayName: 'Admin Demo 2',
         role: Role.ADMIN,
         neighborhoodId: 'quartier-centre',
-        password: 'admin2123',
+        password: admin2Password,
       }),
       this.usersService.ensureDevUser({
         email: 'admin3@connected-neighbours.local',
         displayName: 'Admin Demo 3',
         role: Role.ADMIN,
         neighborhoodId: 'quartier-centre',
-        password: 'admin3123',
+        password: admin3Password,
       }),
       this.usersService.ensureDevUser({
         email: 'david@connected-neighbours.local',
         displayName: 'David Petit',
         role: Role.RESIDENT,
         neighborhoodId: 'quartier-centre',
-        password: 'david123',
+        password: davidPassword,
       }),
     ]);
 
