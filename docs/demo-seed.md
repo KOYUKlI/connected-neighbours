@@ -1,5 +1,10 @@
 # Seed de démonstration Connected Neighbours
 
+Le projet a été déployé sur Internet avec des comptes de test, mais aucun serveur,
+instance ou hébergement lié au projet n'est aujourd'hui actif. Ce guide concerne
+uniquement une recette locale. Des valeurs publiées ont pu être exposées dans le
+passé ; elles ne doivent pas être réutilisées.
+
 Le seed de démonstration initialise un environnement local reproductible sans
 remplacer les données métier qui ne lui appartiennent pas. MongoDB reste la
 source de vérité. Keycloak et Neo4j sont facultatifs; MinIO est utilisé pour les
@@ -13,11 +18,26 @@ fichiers de démonstration lorsque le scénario complet est lancé.
 - une configuration locale créée à partir de `.env.example`
 
 Les mots de passe de démonstration proviennent exclusivement des variables
-`SEED_DEMO_*_PASSWORD`. Les valeurs proposées dans `.env.example` sont
-volontairement réservées au développement et ne doivent jamais être réutilisées
-dans un environnement réel.
+`SEED_DEMO_RESIDENT_PASSWORD`, `SEED_DEMO_ADMIN_PASSWORD`,
+`SEED_DEMO_MODERATOR_PASSWORD` et `SEED_DEMO_LEGACY_PASSWORD`. Les champs
+correspondants de `.env.example` sont vides : générer des valeurs distinctes
+hors Git, puis les renseigner dans un `.env` local non suivi.
+
+Renseigner également les secrets de configuration locale via
+`COOKIE_SECRET`, `JWT_SECRET`, `MINIO_SECRET_KEY`, `KEYCLOAK_ADMIN_PASSWORD`,
+`KEYCLOAK_DB_PASSWORD`, `KEYCLOAK_SERVICE_CLIENT_SECRET` et, si Neo4j est utilisé,
+`NEO4J_PASSWORD`. Les noms de variables ne sont pas des valeurs de secret.
+Aucun ancien mot de passe publié ne doit être repris.
 
 ## Démarrage
+
+Configurer une base et des services de test locaux dédiés. Les commandes
+ci-dessous décrivent la procédure existante ; elles n'ont pas été exécutées
+pendant ce nettoyage. Contrôler la configuration avant tout démarrage :
+
+```powershell
+docker compose --env-file .env config --quiet
+```
 
 ```powershell
 docker compose up -d mongodb minio mailpit keycloak-db keycloak neo4j
@@ -194,9 +214,16 @@ Graph ne doit annuler une mutation MongoDB.
 
 ## Diagnostic Keycloak
 
+L'export fourni marque ses sept comptes de démonstration comme désactivés
+et ne contient plus leurs credentials. Le compte de service et ses rôles
+sont conservés ; son secret est référencé par
+`KEYCLOAK_SERVICE_CLIENT_SECRET`. Les comptes du seed restent définis par
+son manifeste et les variables `SEED_DEMO_*_PASSWORD`.
+
 Si la connexion locale fonctionne mais pas Keycloak:
 
-1. vérifier `KEYCLOAK_ENABLED`, le realm et l’URL publique;
+1. vérifier `KEYCLOAK_ENABLED`, `KEYCLOAK_REALM` et `KEYCLOAK_PUBLIC_URL`,
+   qui doit viser le service local (`http://localhost:8080` par défaut);
 2. vérifier la disponibilité de `cn-keycloak` et `cn-keycloak-db`;
 3. exécuter `pnpm seed:demo:status`;
 4. vérifier que l’e-mail principal est validé et que le compte est lié;

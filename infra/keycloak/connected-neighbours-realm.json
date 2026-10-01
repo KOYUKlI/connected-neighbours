@@ -310,106 +310,64 @@
       "username": "admin@connected-neighbours.local",
       "email": "admin@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "Admin",
       "lastName": "Demo",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "AdminDemo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     },
     {
       "username": "alice@connected-neighbours.local",
       "email": "alice@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "Alice",
       "lastName": "Martin",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "AliceDemo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     },
     {
       "username": "admin2@connected-neighbours.local",
       "email": "admin2@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "Admin",
       "lastName": "Demo 2",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Admin2Demo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     },
     {
       "username": "admin3@connected-neighbours.local",
       "email": "admin3@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "Admin",
       "lastName": "Demo 3",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Admin3Demo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     },
     {
       "username": "david@connected-neighbours.local",
       "email": "david@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "David",
       "lastName": "Petit",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "DavidDemo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     },
     {
       "username": "emma@connected-neighbours.local",
       "email": "emma@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "Emma",
       "lastName": "Rousseau",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "EmmaDemo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     },
     {
       "username": "moderator@connected-neighbours.local",
       "email": "moderator@connected-neighbours.local",
       "emailVerified": true,
-      "enabled": true,
+      "enabled": false,
       "firstName": "Moderation",
       "lastName": "Demo",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "ModeratorDemo2026!",
-          "temporary": false
-        }
-      ]
+      "credentials": []
     }
   ]
 }

@@ -1,28 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Creates the remaining demo users directly in the live Keycloak realm via
-# the Admin REST API (no docker exec needed, works from any machine with
-# network access to KEYCLOAK_URL).
-#
-# It does NOT set emailVerified=true — tick "Email verified" by hand for
-# each user afterwards in the admin console (Users > <user> > Details).
+# Création ou mise à jour de comptes sur une démo Keycloak locale uniquement.
+# Ne pas utiliser contre un service distant.
 #
 # Usage:
-#   KEYCLOAK_ADMIN_PASSWORD='...' ./infra/keycloak/create-demo-users.sh
+# Fournir KEYCLOAK_ADMIN_PASSWORD et les mots de passe DEMO_* via l'environnement.
+# Générer chaque mot de passe DEMO_* avec 32 octets aléatoires en hexadécimal.
 
-KEYCLOAK_URL="${KEYCLOAK_URL:-https://auth.3al-connected-neighbours.pro}"
+KEYCLOAK_URL="${KEYCLOAK_URL:-http://127.0.0.1:8080}"
+# Ce script est limité à une instance locale de démonstration.
+if [[ ! "${KEYCLOAK_URL}" =~ ^http://(localhost|127\.0\.0\.1)(:[0-9]+)?/?$ ]]; then
+  echo "Cible refusée : utiliser une instance locale de démonstration." >&2
+  exit 1
+fi
+
 REALM="${KEYCLOAK_REALM:-connected-neighbours}"
 ADMIN_USER="${KEYCLOAK_ADMIN_USER:-admin}"
 ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}"
 
 USERS=(
-  "admin3@connected-neighbours.local|Admin|Demo 3|Admin3Demo2026!"
-  "david@connected-neighbours.local|David|Petit|DavidDemo2026!"
-  "emma@connected-neighbours.local|Emma|Rousseau|EmmaDemo2026!"
-  "moderator@connected-neighbours.local|Moderation|Demo|ModeratorDemo2026!"
-  "bob@connected-neighbours.local|Bob|Dupont|BobDemo2026!"
+  "admin3@connected-neighbours.local|Admin|Demo 3|${DEMO_ADMIN3_PASSWORD:?Définir DEMO_ADMIN3_PASSWORD}"
+  "david@connected-neighbours.local|David|Petit|${DEMO_DAVID_PASSWORD:?Définir DEMO_DAVID_PASSWORD}"
+  "emma@connected-neighbours.local|Emma|Rousseau|${DEMO_EMMA_PASSWORD:?Définir DEMO_EMMA_PASSWORD}"
+  "moderator@connected-neighbours.local|Moderation|Demo|${DEMO_MODERATOR_PASSWORD:?Définir DEMO_MODERATOR_PASSWORD}"
+  "bob@connected-neighbours.local|Bob|Dupont|${DEMO_BOB_PASSWORD:?Définir DEMO_BOB_PASSWORD}"
 )
+
+# Valider tous les mots de passe avant le premier appel réseau.
+for entry in "${USERS[@]}"; do
+  IFS='|' read -r _ _ _ PASSWORD <<< "${entry}"
+  if [[ ! "${PASSWORD}" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    echo "Mot de passe de démo invalide : utiliser 32 octets aléatoires en hexadécimal." >&2
+    exit 1
+  fi
+done
 
 echo "Authenticating against ${KEYCLOAK_URL} (master realm, admin-cli client)..."
 TOKEN=$(curl -sf "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
